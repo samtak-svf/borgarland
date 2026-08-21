@@ -106,12 +106,10 @@ category than the rendered form shows. Read from the hydrated route
 | `umferdaroryggi` | 3217299 | `specific` | |
 | `bilastaedasjodur` | 3217300 | `specific` | |
 
-This table is what the **city** accepts. What the **app** offers is a subset —
-nine of these plus the catch-all, on the test of whether a person walking with a
-phone can meet the thing and photograph it. `heimilissorp` and
-`bilastaedasjodur` fail that test and are not in the app; the reasoning is in
-[AGENTS.md](../../AGENTS.md). Keep the distinction when reading this file: it
-documents the endpoint, not the product.
+This table is what the **city** accepts, and the app carries all twelve. The
+scope test — a human walking with a phone — governs the interaction rather than
+the taxonomy; see [AGENTS.md](../../AGENTS.md). Keep the distinction when
+reading this file regardless: it documents the endpoint, not the product.
 
 **The taxonomy is flat, and nothing diverts you.** Only two categories carry a
 `relatedContent` panel, and both are informational: the waste one offers a

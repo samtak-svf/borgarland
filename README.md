@@ -74,19 +74,22 @@ thirty seconds beats a report that never happens.
 
 ## Scope
 
-**A human walking with a phone.** That is the test for what goes in, not whether
-the city's form accepts it. Nine of the city's twelve categories are physical
-things standing in the public realm that photograph themselves — potholes, ice,
-abandoned cars, vegetation, litter bins, sweeping, drains, street lights, traffic
-safety — plus a catch-all for the broken bench that has no category of its own.
+**A human walking with a phone.** That is the test, and it governs how the app
+works rather than which of the city's categories it carries.
 
-The two left out are the two a photograph does nothing for: household waste
-collection on private property, and parking charges and permits. The app is the
-walking subset of the city's form, not a reimplementation of it.
+All twelve are in: potholes, ice, abandoned cars, vegetation, litter bins,
+sweeping, drains, street lights, traffic safety, household waste, parking, and a
+catch-all for the broken bench with no category of its own. Each one can carry a
+photograph of a physical thing standing at a coordinate.
 
-Reykjavík only, to begin with. The capital area does not share one reporting system —
-Mosfellsbær runs MainManager behind ASP.NET `__VIEWSTATE`, Hafnarfjörður a
-Drupal module — so each additional municipality is real work, not a config
+What the test rules out is the desk. The camera is the entry point, a coordinate
+is required, and there is no flow for disputing a charge or filing an idea with
+nothing attached to it. Anyone who wants that has the city's own form, and this
+app should say so rather than pretend to be it.
+
+Reykjavík only, to begin with. The capital area does not share one reporting
+system — Mosfellsbær runs MainManager behind ASP.NET `__VIEWSTATE`, Hafnarfjörður
+a Drupal module — so each additional municipality is real work, not a config
 entry. Get one right first.
 
 ## Contributing
