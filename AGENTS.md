@@ -95,6 +95,13 @@ find a bin that has no address of its own.
 The Reykjavík subset is 23,057 addresses, 0.25 MB gzipped, so it ships on the
 phone and works with no signal.
 
+**Check the municipality before sending.** The city validates nothing — not
+even that a coordinate exists, let alone where it falls — so a pothole in
+Kópavogur would reach a Reykjavík queue that cannot act on it. Reverse-look the
+coordinate to its nearest address and read `SVFNR`: `0000` is Reykjavíkurborg.
+Anything else, say so instead of filing. The city's own map bounds are useless
+for this; they cover the whole capital region and out past Þingvellir.
+
 **The registry is a convenience, never a constraint.** Picking an address does
 not snap the report to it; the marker is free and moving it clears the address
 field. The coordinate is the only thing submitted. Never snap a report to the
