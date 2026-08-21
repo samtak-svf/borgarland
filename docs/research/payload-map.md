@@ -199,6 +199,43 @@ construct it.
 address. That is fine for us — the payload wants the coordinate anyway — but it
 means the app cannot label a report with a street name from the city's own data.
 
+## The map has bounds; the payload has none
+
+`BrowserMap-*.js` constrains panning to a fixed box:
+
+```js
+{lat: 63.9404797, lng: -22.7821121}   // south-west
+{lat: 64.4310538, lng: -20.9112908}   // north-east
+```
+
+with a fallback centre of `64.167652, -21.839031` when nothing else sets the
+view. That box is far larger than Reykjavík — it takes in the whole capital
+region, Reykjanes and out past Þingvellir. It is a panning limit for the
+widget, not a statement about jurisdiction.
+
+**The server enforces nothing.** It does not require a coordinate at all, let
+alone check where one falls. So the form will happily accept a report about a
+pothole in Kópavogur, and it will reach a Reykjavík work queue that cannot act
+on it.
+
+That is a check we have to make, and the registry already carries what it needs:
+`SVFNR`, the municipality number, with `0000` for Reykjavíkurborg.
+
+| SVFNR | municipality | addresses |
+|---|---|---|
+| `0000` | Reykjavíkurborg | 23,835 |
+| `1000` | Kópavogsbær | 6,843 |
+| `1100` | Seltjarnarnesbær | 1,053 |
+| `1300` | Garðabær | 4,697 |
+| `1400` | Hafnarfjarðarkaupstaður | 7,521 |
+| `1604` | Mosfellsbær | 4,547 |
+
+Reverse-look the coordinate to its nearest registered address, read `SVFNR`, and
+if it is not `0000` say so rather than filing. Telling someone standing in
+Kópavogur that this app cannot help them yet is a better outcome than a report
+nobody will action — and it is the honest version of the multi-municipality
+answer until one of the others is actually supported.
+
 ## Unknowns
 
 - **Maximum upload size and file count.** The client uses react-dropzone with no
