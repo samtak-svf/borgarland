@@ -226,6 +226,11 @@ on it.
 That is a check we have to make, and the registry already carries what it needs:
 `SVFNR`, the municipality number, with `0000` for Reykjavíkurborg.
 
+Counted by `SVFNR`, the registry's municipality column. This is not the same
+measure as the 23,057 quoted elsewhere for Reykjavík, which counts the city's
+**postcodes**; the two differ because postcodes do not follow municipal
+boundaries. Neither is wrong.
+
 | SVFNR | municipality | addresses |
 |---|---|---|
 | `0000` | Reykjavíkurborg | 23,835 |
