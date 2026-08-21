@@ -1,0 +1,66 @@
+# Watches the one dependency this project does not own.
+#
+# Reykjavík publishes no API. The app files reports through the city's own web
+# form endpoint, which is undocumented and can change field names, add a
+# captcha, or start checking Origin at any time with no notice to us. If that
+# happens we want to find out from a red build, not from a user standing next to
+# an overflowing bin.
+#
+# The probe posts a deliberately incomplete payload, so the city's own
+# validation rejects it. It creates nothing. Do NOT extend this into a real
+# submission — an end-to-end test that files a genuine report wastes a city
+# employee's time, and doing it on a schedule would be abuse.
+name: contract
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  pull_request:
+    paths:
+      - 'worker/**'
+      - '.github/workflows/contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reykjavik-form:
+    runs-on: ubuntu-latest
+    steps:
+      - name: The submission endpoint still rejects an empty payload the way we expect
+        run: |
+          set -uo pipefail
+          URL=https://reykjavik.is/abendingar/senda-abendingu/ruslafotur
+          body=$(mktemp)
+          code=$(curl -sS -X POST -F "dummy=1" -o "$body" -w '%{http_code}' "$URL")
+
+          fail=0
+          if [ "$code" != "400" ]; then
+            echo "::error::expected HTTP 400 from $URL, got $code"
+            fail=1
+          fi
+          # The 400 must carry the city's own field-level validation messages.
+          # A 400 without them means something else answered — a WAF, a captcha
+          # gate, a redirect to a login — and the adapter needs revisiting.
+          for needle in "Vinsamlegast skrifaðu lýsingu" "Hvar er þetta"; do
+            if ! grep -qF "$needle" "$body"; then
+              echo "::error::validation message missing from the response: $needle"
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] || {
+            echo "The city's form no longer behaves as worker/src/adapters/reykjavik.ts assumes."
+            exit 1
+          }
+          echo "✓ endpoint reachable anonymously and validating server-side"
+
+      - name: The address lookup still answers
+        run: |
+          set -uo pipefail
+          out=$(curl -sS 'https://reykjavik.is/location/addresses?q=Laugavegur+1')
+          printf '%s' "$out" | grep -q 'fasteignarheiti_nefnifall' || {
+            echo "::error::/location/addresses no longer returns the expected shape"
+            exit 1
+          }
+          echo "✓ address lookup answering"

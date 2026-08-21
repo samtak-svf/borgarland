@@ -1,0 +1,61 @@
+# Local guardrails. The authoritative AI-authorship check is the server-side
+# .github/workflows/ai-authorship.yml — these hooks only run on a machine that
+# installed lefthook, which a cloud session never is.
+#
+# Install with: lefthook install
+
+pre-commit:
+  commands:
+    branch-protection:
+      run: |
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$BRANCH" = "main" ]; then
+          echo "❌ Direct commits to main are not allowed."
+          echo "   Create a feature branch: git checkout -b my-feature"
+          exit 1
+        fi
+
+    ai-authorship:
+      glob: "*.{kt,kts,swift,ts,tsx,js,mjs,xml,md,toml,txt,yml,yaml}"
+      exclude: "^(\\.github/workflows/|\\.lefthook/|lefthook\\.yml)"
+      run: |
+        for f in {staged_files}; do
+          if grep -iE "Co-Authored-By.*(Claude|GPT|Copilot|Anthropic|OpenAI|Gemini)" "$f" 2>/dev/null; then
+            echo "❌ AI authorship marker in $f"
+            exit 1
+          fi
+        done
+
+    secret-detection:
+      run: |
+        for f in {staged_files}; do
+          case "$f" in
+            *.env|*.pem|*.key|credentials.json|google-services.json|*.jks|*.keystore|*.mobileprovision|*.p8|*.p12)
+              echo "❌ Secret file staged: $f — add to .gitignore"
+              exit 1 ;;
+          esac
+          if grep -iE "(CLOUDFLARE_API_TOKEN|DATABASE_PASSWORD|APP_KEYS|JWT_SECRET|API_KEY|PRIVATE_KEY|SECRET_KEY)=" "$f" 2>/dev/null; then
+            echo "❌ Possible secret in $f"
+            exit 1
+          fi
+        done
+
+    # Formatters are added as each surface lands: ktlintFormat with app/,
+    # swiftformat with ios/, prettier with worker/. An empty repo has nothing
+    # to format and a hook that shells out to a missing tool is worse than none.
+
+pre-push:
+  commands:
+    block-main:
+      run: |
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$BRANCH" = "main" ]; then
+          echo "❌ Direct pushes to main are not allowed."
+          echo "   Use a feature branch and create a pull request."
+          exit 1
+        fi
+
+commit-msg:
+  scripts:
+    "check-msg.sh":
+      runner: bash
