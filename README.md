@@ -72,9 +72,19 @@ That measurement is worth as much as the convenience.
 city's own form pre-filled in a web view rather than failing. A report that takes
 thirty seconds beats a report that never happens.
 
-## Scope, first release
+## Scope
 
-Reykjavík only. The capital area does not share one reporting system —
+**A human walking with a phone.** That is the test for what goes in, not whether
+the city's form accepts it. Nine of the city's twelve categories are physical
+things standing in the public realm that photograph themselves — potholes, ice,
+abandoned cars, vegetation, litter bins, sweeping, drains, street lights, traffic
+safety — plus a catch-all for the broken bench that has no category of its own.
+
+The two left out are the two a photograph does nothing for: household waste
+collection on private property, and parking charges and permits. The app is the
+walking subset of the city's form, not a reimplementation of it.
+
+Reykjavík only, to begin with. The capital area does not share one reporting system —
 Mosfellsbær runs MainManager behind ASP.NET `__VIEWSTATE`, Hafnarfjörður a
 Drupal module — so each additional municipality is real work, not a config
 entry. Get one right first.

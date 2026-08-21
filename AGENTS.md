@@ -33,6 +33,40 @@ at the city costs a deploy; from the app it costs an App Store review before
 anyone can report anything again. The relay is also the only place the
 follow-through measurement can live.
 
+## What belongs in the app: a human walking with a phone
+
+The scope test is not "does the city accept it" but **is this a thing a person
+walking with a phone can meet and photograph**. The app is the walking subset of
+the city's form, not a reimplementation of it.
+
+Nine of the twelve categories pass: `holur-i-gotu`, `snjor-og-halka`,
+`numerlausir-bilar`, `gras-og-grodur`, `ruslafotur`, `gotusopun`, `nidurfoll`,
+`ljosastaurar`, `umferdaroryggi`. Every one is a physical object standing in the
+public realm that photographs itself at a coordinate.
+
+Two fail and are **not** in the app:
+
+- `heimilissorp` — waste collection on private property. You are at home, not
+  walking, and it is a service complaint rather than a thing in the public realm.
+- `bilastaedasjodur` — parking charges, car parks, residents' permits. Account
+  administration, which a photograph does nothing for.
+
+`almenn-abending` stays, but reworded. The city defines it as suggestions,
+praise and ideas; in this app it is the net under a broken bench, a fallen tree,
+a collapsed fence — things a walker meets that have no category of their own.
+Present it as *something else in the public realm*, never as a suggestion box.
+
+So: **nine categories and one catch-all, ten chips.**
+
+A consequence worth keeping: all nine ask the same question — was the physical
+thing fixed — on a comparable clock. The two that were dropped would have
+muddied the follow-through measurement, because a dispute over a residents'
+permit is not the same measurement as a pothole being filled.
+
+**`scripts/send-report.mjs` keeps all twelve.** It is the map of what the city
+accepts, not the app's interface. Do not trim it to match the app; the two are
+different artifacts and the difference is deliberate.
+
 ## Location comes from the photo, not from an address
 
 The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
