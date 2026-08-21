@@ -38,7 +38,9 @@ Content-Type: multipart/form-data
 | `files` | file, multiple | `image/jpeg`, `image/png`, `image/gif` |
 | `email` | text | optional; the only way to get follow-up |
 
-The twelve category slugs, straight out of the page: `almenn-abending`,
+Every field's exact value per category, the address endpoints and what is
+still unknown are in [payload-map.md](payload-map.md). The twelve category
+slugs, straight out of the page: `almenn-abending`,
 `holur-i-gotu`, `heimilissorp`, `snjor-og-halka`, `numerlausir-bilar`,
 `gras-og-grodur`, `ruslafotur`, `gotusopun`, `nidurfoll`, `ljosastaurar`,
 `umferdaroryggi`, `bilastaedasjodur`.
@@ -49,13 +51,21 @@ The twelve category slugs, straight out of the page: `almenn-abending`,
 $ curl -sS -X POST -F "dummy=1" \
     https://reykjavik.is/abendingar/senda-abendingu/ruslafotur
 HTTP/2 400
-… "description": "Vinsamlegast skrifaðu lýsingu svo við getum …"
-… "location":    "Hvar er þetta? Sláðu inn heimilisfang eða veldu staðsetningu á kortinu."
+… "error": "Missing required fields",
+  "inputErrors": { "description": ["Vinsamlegast skrifaðu lýsingu svo við getum …"] }
 ```
 
-A `400` carrying the server's own field-level validation messages proves the
-route is handled server-side and reachable anonymously. Validation is enforced
-on the server, so a malformed request creates nothing.
+A `400` carrying the validator's own error envelope proves the route is handled
+server-side and reachable anonymously, and that a malformed request creates
+nothing.
+
+Note what is *not* in `inputErrors`: `lat` and `lng`. **The only field the city
+enforces is `description`** — the location appears to be required in the browser
+only, by the map picker refusing to submit without a marker. That was not tested
+further, because a request that passes validation files a real report.
+
+The consequence is a requirement on our side rather than theirs: the relay must
+reject a report with no coordinate, since the city will not.
 
 ### Supporting endpoints, also open
 

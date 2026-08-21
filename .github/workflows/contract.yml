@@ -6,10 +6,14 @@
 # happens we want to find out from a red build, not from a user standing next to
 # an overflowing bin.
 #
-# The probe posts a deliberately incomplete payload, so the city's own
-# validation rejects it. It creates nothing. Do NOT extend this into a real
-# submission — an end-to-end test that files a genuine report wastes a city
-# employee's time, and doing it on a schedule would be abuse.
+# The probe posts a payload the city must reject, so it creates nothing. Do NOT
+# extend this into a real submission — an end-to-end test that files a genuine
+# report puts work in a real queue, and doing it on a schedule would be abuse.
+#
+# It asserts on the STRUCTURE of the rejection, not on page text. An earlier
+# version looked for "Hvar er þetta?", which is the static help text under the
+# location field and is present in every render of the page — it would have
+# passed no matter what the validator did.
 name: contract
 
 on:
@@ -18,6 +22,7 @@ on:
   pull_request:
     paths:
       - 'worker/**'
+      - 'scripts/send-report.mjs'
       - '.github/workflows/contract.yml'
   workflow_dispatch:
 
@@ -28,7 +33,13 @@ jobs:
   reykjavik-form:
     runs-on: ubuntu-latest
     steps:
-      - name: The submission endpoint still rejects an empty payload the way we expect
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: The submission endpoint still rejects an incomplete payload the way we expect
         run: |
           set -uo pipefail
           URL=https://reykjavik.is/abendingar/senda-abendingu/ruslafotur
@@ -36,31 +47,56 @@ jobs:
           code=$(curl -sS -X POST -F "dummy=1" -o "$body" -w '%{http_code}' "$URL")
 
           fail=0
-          if [ "$code" != "400" ]; then
-            echo "::error::expected HTTP 400 from $URL, got $code"
+          [ "$code" = "400" ] || { echo "::error::expected HTTP 400 from $URL, got $code"; fail=1; }
+
+          # The validator's own vocabulary, not page copy. If this disappears,
+          # something other than the route answered — a WAF, a captcha gate, a
+          # redirect — and the adapter needs revisiting.
+          grep -qF 'Missing required fields' "$body" \
+            || { echo "::error::the 400 no longer carries the validator's error envelope"; fail=1; }
+          grep -qF '\"description\"' "$body" \
+            || { echo "::error::description is no longer named as an input error"; fail=1; }
+
+          # Documented in docs/research/payload-map.md: the city enforces only
+          # description, which is why our relay has to enforce the coordinate.
+          # If that ever changes, the doc and the relay's validation are both
+          # stale and should be revisited — so fail loudly rather than quietly
+          # becoming more correct.
+          if grep -qE '\\"(lat|lng)\\"' "$body"; then
+            echo "::error::the city now validates lat/lng too — payload-map.md says it does not"
             fail=1
           fi
-          # The 400 must carry the city's own field-level validation messages.
-          # A 400 without them means something else answered — a WAF, a captcha
-          # gate, a redirect to a login — and the adapter needs revisiting.
-          for needle in "Vinsamlegast skrifaðu lýsingu" "Hvar er þetta"; do
-            if ! grep -qF "$needle" "$body"; then
-              echo "::error::validation message missing from the response: $needle"
-              fail=1
-            fi
-          done
-          [ "$fail" -eq 0 ] || {
-            echo "The city's form no longer behaves as worker/src/adapters/reykjavik.ts assumes."
-            exit 1
-          }
-          echo "✓ endpoint reachable anonymously and validating server-side"
 
-      - name: The address lookup still answers
+          [ "$fail" -eq 0 ] || { echo "The city's form no longer behaves as documented."; exit 1; }
+          echo "✓ endpoint reachable anonymously, validating server-side, description-only"
+
+      - name: The address lookups still answer in the documented shape
         run: |
           set -uo pipefail
-          out=$(curl -sS 'https://reykjavik.is/location/addresses?q=Laugavegur+1')
-          printf '%s' "$out" | grep -q 'fasteignarheiti_nefnifall' || {
-            echo "::error::/location/addresses no longer returns the expected shape"
+          fail=0
+          curl -sS 'https://reykjavik.is/location/addresses?q=Laugavegur+1' \
+            | grep -q 'fasteignarheiti_nefnifall' \
+            || { echo "::error::/location/addresses no longer returns the expected shape"; fail=1; }
+
+          # Note the path: addressInfo is under /abendingar/, its sibling is not.
+          curl -sS -G --data-urlencode 'a=Laugavegur 1' --data-urlencode 'p=101' \
+            'https://reykjavik.is/abendingar/addressInfo' \
+            | grep -q '"geometry"' \
+            || { echo "::error::/abendingar/addressInfo no longer returns geometry"; fail=1; }
+
+          [ "$fail" -eq 0 ] || exit 1
+          echo "✓ address search and address-to-coordinate both answering"
+
+      - name: The fill-in script builds a payload without sending one
+        run: |
+          set -euo pipefail
+          out=$(node scripts/send-report.mjs --category ruslafotur \
+                  --description "contract check, nothing is sent" \
+                  --address "Laugavegur 1" --postcode 101)
+          printf '%s\n' "$out"
+          printf '%s' "$out" | grep -q 'Nothing sent' || {
+            echo "::error::send-report.mjs no longer defaults to not sending — that default is the safety"
             exit 1
           }
-          echo "✓ address lookup answering"
+          printf '%s' "$out" | grep -q 'Ábending -> Ruslafötur'
+          echo "✓ payload built, nothing sent"
