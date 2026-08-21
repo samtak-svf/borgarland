@@ -29,7 +29,7 @@ Content-Type: multipart/form-data
 
 | Field | Type | Notes |
 |---|---|---|
-| `type` | hidden | `specific` |
+| `type` | hidden | `specific` for eleven categories, `general` for `almenn-abending`. Do not hardcode it; it is per-category in `data/reykjavik-form.json`. |
 | `category` | hidden | display name, e.g. `Ruslafötur` |
 | `summary` | hidden | e.g. `Ábending -> Ruslafötur` |
 | `lat` | hidden | filled by the map / address picker |

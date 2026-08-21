@@ -60,9 +60,12 @@ App Store review before anyone can file a report again. Behind a relay it costs
 a deploy. A scheduled contract test watches the endpoint so we hear about a
 change from a red build rather than from a user.
 
-**We keep our own record, because nobody else does.** The city exposes no ticket
-id, no status and no public register, and publishes no response-time data at
-all — its open-data portal has 595 datasets and not one concerns ábendingar. So
+**We keep our own record, because nobody else does.** The city does return a
+reference number on success — we know because one was returned for a report
+filed by accident — but there is nothing to do with it: no lookup, no status, no
+public register, and no response-time data published anywhere. Its open-data
+portal has 595 datasets and not one concerns ábendingar. A number you cannot ask
+a question about is not a ticket. So
 the second half of this project falls out of the first: an app that timestamps
 its own submissions and later asks the reporter whether the thing actually got
 fixed is the only instrument anyone has for measuring the city's follow-through.
