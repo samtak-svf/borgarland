@@ -2,7 +2,12 @@
 
 Everything here was read off the live form on 2026-08-21 by driving it in a real
 browser and watching the network, then confirmed against the server with
-requests that it rejected. Nothing was submitted.
+requests that it rejected.
+
+The machine-readable version of this file is
+[`data/reykjavik-form.json`](../../data/reykjavik-form.json), which
+`scripts/send-report.mjs`, the Worker adapter and the contract workflow all read.
+Change facts there first; this document is the reasoning around them.
 
 This is the specification `worker/src/adapters/reykjavik.ts` implements, and
 `scripts/send-report.mjs` is its executable form.
@@ -236,12 +241,41 @@ Kópavogur that this app cannot help them yet is a better outcome than a report
 nobody will action — and it is the honest version of the multi-municipality
 answer until one of the others is actually supported.
 
+## What a success looks like
+
+A successful submission navigates to
+
+```
+/abendingar/senda-abendingu/{slug}/done/{number}
+```
+
+and **the city does return a reference number**, e.g. `110474`. A confirmation
+email follows from `no-reply@reykjavik.is`, repeating the number in Icelandic,
+English and Polish, and saying the city aims to answer or forward the report
+within the next working day.
+
+This was established by accident, by filing a real report during payload
+research. Read [the incident](../incidents/2026-08-21-filed-a-real-report.md)
+before doing anything near the submit button.
+
+The number looks like a sequential counter. Once the app has real users, each
+number their reports come back with is a free sample of the city's total report
+volume — a figure published nowhere. That measurement needs no test submissions
+and must never be pursued with any.
+
+## The backend is Drupal
+
+Read passively from the confirmation email's headers: `X-Mailer: Drupal`, with a
+`Message-Id` from `rs-plesk-02-dev.rvk.borg` via `smtp.reykjavik.is`. So the
+React Router site is a front end over a Drupal application, which fits the Drupal
+node ids on the categories and the `data-drupal-link-system-path` attributes in
+the page. The legacy host `abendingar.reykjavik.is` now 301s to
+`reykjavik.is/abendingar` and answers with `X-Powered-By: PHP/7.3.33` and
+`PleskLin`.
+
 ## Unknowns
 
 - **Maximum upload size and file count.** The client uses react-dropzone with no
   configured `maxSize`, so the limit is whatever the server enforces, and finding
-  it means uploading until something breaks. Not worth a real submission; treat
-  it as unknown and downscale aggressively.
-- **What a success response looks like**, and whether it carries anything
-  resembling a reference number. Determinable only by filing one real report,
-  which is a thing to do once, deliberately, at the end of a build.
+  it means uploading until something breaks. Treat it as unknown and downscale
+  aggressively.
