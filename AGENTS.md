@@ -35,37 +35,43 @@ follow-through measurement can live.
 
 ## What belongs in the app: a human walking with a phone
 
-The scope test is not "does the city accept it" but **is this a thing a person
-walking with a phone can meet and photograph**. The app is the walking subset of
-the city's form, not a reimplementation of it.
+The scope test is **can a person walking with a phone meet this thing and
+photograph it**. That test governs the *interaction*, not the taxonomy — a
+distinction worth stating, because an earlier version of this section got it
+wrong and dropped two categories over it.
 
-Nine of the twelve categories pass: `holur-i-gotu`, `snjor-og-halka`,
-`numerlausir-bilar`, `gras-og-grodur`, `ruslafotur`, `gotusopun`, `nidurfoll`,
-`ljosastaurar`, `umferdaroryggi`. Every one is a physical object standing in the
-public realm that photographs itself at a coordinate.
+**All twelve categories are in the app.** Every one of them can carry a
+photograph of a physical object at a coordinate: a damaged bin on a private lot
+is as photographable from the pavement as a pothole, and a broken meter, a bent
+sign or a barrier that will not lift are as physical as a dead street light.
 
-Two fail and are **not** in the app:
+The mistake to avoid is judging a category by the city's description text rather
+than by what people actually report through it. Read that way, `heimilissorp`
+looks like a service complaint and `bilastaedasjodur` looks like account
+administration — but **every category has a non-photographic tail**.
+`umferdaroryggi` can be a pure opinion that a junction feels dangerous, and
+`almenn-abending` usually is one. Singling out parking for a property all twelve
+share was over-fitting.
 
-- `heimilissorp` — waste collection on private property. You are at home, not
-  walking, and it is a service complaint rather than a thing in the public realm.
-- `bilastaedasjodur` — parking charges, car parks, residents' permits. Account
-  administration, which a photograph does nothing for.
+So the boundary is drawn in the interaction instead:
 
-`almenn-abending` stays, but reworded. The city defines it as suggestions,
-praise and ideas; in this app it is the net under a broken bench, a fallen tree,
-a collapsed fence — things a walker meets that have no category of their own.
-Present it as *something else in the public realm*, never as a suggestion box.
+- **The camera is the entry point.** The app opens on it. There is no path that
+  starts with a form.
+- **A coordinate is required.** The city does not enforce this; we do. See the
+  location section below.
+- **No desk mode.** No flow for disputing a charge, chasing an application, or
+  filing an idea with nothing attached to it. Someone who wants that has the
+  city's own form, and the app should say so rather than pretend to be it.
 
-So: **nine categories and one catch-all, ten chips.**
+`almenn-abending` is still reworded in the interface. The city calls it
+suggestions, praise and ideas; here it is the net under a broken bench, a fallen
+tree, a collapsed fence — a walker's find with no category of its own. Present
+it as *something else in the public realm*, never as a suggestion box.
 
-A consequence worth keeping: all nine ask the same question — was the physical
-thing fixed — on a comparable clock. The two that were dropped would have
-muddied the follow-through measurement, because a dispute over a residents'
-permit is not the same measurement as a pothole being filled.
-
-**`scripts/send-report.mjs` keeps all twelve.** It is the map of what the city
-accepts, not the app's interface. Do not trim it to match the app; the two are
-different artifacts and the difference is deliberate.
+**`scripts/send-report.mjs` and `payload-map.md` document all twelve** because
+that is what the city accepts. They now agree with the app, but keep the
+distinction in mind: those files map the endpoint, this section governs the
+product.
 
 ## Location comes from the photo, not from an address
 
