@@ -23,8 +23,13 @@ in [docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reporting-
 The short version: Reykjavík publishes no API, and no Icelandic municipality
 implements Open311 — but the city's own form endpoint accepts an anonymous
 `multipart/form-data` POST from any client, validated server-side, with no CSRF
-token and no captcha. That is enough to build on. It is also a dependency we do
-not own, which is what shapes the architecture below.
+token and no captcha. Every field is mapped in
+[payload-map.md](docs/research/payload-map.md), and
+[`scripts/send-report.mjs`](scripts/send-report.mjs) files a report from the
+command line — including reading the coordinate out of a photo's EXIF.
+
+That is enough to build on. It is also a dependency we do not own, which is what
+shapes the architecture below.
 
 ## Shape
 
@@ -38,10 +43,15 @@ iOS (Swift/SwiftUI)       ─┘         │
 Four decisions worth stating early.
 
 **The location is the photo's, not an address.** The city's form leads with
-"type in an address". For a litter bin standing on a path that is the wrong
-primitive — it has no address, only the coordinate that came with the photo. So
-EXIF GPS first, the device fix as fallback, a map only for correcting it, and
-address lookup used solely to fill the city's own fields afterwards.
+"type in an address", but there is no address field in the payload at all: the
+search exists only to move a map marker, and what gets submitted is always a
+coordinate. For a litter bin standing on a path that is exactly right, because
+it has no address — only the coordinate that came with the photo. So EXIF GPS
+first, the device fix as fallback, a map only for correcting it.
+
+**We validate the location, because the city does not.** `description` is the
+only field the city enforces. A report with no coordinate would be accepted and
+nobody could act on it, so the relay rejects it before the city sees it.
 
 **A relay, not a direct post.** The app could POST to the city from the device
 and skip a backend entirely. It should not. The endpoint is undocumented and can
