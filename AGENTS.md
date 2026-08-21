@@ -81,6 +81,25 @@ coordinate that came with the photo.* So: EXIF GPS first, device fix as
 fallback, map correction optional, and reverse geocoding only to fill the city's
 fields after the fact.
 
+## Addresses: use the registry, not the city
+
+The city's address endpoints are Staðfangaskrá passed through unchanged —
+verified to the last decimal against the HMS export. Do not call them. Use
+**`iceaddr-ts`** (`~/Development/projects/stadfangaskra/`), which is a
+zero-dependency, edge-native port already built for Cloudflare Workers.
+
+That also gives us reverse geocoding, which reykjavik.is does not have anywhere.
+Put the nearest registered address in the description we send, so the crew can
+find a bin that has no address of its own.
+
+The Reykjavík subset is 23,057 addresses, 0.25 MB gzipped, so it ships on the
+phone and works with no signal.
+
+**The registry is a convenience, never a constraint.** Picking an address does
+not snap the report to it; the marker is free and moving it clears the address
+field. The coordinate is the only thing submitted. Never snap a report to the
+nearest house. Detail: [docs/research/addresses-and-the-registry.md](docs/research/addresses-and-the-registry.md).
+
 ## Never file a real report as a test
 
 `.github/workflows/contract.yml` probes the city's endpoint with a deliberately
