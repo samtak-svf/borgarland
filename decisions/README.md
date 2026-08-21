@@ -25,3 +25,4 @@ is the main thing a decision log is for.
 | [0005](0005-addresses-from-the-registry.md) | Addresses come from Staðfangaskrá, not from the city | Accepted |
 | [0006](0006-never-press-submit.md) | Never press submit on the city's live form | Accepted |
 | [0007](0007-approach-the-city-after-the-poc.md) | Approach the city after the proof of concept, not before | Accepted |
+| [0008](0008-photo-analysis-suggests-never-decides.md) | Photo analysis suggests, it never decides | Accepted |
