@@ -24,9 +24,19 @@ import { basename } from 'node:path'
 
 const BASE = 'https://reykjavik.is'
 
-// The eleven specific categories plus the one general one. Kept here rather
-// than fetched so the script says what it expects and a change shows up as a
-// mismatch instead of being silently absorbed.
+// The eleven specific categories plus the one general one.
+//
+// Held here rather than fetched, for a reason that is not just tidiness: an
+// unknown slug does NOT 404. The city answers 400, the same status as a
+// validation failure, so a typo is indistinguishable from a missing description
+// unless the client already knows which slugs exist. This list is the only
+// place that mistake is catchable.
+//
+// There is a parallel English form with its own slugs, and posting to it puts
+// English metadata in the city's queue. We always post the Icelandic one,
+// whatever language the interface is in — the people triaging these read
+// Icelandic, and splitting their queue across two vocabularies for the same
+// twelve things is a problem we would be creating for them.
 const CATEGORIES = {
   'almenn-abending':   { type: 'general',  name: 'Almenn ábending' },
   'holur-i-gotu':      { type: 'specific', name: 'Holur í götu' },
@@ -260,7 +270,18 @@ async function main() {
   const r = await fetch(url, { method: 'POST', body: fd })
   const text = await r.text()
   if (r.status === 400) {
-    console.error(`\nHTTP 400 — the city rejected it. inputErrors: ${/\\"description\\"/.test(text) ? 'description' : 'see response'}`)
+    // 400 means two different things here. A real validation failure
+    // re-renders the form, so the category hidden field comes back filled in;
+    // an unrecognised route does not. Without this the user gets told their
+    // description was wrong when the actual fault was the slug.
+    const validated = text.includes('Missing required fields') && text.includes(`value="${name}"`)
+    if (validated) {
+      console.error(`\nHTTP 400 — the city rejected the content. inputErrors: ${/\\"description\\"/.test(text) ? 'description' : 'see response'}`)
+    } else {
+      console.error(`\nHTTP 400 with no validator response — the route did not match.`)
+      console.error(`The slug "${slug}" may no longer exist. Run with --probe, or re-check`)
+      console.error(`docs/research/payload-map.md against the live picker page.`)
+    }
     process.exitCode = 1
     return
   }

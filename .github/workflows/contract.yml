@@ -87,6 +87,27 @@ jobs:
           [ "$fail" -eq 0 ] || exit 1
           echo "✓ address search and address-to-coordinate both answering"
 
+      - name: The twelve categories are still the twelve categories
+        run: |
+          set -uo pipefail
+          page=$(mktemp)
+          curl -sS https://reykjavik.is/abendingar/senda-abendingu -o "$page"
+          live=$(grep -oP 'name="cat" value="\K[^"]*' "$page" | sort | tr '\n' ' ')
+          known=$(node -e '
+            const m = require("fs").readFileSync("scripts/send-report.mjs","utf8")
+              .match(/^  .([a-z-]+).:\s+\{ type:/gm) || []
+            console.log(m.map(l => l.match(/.([a-z-]+)./)[1]).sort().join(" ") + " ")
+          ')
+          if [ "$live" != "$known" ]; then
+            echo "::error::the picker page and scripts/send-report.mjs disagree"
+            echo "  live:  $live"
+            echo "  known: $known"
+            echo "An unknown slug returns 400, not 404, so this list is the only"
+            echo "place a stale category is catchable. Update it and payload-map.md."
+            exit 1
+          fi
+          echo "✓ twelve categories, matching: $live"
+
       - name: The fill-in script builds a payload without sending one
         run: |
           set -euo pipefail
