@@ -22,8 +22,6 @@
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
-const BASE = 'https://reykjavik.is'
-
 // Every fact about the city's form lives in data/reykjavik-form.json, which the
 // Worker adapter and the contract workflow read too. Restating any of it here
 // would be a second copy to drift.
@@ -45,7 +43,9 @@ const CATEGORIES = Object.fromEntries(
 const MAX_DESCRIPTION = FACTS.fields.description.maxLength
 
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif' }
-const BASE_FROM_FACTS = new URL(FACTS.endpoints.submit.url).origin
+// The origin comes from the facts file too, so there is no second copy of
+// the host to update when the city moves.
+const BASE = new URL(FACTS.endpoints.submit.url).origin
 
 // ---------------------------------------------------------------- EXIF GPS
 
@@ -111,12 +111,6 @@ function exifGps(buf) {
 
 // ------------------------------------------------------------- city lookups
 
-async function searchAddresses(q) {
-  const r = await fetch(`${BASE}/location/addresses?q=${encodeURIComponent(q)}`)
-  if (!r.ok) throw new Error(`address search failed: HTTP ${r.status}`)
-  return (await r.json()).addresses ?? []
-}
-
 // Note the path: addressInfo lives under /abendingar/, its sibling under
 // /location/. Both parameters are required; omitting either returns an error
 // rather than an empty result.
@@ -135,18 +129,35 @@ async function addressInfo(address, postCode) {
 
 // ------------------------------------------------------------------- args
 
+// Number() accepts far too much to read a coordinate with: '' becomes 0, a
+// typo becomes NaN, and '64,147' — how the number is written in Icelandic —
+// becomes NaN too. Each of those used to reach the city as a location.
+function decimal(flag, v) {
+  if (!/^-?\d+(\.\d+)?$/.test(v.trim())) {
+    throw new Error(`${flag} must be a decimal number with a point, not a comma; got "${v}"`)
+  }
+  return Number(v)
+}
+
 function parseArgs(argv) {
   const out = { photos: [] }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    const next = () => argv[++i]
+    // Without this a missing value silently eats the next flag:
+    // `--lat --send` parsed as lat="--send", which is NaN, and --send lost.
+    const next = () => {
+      const v = argv[++i]
+      if (v === undefined) throw new Error(`${a} needs a value`)
+      if (v.startsWith('--')) throw new Error(`${a} needs a value, got the flag ${v}`)
+      return v
+    }
     switch (a) {
       case '--category':    out.category = next(); break
       case '--description': out.description = next(); break
       case '--photo':       out.photos.push(next()); break
       case '--email':       out.email = next(); break
-      case '--lat':         out.lat = Number(next()); break
-      case '--lng':         out.lng = Number(next()); break
+      case '--lat':         out.lat = decimal(a, next()); break
+      case '--lng':         out.lng = decimal(a, next()); break
       case '--address':     out.address = next(); break
       case '--postcode':    out.postcode = next(); break
       case '--send':        out.send = true; break
@@ -184,6 +195,13 @@ async function probe(slug) {
   fd.set('dummy', '1')
   const r = await fetch(`${BASE}/abendingar/senda-abendingu/${slug}`, { method: 'POST', body: fd })
   const text = await r.text()
+  // The backslashes are load-bearing. This route answers React Router
+  // turbo-stream: escaped JSON embedded in the re-rendered HTML page, so the
+  // error payload literally contains \"description\" with backslashes. The
+  // unescaped form matches too, but it matches the wrong thing — the page also
+  // re-renders <input name="lat" value=""/>, so /"(lat|lng)"/ reports a field
+  // as rejected when the city never named it. Verified against the live
+  // response 2026-08-21: escaped matches at offset 35922, unescaped at 4707.
   const m = text.match(/"inputErrors\\",\{[^}]*\}/) ?? text.match(/inputErrors[^,]*,([^\]]*\])/)
   console.log(`HTTP ${r.status} (expected 400)`)
   console.log(`Missing-required-fields error present: ${text.includes('Missing required fields')}`)
@@ -206,7 +224,7 @@ async function main() {
   }
   if (args.probe) return probe(slug)
 
-  const { type, name } = CATEGORIES[slug]
+  const { type, name, summary } = CATEGORIES[slug]
 
   if (!args.description) throw new Error('--description is required; the city rejects a report without one')
   if (args.description.length > MAX_DESCRIPTION) throw new Error(`--description is ${args.description.length} characters; the limit is ${MAX_DESCRIPTION}`)
@@ -231,17 +249,31 @@ async function main() {
   }
 
   // The city does not enforce this. We do — see docs/research/payload-map.md.
-  if (lat == null || lng == null) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     throw new Error(
-      'no location. The photo carries no EXIF GPS, so pass --lat/--lng or\n' +
-      '--address/--postcode. The city would accept a report without a\n' +
-      'coordinate and nobody would be able to act on it.')
+      'no usable location. The photo carries no EXIF GPS, so pass --lat/--lng\n' +
+      'or --address/--postcode, with a decimal point rather than a comma. The\n' +
+      'city would accept a report without a coordinate and nobody would be able\n' +
+      'to act on it.')
+  }
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    throw new Error(`--lat/--lng is not a WGS84 coordinate: ${lat}, ${lng}`)
+  }
+
+  // A warning, not a gate. These bounds are the city map widget's panning
+  // limit; they cover the whole capital region and say nothing about whose
+  // jurisdiction a point falls in. That check reads SVFNR out of the address
+  // registry and belongs in the relay, not here — see AGENTS.md.
+  const bounds = FACTS.map.bounds
+  if (lat < bounds.south || lat > bounds.north || lng < bounds.west || lng > bounds.east) {
+    console.warn(
+      `warning: ${lat}, ${lng} falls outside the area the city's own map can show.`)
   }
 
   const fd = new FormData()
   fd.set('type', type)
   fd.set('category', name)
-  fd.set('summary', `Ábending -> ${name}`)
+  fd.set('summary', summary)
   fd.set('lat', String(lat))
   fd.set('lng', String(lng))
   fd.set('description', args.description)
