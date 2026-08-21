@@ -135,6 +135,18 @@ What is allowed instead:
 `scripts/send-report.mjs` will not send without `--send` for the same reason.
 Do not add a shortcut around that flag.
 
+## Where things are written down
+
+Three artifacts, one job each. Putting a fact in the wrong one is how they drift.
+
+| Where | What |
+|---|---|
+| [`data/reykjavik-form.json`](data/reykjavik-form.json) | **Facts** about the city's form, with how and when each was established. `scripts/send-report.mjs` and `.github/workflows/contract.yml` read it. Change a fact here first. |
+| [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
+| [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
+
+The reasoning behind this split is [decision 0001](decisions/0001-record-facts-reasoning-and-decisions-separately.md).
+
 ## Conventions
 
 - Feature branch and a PR. Never commit or push to `main`; lefthook blocks both.
