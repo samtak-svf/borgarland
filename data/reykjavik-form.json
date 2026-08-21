@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine-readable record of how Reykjavík's citizen-report form behaves. This file is the source of truth: scripts/send-report.mjs, the Worker adapter and .github/workflows/contract.yml all read it, and the markdown under docs/research/ is generated from it where it repeats these values. Every claim carries how and when it was established, because none of it is documented by the city and all of it can change without notice. Re-verify with: node scripts/verify-facts.mjs",
+  "$comment": "Machine-readable record of how Reykjavík's citizen-report form behaves. This file is the source of truth: scripts/send-report.mjs, the Worker adapter and .github/workflows/contract.yml all read it, and the markdown under docs/research/ is generated from it where it repeats these values. Every claim carries how and when it was established, because none of it is documented by the city and all of it can change without notice. Re-verify with: node scripts/send-report.mjs --category ruslafotur --probe, which .github/workflows/contract.yml also runs daily",
   "verifiedAt": "2026-08-21",
   "source": "black-box probing of the live site; no city documentation exists",
   "endpoints": {
@@ -237,7 +237,9 @@
     "csv": "https://hmsstgsftpprodweu001.blob.core.windows.net/fasteignaskra/Stadfangaskra.csv",
     "client": "iceaddr-ts (~/Development/projects/stadfangaskra), zero-dependency and edge-native",
     "rowsTotal": 139347,
-    "rowsReykjavik": 23057,
+    "rowsReykjavikByPostcode": 23057,
+    "rowsReykjavikBySvfnr": 23835,
+    "twoCountsAreNotAConflict": "The two differ by 778 because they measure different things. Postcodes do not follow municipal boundaries: Reykjavikurborg includes Kjalarnes, which carries its own postcode. Use the SVFNR count when the question is jurisdiction and the postcode count when the question is what ships on the phone. The SVFNR breakdown per municipality is in docs/research/payload-map.md and has not been re-derived since it was first measured.",
     "reykjavikGzippedKb": 250,
     "cityHasNoReverseGeocoding": true,
     "municipalities": {
