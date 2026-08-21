@@ -114,6 +114,18 @@ custom. The vendor has an API; going through MainManager directly would be the
 route to covering several municipalities at once, but it needs a commercial
 conversation, not reverse engineering.
 
+## Read this before touching the submit button
+
+On the day this was written, a test pressed submit on the city's live form and
+filed **real report 110474**, describing nothing real, into a real work queue.
+The safeguard was an interceptor that never ran.
+
+[The incident](../incidents/2026-08-21-filed-a-real-report.md) is worth the two
+minutes before doing anything with this endpoint. The rule that follows from it
+is in [AGENTS.md](../../AGENTS.md): never press submit on the live form, under
+any circumstance. The probe in `scripts/send-report.mjs --probe` cannot succeed,
+which is the property that makes it the only sanctioned request.
+
 ## Risks worth naming up front
 
 1. **The endpoint is undocumented and unowned.** Reykjavík can change field
