@@ -1,0 +1,270 @@
+{
+  "$comment": "Machine-readable record of how Reykjavík's citizen-report form behaves. This file is the source of truth: scripts/send-report.mjs, the Worker adapter and .github/workflows/contract.yml all read it, and the markdown under docs/research/ is generated from it where it repeats these values. Every claim carries how and when it was established, because none of it is documented by the city and all of it can change without notice. Re-verify with: node scripts/verify-facts.mjs",
+  "verifiedAt": "2026-08-21",
+  "source": "black-box probing of the live site; no city documentation exists",
+  "endpoints": {
+    "submit": {
+      "url": "https://reykjavik.is/abendingar/senda-abendingu/{slug}",
+      "method": "POST",
+      "contentType": "multipart/form-data",
+      "auth": "none",
+      "notes": "No cookie, CSRF token, captcha or Origin check. The ?cat= step is presentational and 308-redirects here.",
+      "method_of_verification": "curl with an empty payload returned 400 with the validator's own envelope",
+      "verifiedAt": "2026-08-21",
+      "successResponse": {
+        "navigatesTo": "https://reykjavik.is/abendingar/senda-abendingu/{slug}/done/{number}",
+        "returnsReferenceNumber": true,
+        "example": 110474,
+        "looksSequential": true,
+        "confirmationEmail": "from no-reply@reykjavik.is, repeats the number in Icelandic, English and Polish",
+        "howEstablished": "accidentally, by report 110474 — see docs/incidents/2026-08-21-filed-a-real-report.md. Never establish anything this way again.",
+        "verifiedAt": "2026-08-21"
+      }
+    },
+    "addressSearch": {
+      "url": "https://reykjavik.is/location/addresses?q={prefix}",
+      "returns": "{addresses:[{fasteignarheiti_nefnifall, postnumer_id}]}",
+      "weUseIt": false,
+      "notes": "Staðfangaskrá passed through. We read the registry directly instead — see decisions/0004.",
+      "verifiedAt": "2026-08-21"
+    },
+    "addressInfo": {
+      "url": "https://reykjavik.is/abendingar/addressInfo?a={address}&p={postcode}",
+      "returns": "{addressInfo:[{street,address,district,zip,geometry:{lat,lng}}]}",
+      "weUseIt": false,
+      "notes": "Under /abendingar/, not /location/ beside its sibling. Both params required. Returns an empty array, not an error, for an address the register does not hold.",
+      "verifiedAt": "2026-08-21"
+    }
+  },
+  "fields": {
+    "type": {
+      "required": true,
+      "source": "fixed per category"
+    },
+    "category": {
+      "required": true,
+      "source": "fixed per category"
+    },
+    "summary": {
+      "required": true,
+      "source": "fixed per category"
+    },
+    "lat": {
+      "required": false,
+      "source": "map or address",
+      "format": "decimal degrees, WGS84",
+      "ourRule": "required by us — see validation.onlyDescriptionIsEnforced"
+    },
+    "lng": {
+      "required": false,
+      "source": "map or address",
+      "format": "decimal degrees, WGS84",
+      "ourRule": "required by us"
+    },
+    "description": {
+      "required": true,
+      "source": "user",
+      "maxLength": 2500
+    },
+    "files": {
+      "required": false,
+      "source": "user",
+      "repeated": true,
+      "accept": [
+        "image/jpeg",
+        "image/png",
+        "image/gif"
+      ]
+    },
+    "email": {
+      "required": false,
+      "source": "user",
+      "notes": "the only way the reporter hears anything back"
+    }
+  },
+  "validation": {
+    "onlyDescriptionIsEnforced": {
+      "value": true,
+      "evidence": "an empty POST returns {\"error\":\"Missing required fields\",\"inputErrors\":{\"description\":[…]}} and names nothing else",
+      "consequence": "the city would accept a report with no coordinate; our relay must reject one",
+      "notTested": "whether a description-only report actually succeeds — a request that passes validation files a real report",
+      "verifiedAt": "2026-08-21"
+    },
+    "unknownSlugReturns400NotFound404": {
+      "value": true,
+      "evidence": "a nonsense slug returns 400 with an empty body; an English slug on the Icelandic path returns 400 with a page titled 'Síða fannst ekki (404)'; an empty slug returns 405",
+      "consequence": "status alone cannot distinguish a typo'd category from a missing description; the discriminator is 'Missing required fields' plus the category hidden field being re-rendered",
+      "verifiedAt": "2026-08-21"
+    },
+    "noAddressFieldInPayload": {
+      "value": true,
+      "evidence": "the form's element list carries no address input; the search only moves the map marker, and moving the marker clears the search field",
+      "consequence": "a thing with no address, which is the case this project exists for, is ordinary usage",
+      "verifiedAt": "2026-08-21"
+    }
+  },
+  "map": {
+    "$comment": "A panning limit for the widget, not a jurisdiction check. Read from BrowserMap-*.js, whose filename hash changes on every deploy.",
+    "bounds": {
+      "south": 63.9404797,
+      "west": -22.7821121,
+      "north": 64.4310538,
+      "east": -20.9112908
+    },
+    "fallbackCentre": {
+      "lat": 64.167652,
+      "lng": -21.839031
+    },
+    "coversFarMoreThanReykjavik": true,
+    "serverValidatesCoordinate": false,
+    "verifiedAt": "2026-08-21"
+  },
+  "categories": [
+    {
+      "slug": "almenn-abending",
+      "enSlug": "general-suggestion",
+      "nodeId": 3217283,
+      "type": "general",
+      "category": "Almenn ábending",
+      "summary": "Ábending -> Almenn ábending"
+    },
+    {
+      "slug": "holur-i-gotu",
+      "enSlug": "potholes",
+      "nodeId": 3217284,
+      "type": "specific",
+      "category": "Holur í götu",
+      "summary": "Ábending -> Holur í götu"
+    },
+    {
+      "slug": "heimilissorp",
+      "enSlug": "household-waste",
+      "nodeId": 3217288,
+      "type": "specific",
+      "category": "Heimilissorp",
+      "summary": "Ábending -> Heimilissorp",
+      "relatedContent": "Sorphirðudagatal, links to /sorphirdudagatal"
+    },
+    {
+      "slug": "snjor-og-halka",
+      "enSlug": "snow-and-ice",
+      "nodeId": 3217292,
+      "type": "specific",
+      "category": "Snjór og hálka",
+      "summary": "Ábending -> Snjór og hálka",
+      "relatedContent": "Vetrarþjónusta, text only"
+    },
+    {
+      "slug": "numerlausir-bilar",
+      "enSlug": "abandoned-cars",
+      "nodeId": 3217293,
+      "type": "specific",
+      "category": "Númeralausir bílar",
+      "summary": "Ábending -> Númeralausir bílar"
+    },
+    {
+      "slug": "gras-og-grodur",
+      "enSlug": "grass-and-vegetation",
+      "nodeId": 3217294,
+      "type": "specific",
+      "category": "Gras og gróður",
+      "summary": "Ábending -> Gras og gróður"
+    },
+    {
+      "slug": "ruslafotur",
+      "enSlug": "waste-bins",
+      "nodeId": 3217295,
+      "type": "specific",
+      "category": "Ruslafötur",
+      "summary": "Ábending -> Ruslafötur"
+    },
+    {
+      "slug": "gotusopun",
+      "enSlug": "street-sweeping",
+      "nodeId": 3217296,
+      "type": "specific",
+      "category": "Götusópun",
+      "summary": "Ábending -> Götusópun"
+    },
+    {
+      "slug": "nidurfoll",
+      "enSlug": "drains",
+      "nodeId": 3217297,
+      "type": "specific",
+      "category": "Niðurföll",
+      "summary": "Ábending -> Niðurföll"
+    },
+    {
+      "slug": "ljosastaurar",
+      "enSlug": "street-lights",
+      "nodeId": 3217298,
+      "type": "specific",
+      "category": "Ljósastaurar",
+      "summary": "Ábending -> Ljósastaurar"
+    },
+    {
+      "slug": "umferdaroryggi",
+      "enSlug": "road-safety",
+      "nodeId": 3217299,
+      "type": "specific",
+      "category": "Umferðaröryggi",
+      "summary": "Ábending -> Umferðaröryggi"
+    },
+    {
+      "slug": "bilastaedasjodur",
+      "enSlug": "parking-service",
+      "nodeId": 3217300,
+      "type": "specific",
+      "category": "Bílastæðasjóður",
+      "summary": "Ábending -> Bílastæðasjóður"
+    }
+  ],
+  "categoryNotes": {
+    "taxonomyIsFlat": "no category hands off to another system; only two carry an informational panel",
+    "nodeIdGaps": [
+      3217285,
+      3217286,
+      3217287,
+      3217289,
+      3217290,
+      3217291
+    ],
+    "nodeIdGapsMeaning": "six siblings were created with these and are no longer published; the list is editorial and can grow back",
+    "localeChangesWhatTheCityReceives": "the English form at /en/suggestion/send-suggestion/{enSlug} submits category 'Waste bins' and summary 'Suggestion -> Waste bins'. Always post the Icelandic form; the people triaging these read Icelandic."
+  },
+  "registry": {
+    "$comment": "The city's address endpoints are Staðfangaskrá unchanged — Laugavegur 1 matched the HMS export to the last decimal, and the city's district '0000' is the registry's SVFNR column. We read the registry ourselves via iceaddr-ts.",
+    "csv": "https://hmsstgsftpprodweu001.blob.core.windows.net/fasteignaskra/Stadfangaskra.csv",
+    "client": "iceaddr-ts (~/Development/projects/stadfangaskra), zero-dependency and edge-native",
+    "rowsTotal": 139347,
+    "rowsReykjavik": 23057,
+    "reykjavikGzippedKb": 250,
+    "cityHasNoReverseGeocoding": true,
+    "municipalities": {
+      "0000": "Reykjavíkurborg",
+      "1000": "Kópavogsbær",
+      "1100": "Seltjarnarnesbær",
+      "1300": "Garðabær",
+      "1400": "Hafnarfjarðarkaupstaður",
+      "1604": "Mosfellsbær"
+    },
+    "jurisdictionRule": "reverse-look the coordinate to its nearest address and read SVFNR; anything but 0000 is not Reykjavík's to fix",
+    "verifiedAt": "2026-08-21"
+  },
+  "unknown": [
+    "maximum upload size and file count — the client sets no maxSize, so the limit is the server's and finding it means uploading until something breaks"
+  ],
+  "backend": {
+    "$comment": "Read passively from the confirmation email's headers. No probing.",
+    "system": "Drupal, behind the React Router front end",
+    "evidence": "X-Mailer: Drupal; the category picker carries Drupal node ids; data-drupal-link-system-path appears in the page HTML",
+    "mailHost": "rs-plesk-02-dev.rvk.borg, via smtp.reykjavik.is",
+    "legacyHost": "abendingar.reykjavik.is 301s to reykjavik.is/abendingar and answers with X-Powered-By: PHP/7.3.33 and PleskLin",
+    "verifiedAt": "2026-08-21"
+  },
+  "measurement": {
+    "$comment": "The follow-through half of the project. The city publishes no report volume and no response times.",
+    "referenceNumberIsACounter": "each number a real user's report comes back with is a free sample of the city's total volume; two samples spaced in time give the rate",
+    "requiresNoTestSubmissions": true
+  }
+}

@@ -24,35 +24,28 @@ import { basename } from 'node:path'
 
 const BASE = 'https://reykjavik.is'
 
-// The eleven specific categories plus the one general one.
+// Every fact about the city's form lives in data/reykjavik-form.json, which the
+// Worker adapter and the contract workflow read too. Restating any of it here
+// would be a second copy to drift.
 //
-// Held here rather than fetched, for a reason that is not just tidiness: an
-// unknown slug does NOT 404. The city answers 400, the same status as a
-// validation failure, so a typo is indistinguishable from a missing description
-// unless the client already knows which slugs exist. This list is the only
-// place that mistake is catchable.
+// The category list matters more than it looks: an unknown slug does NOT 404.
+// The city answers 400, the same status as a validation failure, so a typo is
+// indistinguishable from a missing description unless the client already knows
+// which slugs exist. This list is the only place that mistake is catchable.
 //
 // There is a parallel English form with its own slugs, and posting to it puts
 // English metadata in the city's queue. We always post the Icelandic one,
-// whatever language the interface is in — the people triaging these read
-// Icelandic, and splitting their queue across two vocabularies for the same
-// twelve things is a problem we would be creating for them.
-const CATEGORIES = {
-  'almenn-abending':   { type: 'general',  name: 'Almenn ábending' },
-  'holur-i-gotu':      { type: 'specific', name: 'Holur í götu' },
-  'heimilissorp':      { type: 'specific', name: 'Heimilissorp' },
-  'snjor-og-halka':    { type: 'specific', name: 'Snjór og hálka' },
-  'numerlausir-bilar': { type: 'specific', name: 'Númeralausir bílar' },
-  'gras-og-grodur':    { type: 'specific', name: 'Gras og gróður' },
-  'ruslafotur':        { type: 'specific', name: 'Ruslafötur' },
-  'gotusopun':         { type: 'specific', name: 'Götusópun' },
-  'nidurfoll':         { type: 'specific', name: 'Niðurföll' },
-  'ljosastaurar':      { type: 'specific', name: 'Ljósastaurar' },
-  'umferdaroryggi':    { type: 'specific', name: 'Umferðaröryggi' },
-  'bilastaedasjodur':  { type: 'specific', name: 'Bílastæðasjóður' },
-}
+// whatever language the interface is in.
+const FACTS = JSON.parse(
+  await readFile(new URL('../data/reykjavik-form.json', import.meta.url), 'utf8'))
+
+const CATEGORIES = Object.fromEntries(
+  FACTS.categories.map((c) => [c.slug, { type: c.type, name: c.category, summary: c.summary }]))
+
+const MAX_DESCRIPTION = FACTS.fields.description.maxLength
 
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif' }
+const BASE_FROM_FACTS = new URL(FACTS.endpoints.submit.url).origin
 
 // ---------------------------------------------------------------- EXIF GPS
 
@@ -169,7 +162,7 @@ const USAGE = `
 send-report.mjs — file a report with Reykjavík, or show what would be filed
 
   --category <slug>     one of: ${Object.keys(CATEGORIES).join(', ')}
-  --description <text>  required by the city; max 2500 characters
+  --description <text>  required by the city
   --photo <path>        repeatable. jpeg, png or gif. EXIF GPS of the first
                         photo is used as the location unless overridden
   --lat <n> --lng <n>   set the coordinate explicitly
@@ -216,7 +209,7 @@ async function main() {
   const { type, name } = CATEGORIES[slug]
 
   if (!args.description) throw new Error('--description is required; the city rejects a report without one')
-  if (args.description.length > 2500) throw new Error(`--description is ${args.description.length} characters; the limit is 2500`)
+  if (args.description.length > MAX_DESCRIPTION) throw new Error(`--description is ${args.description.length} characters; the limit is ${MAX_DESCRIPTION}`)
 
   // Load photos first: the location may come out of the first one.
   const photos = await Promise.all(args.photos.map(async (p) => {

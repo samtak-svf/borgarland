@@ -107,13 +107,33 @@ not snap the report to it; the marker is free and moving it clears the address
 field. The coordinate is the only thing submitted. Never snap a report to the
 nearest house. Detail: [docs/research/addresses-and-the-registry.md](docs/research/addresses-and-the-registry.md).
 
-## Never file a real report as a test
+## Never press submit on the city's live form
 
-`.github/workflows/contract.yml` probes the city's endpoint with a deliberately
-incomplete payload and asserts the `400`. That proves reachability and the
-multipart shape and creates nothing. Do not extend it into a real submission —
-one manual end-to-end report at the end of a phase is fine; automated ones waste
-a city employee's time.
+Not with a network interceptor in place, not with the network throttled, not
+under any circumstance. The button files a real report into a real work queue.
+
+This is stated as a rule about **the button** rather than about intent, because
+the previous wording said "never file a real report as a test", was followed,
+and a real report was filed anyway — see
+[docs/incidents/2026-08-21-filed-a-real-report.md](docs/incidents/2026-08-21-filed-a-real-report.md).
+The safeguard was a patch to `window.fetch` that never ran, and it had not been
+tested before the button was pressed. A safety mechanism you have not seen fire
+is not a safety mechanism.
+
+What is allowed instead:
+
+- **The probe.** `node scripts/send-report.mjs --category <slug> --probe` posts a
+  deliberately incomplete payload that the validator must reject. It *cannot*
+  succeed, which is the property that makes it safe, and
+  `.github/workflows/contract.yml` runs it daily on that basis.
+- **Reading the client bundle** when a payload needs observing rather than
+  constructing. It is static and already downloaded; reading it cannot send.
+- **One real submission, once, deliberately**, at the end of a build, with a real
+  problem at a real location. That is a decision to take on purpose, never a step
+  in a test.
+
+`scripts/send-report.mjs` will not send without `--send` for the same reason.
+Do not add a shortcut around that flag.
 
 ## Conventions
 
