@@ -5,7 +5,7 @@
 
 ## Context
 
-The relay bundles `iceaddr-ts` and holds Staðfangaskrá in its own D1: 139,347
+The relay bundles `iceaddr-ts` and holds Staðfangaskrá in its own D1: 139,360
 rows, generated into an 8.8 MB seed by `worker/scripts/refresh-registry.mjs`.
 It uses that for two things — reverse-looking a coordinate to its nearest
 registered address for the description we send, and reading `SVFNR` for the
@@ -56,8 +56,8 @@ but "build a new endpoint there, then delete ours here".
 
 On the question as asked — does this save work and resources — the numbers say
 no. B saves a few KiB of gzipped bundle, about 10 MB of D1 that is free anyway,
-and a refresh chore that has not started, because the relay is not deployed:
-`wrangler.jsonc` still carries a placeholder `database_id` and no cron triggers.
+and a refresh chore that had not started at the time, because the relay was not
+yet deployed.
 Against that it costs about 125 lines across two repositories and a credential
 with an annual rotation duty.
 
@@ -90,6 +90,19 @@ A reverse-geocoding endpoint arriving in greenfield's registry service for its
 own reasons, so that adopting it costs only the client seam. At that point B is
 roughly 60 lines against a duplicate registry, and the failure-mode argument is
 the only thing left to weigh.
+
+## What changed after this was accepted
+
+The relay was deployed the same day, 2026-08-22, so two sentences above are
+kept as they were written but are no longer true of the world: the
+`database_id` is real (`84af231a-…`, EU jurisdiction) and the registry is
+seeded and live. The row count was corrected from 139,347 to 139,360, which is
+what the seed and `registry_meta.row_count` both say.
+
+The decision itself is unaffected — the argument was never about deployment
+state — but the refresh chore it called "real and unowned" has started, and is
+now tracked in #49 with the staleness readout at `GET /api/health` that #48
+added.
 
 ## Notes on the measurements
 

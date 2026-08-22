@@ -32,10 +32,18 @@ import `is`.borgarland.poc.Payload
 import `is`.borgarland.poc.PocUiState
 
 /**
- * The POC ends here: every field that would be posted, displayed exactly.
- * Nothing is sent, ever. The send step does not exist in this app (no
- * INTERNET permission, no HTTP client, no networking dependency), so this
- * screen is the whole point.
+ * Every field that would be posted, displayed exactly, and then the send.
+ *
+ * This comment used to say "nothing is sent, ever ... no INTERNET permission,
+ * no HTTP client, no networking dependency". All three were true when the
+ * screen was the end of the POC and none of them survived the relay: the
+ * manifest declares INTERNET, RelayClient posts over HttpURLConnection, and
+ * PocViewModel.sendToRelay is wired to the button below.
+ *
+ * What is still true is the reason the screen exists: a person sees exactly
+ * what will be sent before it is sent. The relay is in dry run and forwards
+ * nothing to the city (worker/src/config.ts), which is a property of the
+ * server and not of this app.
  */
 @Composable
 fun SummaryScreen(
