@@ -72,7 +72,7 @@ never sent.
 
 ## The drift check
 
-Three layers, all failing on the same drift:
+Four layers, all failing on the same drift:
 
 1. **`scripts/check-relay-contract.mjs`** (run standalone and in CI):
    - the field set is exactly the six documented names, in order;
@@ -93,6 +93,17 @@ Three layers, all failing on the same drift:
    contains exactly the contract's parts in order, with our vocabulary and
    none of the city's; the contract asset agrees with the facts asset where it
    claims to.
+4. **iOS tests** (`ios/BorgarlandCore`, `RelayRequestTest`, run by the
+   `ios-core` job): the same assertions against the Swift builder — the parts
+   in the contract's order, the exact expected bytes, the city's vocabulary
+   absent from the body. Two differences from the Android layer are worth
+   knowing. There is no asset copy to byte-compare, because the Swift tests
+   read the repository's own `data/` files directly through a path derived from
+   `#filePath`, so the second copy `--require-asset` exists to police never
+   comes into being. And the ordering is structural rather than checked:
+   Kotlin iterates a map whose order the JSON preserves, Swift's `Dictionary`
+   has no order at all, so the six roles are a fixed struct with a fixed
+   accessor. A decoded map there would have reordered the body on every run.
 
 What the check would catch: someone restating a field name on either side,
 re-adding a city field (`type`, `summary`, `lat`, `lng`, `files`), the
