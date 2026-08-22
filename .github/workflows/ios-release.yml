@@ -1,0 +1,142 @@
+# The signed build: archive, export a signed .ipa, upload it to TestFlight.
+#
+# Everything it needs is documented in ios/signing/README.md, and until those
+# five secrets exist this workflow SKIPS with a visible reason rather than
+# failing. That matters: pushing an ios-v* tag before signing is configured
+# should not produce a red build that means nothing.
+#
+# Ported from the Rósa Parks pipeline, which has produced a real TestFlight
+# build on this same Apple team. The Crashlytics dSYM upload that pipeline
+# carries is deliberately absent here: Borgarland has no Firebase project yet,
+# and which project it should use is an open decision rather than an oversight
+# (a citizen-reporting app's crash data touches the privacy policy in #5).
+name: ios-release
+
+on:
+  push:
+    tags:
+      - 'ios-v*'
+  workflow_dispatch:
+    inputs:
+      upload_to_testflight:
+        description: 'Upload to TestFlight after building'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      secrets_present: ${{ steps.check.outputs.secrets_present }}
+    steps:
+      - id: check
+        env:
+          P12: ${{ secrets.IOS_SIGNING_P12_BASE64 }}
+          P12_PWD: ${{ secrets.IOS_SIGNING_P12_PASSWORD }}
+          API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          API_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+          API_KEY: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          if [[ -n "$P12" && -n "$P12_PWD" && -n "$API_KEY_ID" && -n "$API_ISSUER" && -n "$API_KEY" ]]; then
+            echo "secrets_present=true" >> "$GITHUB_OUTPUT"
+            echo "All five signing secrets are set, building signed."
+          else
+            echo "secrets_present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Signing secrets are not configured yet, skipping the release build."
+            echo "See ios/signing/README.md."
+          fi
+
+  build-and-release:
+    needs: check-secrets
+    if: needs.check-secrets.outputs.secrets_present == 'true'
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      - name: Import the signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_SIGNING_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_SIGNING_P12_PASSWORD }}
+
+      # Fetched rather than committed, so the profile is never stale. This is
+      # the step that returns 403 FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED
+      # when Apple has published an agreement nobody accepted, and the message
+      # names no agreement. If it fails here, read ios/signing/README.md before
+      # suspecting the key.
+      - name: Download the provisioning profile
+        uses: apple-actions/download-provisioning-profiles@v3
+        with:
+          bundle-id: is.borgarland
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ secrets.ASC_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.ASC_API_KEY_ID }}
+          api-private-key: ${{ secrets.ASC_API_KEY_P8 }}
+
+      - name: Archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Borgarland.xcodeproj \
+            -scheme Borgarland \
+            -configuration Release \
+            -archivePath build/Borgarland.xcarchive \
+            -destination 'generic/platform=iOS' \
+            2>&1 | tee archive-raw.log | xcpretty
+
+      # xcpretty drops the lines that matter when signing fails, so the raw log
+      # is kept and surfaced here rather than lost with the runner.
+      - name: Show the raw archive log if that failed
+        if: failure()
+        run: |
+          echo "::group::Last 200 lines of raw xcodebuild output"
+          tail -200 archive-raw.log
+          echo "::endgroup::"
+          grep -nE "error:|warning: .*(sign|provision)" archive-raw.log | tail -40 || true
+
+      - name: Export the .ipa
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath build/Borgarland.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist signing/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            | xcpretty
+
+      # Uploaded on every run, including successful ones. When TestFlight
+      # rejects a build, the honest way to find out why is to unpack this and
+      # look: Apple's error strings run past 400 characters and grepping the
+      # logs truncates them, which once produced a confident and false "fixed".
+      - name: Keep the .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Borgarland-${{ github.ref_name }}.ipa
+          path: ios/build/ipa/Borgarland.ipa
+          retention-days: 90
+
+      - name: Upload to TestFlight
+        if: github.event_name == 'push' || inputs.upload_to_testflight == 'true'
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ios/build/ipa/Borgarland.ipa
+          issuer-id: ${{ secrets.ASC_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.ASC_API_KEY_ID }}
+          api-private-key: ${{ secrets.ASC_API_KEY_P8 }}
