@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
 }
 
 // Where the relay lives, per build type (#29). The counterpart of
@@ -104,4 +105,12 @@ val copyRelayRequest by tasks.registering(Copy::class) {
     into(layout.projectDirectory.dir("src/main/assets"))
 }
 
-tasks.named("preBuild") { dependsOn(copyFacts, copyRelayRequest) }
+// Our own words for the city's categories, where the city's are wrong for a
+// person standing in front of the thing (#40). Same single-home rule and same
+// build-time copy as the two files above; a copy in git is a copy that drifts.
+val copyCategoryLabels by tasks.registering(Copy::class) {
+    from(rootProject.file("../data/category-labels.json"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+
+tasks.named("preBuild") { dependsOn(copyFacts, copyRelayRequest, copyCategoryLabels) }

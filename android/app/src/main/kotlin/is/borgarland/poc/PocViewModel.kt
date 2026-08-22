@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import `is`.borgarland.poc.data.Category
 import `is`.borgarland.poc.data.Facts
+import `is`.borgarland.poc.data.CategoryLabels
+import `is`.borgarland.poc.data.CategoryLabelsFile
 import `is`.borgarland.poc.data.FactsFile
 import `is`.borgarland.poc.data.RelayRequest
 import `is`.borgarland.poc.data.RelayRequestFile
@@ -26,7 +28,9 @@ import kotlin.math.roundToInt
 
 sealed interface Screen {
     data object Camera : Screen
+
     data object Details : Screen
+
     data object Summary : Screen
 }
 
@@ -36,6 +40,12 @@ data class PocUiState(
     val screen: Screen = Screen.Camera,
     val factsError: String? = null,
     val categories: List<Category> = emptyList(),
+    /**
+     * What to SHOW for each slug, and the optional line under it. Resolved in
+     * the model so the screen never has to know that an override exists (#40).
+     */
+    val categoryDisplay: Map<String, String> = emptyMap(),
+    val categoryHelp: Map<String, String> = emptyMap(),
     val descriptionMaxLength: Int = 2500,
     val photo: Photo? = null,
     val photoError: String? = null,
@@ -64,6 +74,13 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     private var facts: FactsFile? = null
 
+    // Our own words for a category, where the city's are wrong for a walker
+    // (#40). Optional on purpose: a missing or unreadable file falls back to
+    // the city's names, which is a degraded picker rather than a dead app. The
+    // facts file is the one that stops everything, because without it there
+    // are no categories at all.
+    private var categoryLabels: CategoryLabelsFile? = null
+
     // The relay request contract, from the same assets copy the facts file
     // uses. Sending is impossible without it: RelayClient writes parts under
     // exactly the names this file carries.
@@ -87,6 +104,11 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 .bufferedReader().use { it.readText() }
         }.getOrNull()
         relayRequest = relayText?.let { runCatching { RelayRequest.parse(it) }.getOrNull() }
+        val labelsText = runCatching {
+            getApplication<Application>().assets.open("category-labels.json")
+                .bufferedReader().use { it.readText() }
+        }.getOrNull()
+        categoryLabels = labelsText?.let { runCatching { CategoryLabels.parse(it) }.getOrNull() }
         if (parsed == null) {
             _state.update {
                 it.copy(factsError = "reykjavik-form.json vantar eða er ólæsilegt í assets. Ekki er hægt að halda áfram.")
@@ -96,6 +118,12 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             _state.update {
                 it.copy(
                     categories = parsed.categories,
+                    categoryDisplay = parsed.categories.associate {
+                        it.slug to CategoryLabels.display(it, categoryLabels)
+                    },
+                    categoryHelp = parsed.categories.mapNotNull { c ->
+                        CategoryLabels.help(c, categoryLabels)?.let { c.slug to it }
+                    }.toMap(),
                     descriptionMaxLength = parsed.fields.description.maxLength,
                 )
             }
@@ -275,7 +303,12 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
         photoCapturedAtMs = null
         _state.update {
-            PocUiState(categories = it.categories, descriptionMaxLength = it.descriptionMaxLength)
+            PocUiState(
+                categories = it.categories,
+                categoryDisplay = it.categoryDisplay,
+                categoryHelp = it.categoryHelp,
+                descriptionMaxLength = it.descriptionMaxLength,
+            )
         }
     }
 

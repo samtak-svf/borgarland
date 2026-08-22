@@ -74,12 +74,29 @@ fun DetailsScreen(
             ) {
                 RadioButton(selected = selected, onClick = null)
                 Column {
-                    Text(category.category, style = MaterialTheme.typography.bodyLarge)
+                    // Our name for the category where we have one, the city's
+                    // otherwise (data/category-labels.json). The model resolves
+                    // it, so this screen never learns that an override exists.
                     Text(
-                        if (category.type == "general") "Almenn ábending" else "Sérstök ábending",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        state.categoryDisplay[category.slug] ?: category.category,
+                        style = MaterialTheme.typography.bodyLarge,
                     )
+                    // The line under it is a help string for a category whose
+                    // scope is not obvious, and most categories have none.
+                    //
+                    // This used to render the city's general/specific `type`,
+                    // which put "Almenn ábending" under a category also called
+                    // "Almenn ábending" (#40). That subtitle was the city's own
+                    // taxonomy and told a walker nothing they could act on;
+                    // removing it fixes the collision at the root rather than
+                    // renaming one half of it.
+                    state.categoryHelp[category.slug]?.let { help ->
+                        Text(
+                            help,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

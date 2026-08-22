@@ -8,6 +8,7 @@ import { createRegistry } from '../src/registry'
 import {
   createTestApp,
   json,
+  JPEG_BYTES,
   KOPAVOGUR_POINT,
   postReport,
   reportForm,
@@ -67,7 +68,7 @@ describe('dry run is the default', () => {
     expect(payload.fields.lng).toBe(REYKJAVIK_POINT.longitude)
     // The crew line: nearest registered address goes into the description.
     expect(payload.fields.description).toContain('Næsta skráða heimilisfang: Laugavegur 1, 101 Reykjavík')
-    expect(payload.photos).toEqual([{ name: 'bin.jpg', mime: 'image/jpeg', size: 3 }])
+    expect(payload.photos).toEqual([{ name: 'bin.jpg', mime: 'image/jpeg', size: JPEG_BYTES.length }])
 
     expect(() => cityFetch).not.toThrow()
     // The injected city fetch is the only fetch the app has; it must not have
@@ -91,10 +92,13 @@ describe('dry run is the default', () => {
   it('records photo count and bytes, not the bytes themselves', async () => {
     const { app, sqlite } = createTestApp()
     const fd = reportForm()
-    fd.append('photo', new File([new Uint8Array([9, 9, 9, 9, 9])], 'two.jpg', { type: 'image/jpeg' }))
+    // A second genuine JPEG: the relay now sniffs bytes behind the declared
+    // type, so a photo whose bytes are not what its MIME claims would reject
+    // the whole report before anything is stored.
+    fd.append('photo', new File([JPEG_BYTES], 'two.jpg', { type: 'image/jpeg' }))
     await postReport(app, fd)
     const row = sqlite.prepare('SELECT photo_count, photo_bytes FROM reports').all()[0]
-    expect(row).toEqual({ photo_count: 2, photo_bytes: 8 })
+    expect(row).toEqual({ photo_count: 2, photo_bytes: 44 })
   })
 })
 
@@ -326,6 +330,87 @@ describe('photos', () => {
     const response = await postReport(app, fd)
     expect(response.status).toBe(400)
     expect((await json(response)).error).toBe('invalid-photo')
+  })
+
+  it('passes a JPEG whose bytes match its declared type', async () => {
+    const { app } = createTestApp()
+    const fd = reportForm()
+    fd.set('photo', new File([JPEG_BYTES], 'bin.jpg', { type: 'image/jpeg' }))
+    const response = await postReport(app, fd)
+    expect(response.status).toBe(201)
+  })
+
+  it('rejects a HEIC photo declared as image/jpeg, naming both types', async () => {
+    // The case the sniffer exists for. An iPhone shoots HEIC and the city
+    // accepts only jpeg/png/gif, so the declared type passes the allowlist
+    // and only the bytes give the file away; without this check the report
+    // would be recorded as sent and then fail at the city.
+    const { app } = createTestApp()
+    const fd = reportForm()
+    fd.set(
+      'photo',
+      new File(
+        // A minimal HEIC: box size, 'ftyp', major brand 'heic'. The bytes
+        // must be wrapped in an array — a bare Uint8Array is iterable, so
+        // the File constructor would treat each byte as a part and stringify
+        // it to its decimal digits.
+        [new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63])],
+        'photo.heic',
+        { type: 'image/jpeg' },
+      ),
+    )
+    const response = await postReport(app, fd)
+    expect(response.status).toBe(400)
+    const body = await json(response)
+    expect(body.error).toBe('invalid-photo')
+    expect(body.declared).toBe('image/jpeg')
+    expect(body.actual).toBe('image/heic')
+  })
+
+  it('passes a PNG declared as PNG', async () => {
+    const { app } = createTestApp()
+    const fd = reportForm()
+    fd.set(
+      'photo',
+      new File(
+        // The PNG signature plus the start of the IHDR chunk.
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d])],
+        'bin.png',
+        { type: 'image/png' },
+      ),
+    )
+    const response = await postReport(app, fd)
+    expect(response.status).toBe(201)
+  })
+
+  it('passes a GIF declared as GIF', async () => {
+    const { app } = createTestApp()
+    const fd = reportForm()
+    fd.set(
+      'photo',
+      new File(
+        // 'GIF89a' plus the start of the logical screen descriptor.
+        [new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00])],
+        'bin.gif',
+        { type: 'image/gif' },
+      ),
+    )
+    const response = await postReport(app, fd)
+    expect(response.status).toBe(201)
+  })
+
+  it('rejects a truncated JPEG without throwing', async () => {
+    // A photo cut off mid-signature is a rejection like any other mismatch,
+    // not a 500: the sniffer must answer null for a short buffer.
+    const { app } = createTestApp()
+    const fd = reportForm()
+    fd.set('photo', new File([new Uint8Array([0xff, 0xd8])], 'cut.jpg', { type: 'image/jpeg' }))
+    const response = await postReport(app, fd)
+    expect(response.status).toBe(400)
+    const body = await json(response)
+    expect(body.error).toBe('invalid-photo')
+    expect(body.declared).toBe('image/jpeg')
+    expect(body.actual).toBeNull()
   })
 })
 

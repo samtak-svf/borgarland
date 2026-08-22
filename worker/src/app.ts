@@ -31,6 +31,7 @@ import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
 import { getReport, insertClientEvents, insertReport, setOutcome } from './db'
+import { sniffImageFormat } from './image-format'
 import { RegistryNotLoadedError, readRegistryHealth } from './registry-loader'
 import { EVENTS_PATH, validateBatch } from './events'
 import relayRequestJson from '../../data/relay-request.json'
@@ -97,11 +98,14 @@ export interface AppDeps {
 // coordinate. Those are the reporter's, the privacy policy is still open (#5),
 // and none of them are needed to answer the questions a field test asks. The
 // municipality code and the postcode are enough to tell a correct refusal from
-// a registry bug, which is what we would actually be looking at.
+// a registry bug, which is what we would actually be looking at. A MIME type
+// is metadata about the failed upload, not the reporter's, and the
+// declared-versus-actual pair is precisely what tells a field test that an
+// iPhone's HEIC arrived mislabeled.
 // ---------------------------------------------------------------------------
 
 /** Fields from an HttpError's extra that are safe to keep in a log line. */
-const LOGGABLE_EXTRA = ['svfnr', 'field', 'mime', 'reason'] as const
+const LOGGABLE_EXTRA = ['svfnr', 'field', 'mime', 'declared', 'actual', 'reason'] as const
 
 function safeExtra(extra: Record<string, unknown> | undefined): Record<string, unknown> {
   if (extra === undefined) return {}
@@ -164,10 +168,27 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       if (!acceptedPhotoMimes.has(part.type)) {
         throw new HttpError(400, 'invalid-photo', { reason: 'mime not accepted', mime: part.type })
       }
+      // The type allowlist is the city's fact, and it only says what the
+      // client CLAIMED the file is. The city validates nothing about the
+      // bytes behind a declared type, so a HEIC file declared as image/jpeg
+      // would pass the check above and then fail the city's own validation —
+      // after the report had been recorded as sent. Sniff the leading bytes
+      // and refuse a mismatch here, so the reporter finds out before anything
+      // is filed. The sniffed type is the diagnosis, never a second source of
+      // truth: the declared type must be on the accept list AND match.
+      const bytes = new Uint8Array(await part.arrayBuffer())
+      const actual = sniffImageFormat(bytes)
+      if (actual !== part.type) {
+        throw new HttpError(400, 'invalid-photo', {
+          reason: 'declared mime does not match the file contents',
+          declared: part.type,
+          actual: actual ?? null,
+        })
+      }
       photos.push({
         name: part.name,
         mime: part.type,
-        bytes: new Uint8Array(await part.arrayBuffer()),
+        bytes,
         size: part.size,
       })
     }
