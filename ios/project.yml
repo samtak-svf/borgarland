@@ -20,6 +20,9 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    # Mirrors android/app/build.gradle.kts: versionName 0.1.0, versionCode 1.
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
@@ -28,9 +31,6 @@ settings:
     # decides where a report goes should be written down, not inherited.
     Debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
-    # Mirrors android/app/build.gradle.kts: versionName 0.1.0, versionCode 1.
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 1
 
 packages:
   BorgarlandCore:
