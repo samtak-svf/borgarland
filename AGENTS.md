@@ -90,11 +90,14 @@ where it is most often missing, since messaging apps strip it. Ask both, label
 which one answered, and refuse when neither does.
 
 **The city accepts `image/jpeg`, `image/png` and `image/gif`, and an iPhone
-shoots HEIC.** So iOS has to transcode its own capture, and a faithful
-conversion is *larger* than the original — 4.14 MB became 4.78 MB at quality 90.
-Android inherits the same problem the moment a gallery picker lands, because
-`ExifGps.read` understands only JPEG and reads a HEIC as having no location at
-all. Measured against a real original, along with what else the GPS block
+shoots HEIC.** On our own capture path that is a setting, not a constraint: iOS
+names its own codec through `AVCapturePhotoSettings`, so ask for JPEG and never
+transcode a photograph we took ourselves. The gallery is where it bites, on both
+platforms. A picked HEIC has to be converted, and conversion runs *larger* than
+the original (4.14 MB became 4.78 MB at quality 90); `ExifGps.read` understands
+only JPEG and reads a HEIC as having no location at all; and on iOS a picked
+photo read as a `UIImage` arrives with its EXIF gone, so read the file bytes
+instead. Measured against a real original, along with what else the GPS block
 carries and the reverse lookup running end to end:
 [docs/research/photos-exif-and-formats.md](docs/research/photos-exif-and-formats.md).
 
