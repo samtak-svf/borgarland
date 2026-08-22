@@ -35,6 +35,7 @@ GPSAltitude            28.3 m above sea level
 GPSImgDirection        135.981° true
 GPSDestBearing         135.981° true
 GPSHPositioningError   3.53553 m
+GPSSpeed               0 km/h
 GPSTimeStamp           18:51:40
 GPSDateStamp           2026:08:21
 ```
@@ -53,8 +54,54 @@ where the reporter stood, not where the bin is. For anything photographed from
 across a street that is a real difference, and the bearing is the only thing in
 the file that could close it.
 
-Both are also disclosures, and belong in the privacy policy (#5) alongside the
-coordinate rather than being quietly along for the ride.
+`GPSSpeed` is 0 km/h, which says the phone was standing still. A fix taken at
+walking pace is a different quality of fix from one taken at a stop, and this is
+the file saying which it was.
+
+Both bearing and accuracy are also disclosures, and belong in the privacy policy
+(#5) alongside the coordinate rather than being quietly along for the ride.
+
+## The coordinate is where the reporter stood, not where the thing is
+
+Worth stating separately because it changes what the three fields are *for*.
+Reading them together on this one photograph:
+
+| | value |
+|---|---|
+| Point (WGS84) | 64.125206, −21.855372 |
+| Point (ISN93 / EPSG:3057) | 360950.2, 405618.1 |
+| Stated accuracy | 3.54 m radius |
+| Camera bearing | 135.98° true (138.41° grid, meridian convergence 2.43°) |
+| Nearest registered address | Rauðagerði 43, 22 m |
+
+Laid over the 2025 orthophoto (map.is, Loftmyndir ehf.) at 0.0625 m/px, two
+objects sit inside the accuracy circle. Offsets measured off the screen, so
+call them ±0.5 m:
+
+- a bench, about 2.9 m due north of the point;
+- a compact object about 1.8 m away at roughly 72° true, standing on the paving
+  and casting a shadow in the same direction as everything else in the frame.
+  Right size and place for the bin in the photograph.
+
+**The bearing and the point disagree by 62°, and the accuracy is what settles
+it.** The camera faced 136°; the candidate object lies at 72°. Shift the true
+camera position about 3 m north-west, which is well inside the 3.54 m the phone
+itself declared, and the object falls on the axis. The three fields are not in
+conflict; they are only in conflict if you read the coordinate as exact.
+
+So the useful reading is not "the report is at this point". It is **a cone**:
+apex somewhere within the accuracy radius, opening along the bearing. That
+locates the object rather than the photographer, and the difference is the whole
+distance between a crew finding a bin and a crew standing where someone once
+stood.
+
+Two honest limits. The orthophoto is from 2025 and the photograph from 2026, so
+the object match is strong but not proof. And the photograph was taken in flat,
+overcast light with no usable shadow of its own, so the bearing could not be
+checked against the sun; it is taken on the phone's word.
+
+What this could be worth in the interface is open — see #31. Nothing is built on
+it yet, and nothing should be until the design says what it is for.
 
 ## The city does not accept the format an iPhone produces
 
