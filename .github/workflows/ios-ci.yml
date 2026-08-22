@@ -6,14 +6,14 @@
 # broken contract, and a contract failure is never diagnosed as a UI problem.
 #
 # macos-latest minutes are free because this repository is public.
-name: ios-app
+name: ios-ci
 
 on:
   pull_request:
     paths:
       - 'ios/**'
       - 'data/**'
-      - '.github/workflows/ios-app.yml'
+      - '.github/workflows/ios-ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -45,6 +45,15 @@ jobs:
       # from the bundle is a project.yml mistake. That is exactly the mistake
       # `resources:` (not a XcodeGen key, silently ignored) produces, so the
       # build is not trusted until the bundle is unpacked and checked below.
+      # `set -o pipefail` is not decoration. Piping xcodebuild into a
+      # formatter hands the step the FORMATTER's exit code, so a failed build
+      # reports success and the job goes green on a binary that does not exist.
+      # The sibling workflow this is modelled on (rosaparks ios-ci.yml) has
+      # exactly that hole; it is not copied here.
+      #
+      # The destination is generic rather than a named simulator: runner images
+      # rename and retire devices, and a build that needs 'iPhone 16' to exist
+      # fails months later for a reason that has nothing to do with the code.
       - name: Build for the simulator, unsigned
         run: |
           set -o pipefail
@@ -54,14 +63,10 @@ jobs:
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcbeautify || xcodebuild build \
-            -project Borgarland.xcodeproj \
-            -scheme Borgarland \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO
+            | xcpretty
 
       - name: The contract files really are in the bundle
         run: |
@@ -75,3 +80,10 @@ jobs:
           for f in reykjavik-form.json relay-request.json; do
             cmp "$app/$f" "../data/$f" || { echo "::error::$f differs from data/$f"; exit 1; }
           done
+
+      - name: Keep the built app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Borgarland-simulator
+          path: ios/build/Build/Products/Debug-iphonesimulator/Borgarland.app
+          retention-days: 14
