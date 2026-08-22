@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreLocation
 import BorgarlandCore
 
 /// Which of the three screens the shell shows. The Kotlin reference models
@@ -60,6 +61,11 @@ final class ReportModel: ObservableObject {
     // exactly the names this file carries.
     private var relayRequest: RelayRequestFile?
 
+    /// When the current photo was captured — the start of the location step.
+    /// The telemetry channel's `elapsedMs` for the location and category
+    /// events measures from here (data/relay-events.json).
+    private var photoCapturedAt: Date?
+
     init() {
         let factsData = Bundle.main.url(forResource: "reykjavik-form.json", withExtension: nil)
             .flatMap { try? Data(contentsOf: $0) }
@@ -79,6 +85,29 @@ final class ReportModel: ObservableObject {
                 factsError: "reykjavik-form.json vantar eða er ólæsilegt í assets. Ekki er hægt að halda áfram."
             )
         }
+
+        // The telemetry channel is fire-and-forget by contract
+        // (data/relay-events.json): it must never affect the report. One
+        // instance per launch, configured at the single place the app starts,
+        // and the app-opened event belongs to that moment.
+        Telemetry.shared.appVersion = Self.currentAppVersion
+        Telemetry.shared.track(.appOpened)
+    }
+
+    /// The envelope's app version in "0.1.0 (3)" form — the marketing
+    /// version and the build number, the same pair the Android side builds
+    /// from BuildConfig.
+    private static var currentAppVersion: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return "\(short) (\(build))"
+    }
+
+    /// Whole milliseconds since the current photo was captured; 0 when there
+    /// is no photo, which callers only hit in paths where one exists.
+    private func elapsedSincePhoto() -> Int {
+        guard let photoCapturedAt else { return 0 }
+        return max(0, Int(Date().timeIntervalSince(photoCapturedAt) * 1000))
     }
 
     /// The Swift counterpart of the Kotlin's `it.copy(...)`: the state is
@@ -89,7 +118,7 @@ final class ReportModel: ObservableObject {
         state = copy
     }
 
-    func onPhotoCaptured(bytes: Data, rotationDegrees: Int) {
+    func onPhotoCaptured(bytes: Data, rotationDegrees: Int, captureElapsedMs: Int) {
         let photo = PhotoBytes.photo(from: bytes, rotationDegrees: rotationDegrees)
         update { state in
             state.photo = photo
@@ -100,6 +129,12 @@ final class ReportModel: ObservableObject {
             state.needsLocationPermission = false
             state.locationError = nil
         }
+        photoCapturedAt = Date()
+        Telemetry.shared.track(.photoCaptured(
+            elapsedMs: captureElapsedMs,
+            bytes: bytes.count,
+            mime: Telemetry.normalizedMime(photo.mime)
+        ))
 
         // EXIF first on every path, as in the Kotlin: a photo we captured
         // ourselves carries no GPS unless asked for it, so the device fix is
@@ -107,12 +142,22 @@ final class ReportModel: ObservableObject {
         // EXIF and falls through (AGENTS.md's location section).
         if let gps = ExifGps.read(from: bytes),
            Coordinates.isUsable(latitude: gps.latitude, longitude: gps.longitude) {
+            // EXIF carries no radius; 0 is the "no radius reported" value.
+            Telemetry.shared.track(.locationResolved(
+                elapsedMs: elapsedSincePhoto(),
+                source: .exif,
+                accuracyM: 0
+            ))
+            Telemetry.shared.track(.screenLeft(screen: .camera, completed: true))
             update { state in
                 state.coordinate = Coordinate(latitude: gps.latitude, longitude: gps.longitude)
                 state.locationSource = "EXIF GPS úr mynd"
                 state.screen = .details
             }
         } else {
+            // The EXIF route yielded nothing for this photo; the flow falls
+            // through to the device fix, and the failed attempt is recorded.
+            Telemetry.shared.track(.locationFailed(elapsedMs: elapsedSincePhoto(), reason: .noExif))
             // Photo carries no usable GPS: ask the device for a fix.
             update { state in state.needsLocationPermission = true }
         }
@@ -123,9 +168,11 @@ final class ReportModel: ObservableObject {
     }
 
     func onLocationPermissionResult(_ granted: Bool) {
+        Telemetry.shared.track(.locationPermission(granted: granted))
         if granted {
             requestDeviceFix()
         } else {
+            Telemetry.shared.track(.locationFailed(elapsedMs: elapsedSincePhoto(), reason: .permission))
             update { state in
                 state.needsLocationPermission = false
                 state.locating = false
@@ -144,12 +191,24 @@ final class ReportModel: ObservableObject {
             let location = await DeviceFix.shared.request()
             update { state in
                 if let location,
-                   Coordinates.isUsable(latitude: location.latitude, longitude: location.longitude) {
+                   Coordinates.isUsable(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude) {
+                    Telemetry.shared.track(.locationResolved(
+                        elapsedMs: elapsedSincePhoto(),
+                        source: .device,
+                        accuracyM: max(0, Int(location.horizontalAccuracy.rounded()))
+                    ))
+                    Telemetry.shared.track(.screenLeft(screen: .camera, completed: true))
                     state.locating = false
-                    state.coordinate = Coordinate(latitude: location.latitude, longitude: location.longitude)
+                    state.coordinate = Coordinate(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
                     state.locationSource = "Tækjastaðsetning (GPS)"
                     state.screen = .details
                 } else {
+                    // A nil fix means either nothing answered in time or the
+                    // platform has location services off entirely; that is
+                    // exactly the contract's timeout/unavailable split.
+                    let reason: TelemetryEvent.LocationFailure =
+                        CLLocationManager.locationServicesEnabled() ? .timeout : .unavailable
+                    Telemetry.shared.track(.locationFailed(elapsedMs: elapsedSincePhoto(), reason: reason))
                     state.locating = false
                     state.locationError = "Myndin ber enga GPS staðsetningu og tækið fékk enga staðsetningu. Ekki er hægt að halda áfram án hnitanna, enda getur enginn brugðist við skýrslu án staðsetningar."
                 }
@@ -158,6 +217,7 @@ final class ReportModel: ObservableObject {
     }
 
     func retakePhoto() {
+        photoCapturedAt = nil
         update { state in
             state.photo = nil
             state.photoError = nil
@@ -170,6 +230,7 @@ final class ReportModel: ObservableObject {
     }
 
     func selectCategory(_ slug: String) {
+        Telemetry.shared.track(.categoryChosen(elapsedMs: elapsedSincePhoto(), slug: slug))
         update { state in state.selectedSlug = slug }
     }
 
@@ -181,6 +242,8 @@ final class ReportModel: ObservableObject {
         update { state in
             state.description = text.count > max ? String(text.prefix(max)) : text
         }
+        // The LENGTH of what was typed, never the text (data/relay-events.json).
+        Telemetry.shared.track(.descriptionLength(length: state.description.count))
     }
 
     func continueToSummary() {
@@ -196,6 +259,7 @@ final class ReportModel: ObservableObject {
         // is the Kotlin's bounds comparison, ported unchanged.
         let outside = coord.latitude < facts.map.bounds.south || coord.latitude > facts.map.bounds.north
             || coord.longitude < facts.map.bounds.west || coord.longitude > facts.map.bounds.east
+        Telemetry.shared.track(.screenLeft(screen: .details, completed: true))
         update { state in
             state.screen = .summary
             state.outOfBounds = outside
@@ -203,6 +267,8 @@ final class ReportModel: ObservableObject {
     }
 
     func startOver() {
+        Telemetry.shared.track(.screenLeft(screen: .confirm, completed: false))
+        photoCapturedAt = nil
         let categories = state.categories
         let descriptionMaxLength = state.descriptionMaxLength
         state = ReportUiState(categories: categories, descriptionMaxLength: descriptionMaxLength)
@@ -224,8 +290,27 @@ final class ReportModel: ObservableObject {
             state.sending = true
             state.sendResult = nil
         }
+        Telemetry.shared.track(.sendStarted)
+        let startedAt = Date()
         Task {
             let result = await RelayClient.send(payload: payload, contract: contract)
+            let elapsedMs = max(0, Int(Date().timeIntervalSince(startedAt) * 1000))
+            if result.status != 0 {
+                // The relay answered, whatever the status: the send completed.
+                Telemetry.shared.track(.sendResult(elapsedMs: elapsedMs, status: result.status, ok: result.ok))
+            } else {
+                let reason: TelemetryEvent.SendFailure
+                switch result.failure {
+                case .connection: reason = .connection
+                case .timeout: reason = .timeout
+                case .encoding: reason = .encoding
+                case .other: reason = .other
+                case nil: reason = .other
+                }
+                Telemetry.shared.track(.sendFailed(elapsedMs: elapsedMs, reason: reason))
+            }
+            // A natural end point: the events around the report send go now.
+            Telemetry.shared.flush()
             update { state in
                 state.sending = false
                 state.sendResult = if result.ok {

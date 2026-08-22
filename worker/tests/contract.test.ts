@@ -16,6 +16,8 @@ import { createTestApp, json, postReport, reportForm } from './helpers/fixtures'
 const contract = JSON.parse(readFileSync('../data/relay-request.json', 'utf8'))
 const facts = JSON.parse(readFileSync('../data/reykjavik-form.json', 'utf8'))
 const contractRaw = readFileSync('../data/relay-request.json', 'utf8')
+const eventsContract = JSON.parse(readFileSync('../data/relay-events.json', 'utf8'))
+const eventsRaw = readFileSync('../data/relay-events.json', 'utf8')
 
 const EXPECTED_FIELD_NAMES = ['category', 'latitude', 'longitude', 'description', 'email', 'photo']
 // The field names the old app used; none of them may appear in the contract.
@@ -102,5 +104,46 @@ describe('the relay request contract', () => {
     const response = await postReport(app, fd)
     expect(response.status).toBe(400)
     expect((await json(response)).error).toBe('unknown-field')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The client event contract gets the same treatment as its sibling, for the
+// same reason and one more: it is the only channel in the system that could
+// carry instrumentation, so it is the one where a stray string field turns into
+// a privacy incident rather than a bug.
+// ---------------------------------------------------------------------------
+
+describe('the client event contract', () => {
+  it('carries no city vocabulary', () => {
+    // `summary` is the trap. It is one of the city's payload field names AND
+    // the obvious word for the app's last screen, and naming our screen that
+    // would have forced NoCityEndpointTest to be weakened to accommodate it.
+    // Ours is called `confirm`.
+    for (const name of CITY_FIELD_NAMES) {
+      expect(eventsContract.events['screen-left'].fields.screen).not.toContain(name)
+    }
+    for (const category of facts.categories) {
+      expect(eventsRaw).not.toContain(category.category)
+      expect(eventsRaw).not.toContain(category.summary)
+    }
+  })
+
+  it('names no free-text field anywhere, which is the privacy boundary', () => {
+    // Every field is either an integer, a boolean, a category slug, or an
+    // explicit list of permitted values. A bare string type would be a hole,
+    // and the point of this test is that adding one has to be deliberate.
+    const allowedScalarTypes = ['integer', 'boolean', 'categorySlug']
+    for (const [eventName, spec] of Object.entries(eventsContract.events) as [string, { fields: Record<string, unknown> }][]) {
+      for (const [fieldName, type] of Object.entries(spec.fields)) {
+        const ok = Array.isArray(type) || allowedScalarTypes.includes(type as string)
+        expect(ok, `${eventName}.${fieldName} is "${String(type)}", which is not a bounded type`).toBe(true)
+      }
+    }
+  })
+
+  it('keeps the two contracts on separate endpoints', () => {
+    expect(eventsContract.endpoint.path).toBe('/api/events')
+    expect(eventsContract.endpoint.path).not.toBe(contract.endpoint.path)
   })
 })

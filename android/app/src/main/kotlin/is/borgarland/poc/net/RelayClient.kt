@@ -6,8 +6,12 @@ import `is`.borgarland.poc.Payload
 import `is`.borgarland.poc.data.RelayRequestFile
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.io.IOException
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
+import java.net.UnknownHostException
 
 /**
  * Posts a report to OUR relay. Never to the city.
@@ -37,7 +41,19 @@ object RelayClient {
 
     val BASE_URL: String = BuildConfig.RELAY_BASE_URL
 
-    data class Result(val ok: Boolean, val status: Int, val body: String)
+    /**
+     * Why a non-HTTP failure happened, when it did. Feeds the telemetry
+     * channel's send-failed reason (data/relay-events.json); null means the
+     * relay answered, whatever the status.
+     */
+    enum class Failure { CONNECTION, TIMEOUT, ENCODING, OTHER }
+
+    data class Result(
+        val ok: Boolean,
+        val status: Int,
+        val body: String,
+        val failure: Failure? = null,
+    )
 
     fun send(payload: Payload, contract: RelayRequestFile): Result {
         val boundary = "----borgarland${System.currentTimeMillis()}"
@@ -59,7 +75,16 @@ object RelayClient {
             val body = stream?.bufferedReader()?.use { it.readText() } ?: ""
             Result(status in 200..299, status, body)
         } catch (e: Exception) {
-            Result(false, 0, e.message ?: e.javaClass.simpleName)
+            // The Kotlin maps any exception to status 0; the model renders
+            // that as "could not reach the relay". The failure class is for
+            // the telemetry channel only and never changes the report path.
+            val failure = when (e) {
+                is SocketTimeoutException -> Failure.TIMEOUT
+                is ConnectException, is UnknownHostException -> Failure.CONNECTION
+                is IOException -> Failure.CONNECTION
+                else -> Failure.OTHER
+            }
+            Result(false, 0, e.message ?: e.javaClass.simpleName, failure)
         } finally {
             conn.disconnect()
         }
