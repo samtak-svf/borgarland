@@ -1,0 +1,98 @@
+name: Borgarland
+
+# The app target. The logic it is a shell around lives in BorgarlandCore, a
+# plain SwiftPM package that builds and tests on a macOS host with no
+# simulator, no signing and no Xcode project — see
+# .github/workflows/relay-request-contract.yml. This file exists only for the
+# parts that genuinely need Xcode: a bundle, an Info.plist, entitlements,
+# signing.
+#
+# Generated, never committed: `xcodegen generate` in ios/ produces
+# Borgarland.xcodeproj, which .gitignore excludes. A committed project file is
+# a second source of truth that drifts from this one.
+
+options:
+  bundleIdPrefix: is.borgarland
+  deploymentTarget:
+    iOS: "17.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    # Mirrors android/app/build.gradle.kts: versionName 0.1.0, versionCode 1.
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 1
+
+packages:
+  BorgarlandCore:
+    path: BorgarlandCore
+
+targets:
+  Borgarland:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources
+        buildPhase: resources
+      # The facts file and the relay request contract have exactly one home
+      # each: data/ at the repository root (decision 0001). Android copies them
+      # into assets at build time because Gradle has no way to reference a file
+      # outside the module; Xcode does, so they are referenced in place and
+      # cannot drift at all. Note `buildPhase: resources` on every entry —
+      # `resources:` is NOT a XcodeGen target key, it is silently ignored, and
+      # that mistake once shipped an .ipa with no assets in it.
+      - path: ../data/reykjavik-form.json
+        buildPhase: resources
+      - path: ../data/relay-request.json
+        buildPhase: resources
+    dependencies:
+      - package: BorgarlandCore
+        product: BorgarlandCore
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Borgarland POC
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+        # The three permission strings, in Icelandic because they are user-facing.
+        NSCameraUsageDescription: >-
+          Borgarland opnast á myndavélinni. Ábending er mynd af því sem er að,
+          á þeim stað þar sem það er.
+        NSLocationWhenInUseUsageDescription: >-
+          Hnitin fylgja myndinni. Án staðsetningar getur enginn brugðist við
+          ábendingunni, svo appið sendir hana ekki.
+        NSPhotoLibraryUsageDescription: >-
+          Mynd úr safninu má nota í stað þess að taka nýja. Staðsetningin er þá
+          lesin úr myndinni sjálfri.
+        # The counterpart of android/app/src/main/res/xml/network_security_config.xml:
+        # cleartext to the loopback relay during development, and nowhere else.
+        # The city is never on this path (decision 0002).
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: is.borgarland
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: "NO"
+        # Simulator builds in CI are unsigned. Signing settings belong on the
+        # Release config alone: passing them as xcodebuild command-line
+        # overrides applies them to every SPM package target too, and package
+        # targets reject provisioning profiles.
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Manual
+          # The party's Apple team, which already carries a proven Mac-free
+          # signing chain (issue #37). A bundle identifier moves between teams
+          # later; this is the team that can install on a phone today.
+          DEVELOPMENT_TEAM: B4724Z74TM
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "Borgarland App Store"
+          CODE_SIGNING_REQUIRED: "YES"
+          CODE_SIGNING_ALLOWED: "YES"

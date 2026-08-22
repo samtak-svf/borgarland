@@ -1,0 +1,77 @@
+# The SwiftUI shell builds. Separate from relay-request-contract.yml on
+# purpose: that workflow's ios-core job proves the CONTRACT holds and needs
+# nothing but `swift test` on a macOS host — no simulator, no Xcode project,
+# no signing. This one needs all three, so it is slower and fails for
+# different reasons. Keeping them apart means a broken shell never hides a
+# broken contract, and a contract failure is never diagnosed as a UI problem.
+#
+# macos-latest minutes are free because this repository is public.
+name: ios-app
+
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'data/**'
+      - '.github/workflows/ios-app.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Record the toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      # The two data files are referenced in place from data/ at the
+      # repository root rather than copied, so the only way they can be missing
+      # from the bundle is a project.yml mistake. That is exactly the mistake
+      # `resources:` (not a XcodeGen key, silently ignored) produces, so the
+      # build is not trusted until the bundle is unpacked and checked below.
+      - name: Build for the simulator, unsigned
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Borgarland.xcodeproj \
+            -scheme Borgarland \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify || xcodebuild build \
+            -project Borgarland.xcodeproj \
+            -scheme Borgarland \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: The contract files really are in the bundle
+        run: |
+          app="$(find build/Build/Products -name 'Borgarland.app' -maxdepth 3 | head -1)"
+          test -n "$app" || { echo "no Borgarland.app was produced"; exit 1; }
+          for f in reykjavik-form.json relay-request.json; do
+            test -f "$app/$f" || { echo "::error::$f is missing from the bundle"; exit 1; }
+            echo "$f is present"
+          done
+          # Referenced in place, so byte-identical is the only acceptable result.
+          for f in reykjavik-form.json relay-request.json; do
+            cmp "$app/$f" "../data/$f" || { echo "::error::$f differs from data/$f"; exit 1; }
+          done
