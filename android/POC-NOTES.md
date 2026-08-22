@@ -15,7 +15,7 @@ structurally cannot. Neither is true, and the rest of this file was corrected in
 
 ```bash
 ./gradlew assembleDebug          # APK at app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest      # 10 unit tests, all green
+./gradlew testDebugUnitTest      # 16 unit tests, all green
 ```
 
 Verified green from a clean tree on this machine: JDK 25, Gradle 9.4.1 wrapper,
