@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import `is`.borgarland.poc.net.RelayClient
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -122,8 +121,11 @@ fun SummaryScreen(
             // The app cannot reach the city. It posts to our relay, which is
             // in dry run and forwards nothing. Decision 0002 put that decision
             // on the server so it is a deploy away, not an App Store release.
-            "Sendist á ${RelayClient.BASE_URL}, ekki til borgarinnar. " +
-                "Relay-ið er í þurrkeyrslu og framsendir ekkert.",
+            // Where the report goes, in words rather than a hostname. A URL tells
+            // a reader nothing they can act on, and the loopback one told them
+            // something false (#29).
+            "Sendist á þjónustu Borgarlands, ekki beint til borgarinnar. " +
+                "Þjónustan er í þurrkeyrslu og framsendir ekkert.",
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 8.dp),
         )

@@ -16,10 +16,14 @@ import BorgarlandCore
 /// the transport — the URL, the method and path from the contract, the
 /// boundary in the Content-Type header, timeouts, and the result tuple.
 enum RelayClient {
-    /// The one URL literal in the whole app. 127.0.0.1 because the POC
-    /// reaches the development machine over a loopback tunnel; the deployed
-    /// hostname is tracked separately (issue #29).
-    static let baseURL = "http://127.0.0.1:8787"
+    /// Where the relay lives for this build. Both values, and the assertions
+    /// that keep the release one from being a loopback, are in
+    /// BorgarlandCore.RelayEndpoint (#29).
+    #if DEBUG
+    static let baseURL = RelayEndpoint.development
+    #else
+    static let baseURL = RelayEndpoint.production
+    #endif
 
     struct Result {
         let ok: Bool

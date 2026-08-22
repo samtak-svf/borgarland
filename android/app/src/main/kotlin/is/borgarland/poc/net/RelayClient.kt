@@ -1,5 +1,6 @@
 package `is`.borgarland.poc.net
 
+import `is`.borgarland.poc.BuildConfig
 import `is`.borgarland.poc.Photo
 import `is`.borgarland.poc.Payload
 import `is`.borgarland.poc.data.RelayRequestFile
@@ -23,13 +24,18 @@ import java.net.URL
  * city vocabulary (type, summary, display name, lat/lng, files), which belongs
  * to the relay's adapter alone.
  *
- * The base URL is 127.0.0.1 because `adb reverse tcp:8787 tcp:8787` maps it to
- * the development machine. network_security_config.xml permits cleartext to
- * localhost alone, so a mistyped host does not silently reach the internet.
+ * The base URL comes from BuildConfig, per build type (#29): the loopback for
+ * debug, where `adb reverse tcp:8787 tcp:8787` maps it to the development
+ * machine, and the deployed https host for release. build.gradle.kts refuses to
+ * configure a release with a loopback value at all.
+ *
+ * network_security_config.xml permits cleartext to localhost alone, so a
+ * mistyped host does not silently reach the internet, and the deployed relay is
+ * https so the policy does not need widening.
  */
 object RelayClient {
 
-    const val BASE_URL: String = "http://127.0.0.1:8787"
+    val BASE_URL: String = BuildConfig.RELAY_BASE_URL
 
     data class Result(val ok: Boolean, val status: Int, val body: String)
 

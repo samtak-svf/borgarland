@@ -68,3 +68,21 @@ CREATE TABLE IF NOT EXISTS addresses (
   lat          REAL NOT NULL,
   lng          REAL NOT NULL
 );
+
+-- The registry's age, written by scripts/refresh-registry.mjs into the same
+-- seed as the addresses themselves. Decision 0009 named the failure this
+-- exists to close: a stale registry degrades the jurisdiction check silently
+-- rather than failing it, and until this table there was nothing to read.
+-- Created by migrations/0002_registry_meta.sql, surfaced at GET /api/health.
+CREATE TABLE IF NOT EXISTS registry_meta (
+  -- One row only. The check is the whole constraint: there is one registry.
+  id          INTEGER PRIMARY KEY CHECK (id = 1),
+  -- When the HMS export was read, ISO 8601, from the machine that generated
+  -- the seed.
+  snapshot_at TEXT NOT NULL,
+  -- How many address rows that seed claimed to write. Compared against the
+  -- live COUNT(*) at /api/health: a mismatch means a partially applied seed,
+  -- which is a real risk for an 8.8 MB file applied over the network.
+  row_count   INTEGER NOT NULL,
+  source      TEXT NOT NULL
+);
