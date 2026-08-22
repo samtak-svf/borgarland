@@ -17,8 +17,23 @@ Free software, no charge, no ads, no data resale. Built by
 
 ## Status
 
-**Research complete, nothing built yet.** The feasibility question is answered
-in [docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reporting-api.md).
+**Three parts exist and none of them has filed a report.** The feasibility
+question is answered in
+[docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reporting-api.md);
+what is built on top of it is:
+
+- **The Worker relay** (`worker/`), with its tests and its D1 schema. Not
+  deployed, so nothing has a hostname yet.
+- **The Android app** (`android/`), which has run on a real phone: camera,
+  coordinate, category, description, and a POST to the relay.
+- **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
+  platform-independent `BorgarlandCore` package whose tests pin it to the same
+  request contract the Android and Worker tests pin. It has been built by CI
+  and never installed on a phone.
+
+Nothing in this repository can reach the city. Every path ends at our own relay,
+which forwards nothing unless deliberately configured to
+([decision 0002](decisions/0002-relay-not-direct-post.md)).
 
 The short version: Reykjavík publishes no API, and no Icelandic municipality
 implements Open311 — but the city's own form endpoint accepts an anonymous
