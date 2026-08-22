@@ -180,6 +180,7 @@ Four artifacts, one job each. Putting a fact in the wrong one is how they drift.
 |---|---|
 | [`data/reykjavik-form.json`](data/reykjavik-form.json) | **Facts** about the city's form, with how and when each was established. `scripts/send-report.mjs` and `.github/workflows/contract.yml` read it. Change a fact here first. |
 | [`data/relay-request.json`](data/relay-request.json) | **Facts** about the request the apps send to OUR relay, in our vocabulary only. Both sides read it: the Worker rejects any part it does not name, and both apps build the request from it. A request-contract fact belongs here, never in the city's facts file and never in prose. |
+| [`data/platform-parity.json`](data/platform-parity.json) | **Facts** about which capabilities each app has, and the INTENT for each: parity, one-sided with a written reason, or neither-yet. `scripts/check-parity.mjs` detects the truth from the source and fails CI when it disagrees. The file does not assert what exists; that is the point. |
 | [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
 | [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
 

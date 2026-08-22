@@ -1,0 +1,147 @@
+{
+  "$comment": "Which capabilities each app has, what the INTENT is for each, and how to detect the truth from the source. Read by scripts/check-parity.mjs, which CI runs. The point is that this file does NOT assert what exists: `intent` is a human decision, `detect` is a pattern, and the script reports what the pattern actually finds. A capability that appears on one platform while `intent` says `parity` turns CI red until someone either builds it on the other side or writes down why not. Drift becomes a decision instead of an accident. Prior art: dashpay/platform's SDK parity manifest, which is the only CI-enforced parity system found in open source (2026-08-22) — theirs hand-audits the statuses, this one derives them.",
+  "verifiedAt": "2026-08-22",
+  "intents": {
+    "parity": "Both platforms must have it. One-sided is a build failure.",
+    "ios-only": "Deliberately iOS only. `reason` is required and must name an issue.",
+    "android-only": "Deliberately Android only. `reason` is required and must name an issue.",
+    "neither-yet": "Neither has it and that is known. Detecting it on either side is a failure, because it means something shipped without this file being updated."
+  },
+  "capabilities": [
+    {
+      "name": "camera-capture",
+      "intent": "parity",
+      "what": "The app opens on a camera and takes the photograph. AGENTS.md: the camera is the entry point.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "ImageCapture" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "AVCapturePhotoOutput|AVCapturePhotoSettings" }
+      }
+    },
+    {
+      "name": "gallery-pick",
+      "intent": "neither-yet",
+      "reason": "#28 — whether the first release has a gallery path at all is an open decision. AGENTS.md discusses the gallery at length, which reads as though one exists.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "PickVisualMedia|ACTION_GET_CONTENT|GetContent\\(" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "PhotosPicker|PHPickerViewController" }
+      }
+    },
+    {
+      "name": "exif-gps-read",
+      "intent": "parity",
+      "what": "Reading the coordinate out of a photograph's EXIF block.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "object ExifGps" },
+        "ios": { "paths": ["ios/BorgarlandCore/Sources"], "pattern": "enum ExifGps|struct ExifGps" }
+      }
+    },
+    {
+      "name": "device-location-fix",
+      "intent": "parity",
+      "what": "Asking the device for a coordinate when the photo carries none, which on the capture path is always.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "class DeviceFix|object DeviceFix" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "class DeviceFix" }
+      }
+    },
+    {
+      "name": "category-picker-from-facts",
+      "intent": "parity",
+      "what": "The twelve categories read from data/reykjavik-form.json at runtime, never hardcoded.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "reykjavik-form.json|FactsFile" },
+        "ios": { "paths": ["ios/BorgarlandCore/Sources", "ios/Sources"], "pattern": "reykjavik-form|FactsFile" }
+      }
+    },
+    {
+      "name": "relay-send",
+      "intent": "parity",
+      "what": "Posting the multipart report to our relay. Never to the city (decision 0002).",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "object RelayClient" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "enum RelayClient" }
+      }
+    },
+    {
+      "name": "relay-host-per-build-type",
+      "intent": "parity",
+      "what": "The relay host comes from the build type, so a release cannot ship the loopback (#29).",
+      "detect": {
+        "android": { "paths": ["android/app"], "pattern": "RELAY_BASE_URL" },
+        "ios": { "paths": ["ios"], "pattern": "RelayEndpoint" }
+      }
+    },
+    {
+      "name": "client-telemetry",
+      "intent": "parity",
+      "what": "The event stream to POST /api/events, so a field test leaves a timeline.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "class Telemetry" },
+        "ios": { "paths": ["ios/BorgarlandCore/Sources"], "pattern": "class Telemetry" }
+      }
+    },
+    {
+      "name": "no-city-endpoint-guard",
+      "intent": "parity",
+      "what": "A test asserting the app knows no city hostname, path or field name.",
+      "detect": {
+        "android": { "paths": ["android/app/src/test"], "pattern": "NoCityEndpoint" },
+        "ios": { "paths": ["ios/BorgarlandCore/Tests"], "pattern": "NoCityEndpoint" }
+      }
+    },
+    {
+      "name": "contract-pinned-request-test",
+      "intent": "parity",
+      "what": "A test pinning the multipart body to data/relay-request.json, so a renamed field fails the build.",
+      "detect": {
+        "android": { "paths": ["android/app/src/test"], "pattern": "RelayRequestTest" },
+        "ios": { "paths": ["ios/BorgarlandCore/Tests"], "pattern": "RelayRequestTest" }
+      }
+    },
+    {
+      "name": "crash-reporting",
+      "intent": "ios-only",
+      "reason": "#58 — whether Android ships to anyone is undecided, and crash reporting on a platform nobody installs is cost without signal. iOS has it on the borgarland-app Firebase project (#53).",
+      "detect": {
+        "android": { "paths": ["android"], "pattern": "crashlytics|Crashlytics" },
+        "ios": { "paths": ["ios/project.yml", "ios/Sources"], "pattern": "FirebaseCrashlytics|FirebaseApp.configure" }
+      }
+    },
+    {
+      "name": "signed-release-pipeline",
+      "intent": "ios-only",
+      "reason": "#58 — same decision. iOS builds signed and uploads to TestFlight without a Mac; Android has no signing config and no release workflow.",
+      "detect": {
+        "android": { "paths": ["android/app/build.gradle.kts", ".github/workflows"], "pattern": "signingConfigs|android-release" },
+        "ios": { "paths": [".github/workflows"], "pattern": "upload-testflight-build" }
+      }
+    },
+    {
+      "name": "lint-in-ci",
+      "intent": "neither-yet",
+      "reason": "#2 names ktlint and Android lint as an acceptance criterion and neither is configured; iOS has no SwiftLint either. Tracked in #58.",
+      "detect": {
+        "android": { "paths": ["android", ".github/workflows"], "pattern": "ktlint|detekt" },
+        "ios": { "paths": ["ios", ".github/workflows"], "pattern": "swiftlint|SwiftLint" }
+      }
+    },
+    {
+      "name": "offline-queue",
+      "intent": "neither-yet",
+      "reason": "#2 — a report taken out of coverage should send when the phone is back. This is a walking app, so it matters, and neither platform has it.",
+      "detect": {
+        "android": { "paths": ["android/app"], "pattern": "WorkManager|androidx.work" },
+        "ios": { "paths": ["ios"], "pattern": "BGTaskScheduler|URLSessionConfiguration.background" }
+      }
+    },
+    {
+      "name": "map-correction",
+      "intent": "neither-yet",
+      "reason": "#2 — AGENTS.md describes the map in the present tense as a correction surface. It does not exist on either platform.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "MapView|GoogleMap|MapLibre" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "import MapKit|Map\\(" }
+      }
+    }
+  ]
+}
