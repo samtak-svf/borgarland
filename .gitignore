@@ -18,3 +18,7 @@ xcuserdata/
 # create a second source of truth for the target's settings, and the two drift.
 ios/*.xcodeproj/
 .build/
+
+# The signing private key, the certificate request and the .p12 bundle.
+# Regenerable, but never in git.
+ios/signing/.secrets/

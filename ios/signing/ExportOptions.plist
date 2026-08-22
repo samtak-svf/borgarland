@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/propertylist-1.0.dtd">
+<!--
+  Read by `xcodebuild -exportArchive` in .github/workflows/ios-release.yml.
+
+  signingStyle, signingCertificate and provisioningProfiles are all load-bearing
+  together: manual signing needs PROVISIONING_PROFILE_SPECIFIER on the archive
+  step AND this map on the export step. Setting one without the other produces
+  an export failure that names neither.
+
+  The profile name here must match the profile created in the Apple developer
+  portal exactly, and the key must match PRODUCT_BUNDLE_IDENTIFIER in
+  ios/project.yml.
+-->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>signingCertificate</key>
+    <string>Apple Distribution</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>is.borgarland</key>
+        <string>Borgarland App Store</string>
+    </dict>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>compileBitcode</key>
+    <false/>
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>
