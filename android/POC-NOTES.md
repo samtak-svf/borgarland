@@ -24,23 +24,26 @@ does the same (`` package `is`.rosaparks ``).
 
 ## The one rule, and how it is enforced
 
-No capability to reach reykjavik.is or any city endpoint. Three layers:
+No capability to reach reykjavik.is or any city endpoint.
 
-1. **No INTERNET permission** is declared in the manifest, and
-   `tools:node="remove"` strips it from the merged manifest even if a library
-   declares it.
-2. **No HTTP client, no networking dependency.** The dependency set is
-   compose/material3, lifecycle, activity, kotlinx-serialization, CameraX and
-   the framework `LocationManager`. Nothing on the classpath can make an HTTP
-   request (verified via the runtime dependency graph).
-3. **The send step does not exist.** The flow ends at a screen that displays
-   the exact payload. There is no endpoint URL in any code path and nothing to
-   call one with.
+**This section described the POC before it could send anything, and the app has
+moved past it.** The app now declares `INTERNET`, because it posts to our own
+relay (decision 0002 says the apps post to the relay and never to the city).
+What replaced "no network at all" is narrower and still checkable:
 
-Verified on the built artifact, not just the source: `aapt dump permissions`
-on `app-debug.apk` lists only `CAMERA` and `ACCESS_FINE_LOCATION` (plus the
-app's own internal dynamic-receiver guard permission). Zero
-`INTERNET`, zero `ACCESS_NETWORK_STATE`.
+1. **No city endpoint anywhere in the app.** No hostname, no category slug, no
+   path. `NoCityEndpointTest` asserts it on every build, and strips comments
+   before scanning so the rule can be documented in the file it governs.
+2. **One URL constant**, in `net/RelayClient.kt`, pointing at the relay.
+3. **Cleartext to localhost only**, via `network_security_config.xml`. That is
+   right for `adb reverse` during development and has to change when a real
+   relay hostname exists.
+4. **`ACCESS_NETWORK_STATE` is still stripped** with `tools:node="remove"`,
+   because nothing here reads connectivity.
+
+Verified on the built artifact rather than the source: `aapt dump permissions`
+on the APK lists `CAMERA`, `ACCESS_FINE_LOCATION` and `INTERNET`, and no
+`ACCESS_NETWORK_STATE`.
 
 `ACCESS_NETWORK_STATE` did appear in an intermediate build: CameraX 1.6.1
 pulls `androidx.media3` (video muxing) whose manifest declares it. This POC
@@ -100,9 +103,11 @@ the manifest.
 - **Single photo.** The form accepts repeated files (`files` is repeated in
   the facts file); the POC captures one.
 - **No email field**, though the facts file lists it as optional.
-- **Device fix is GPS-only** (framework `LocationManager`); no network
-  provider, deliberately, to keep the permission surface to one location
-  permission.
+- ~~**Device fix is GPS-only**~~ — no longer true. Testing on a real phone
+  indoors showed GPS never fixes under a roof, so a GPS-only request timed out
+  and the report was refused while the network and fused providers held a
+  three-minute-old fix accurate to eighteen metres. It now asks every enabled
+  provider and takes whichever answers first.
 - **No jurisdiction check** (SVFNR). AGENTS.md puts that in the relay, not the
   app, and there is no relay here. The map-bounds warning is the only
   geo-sanity signal.
