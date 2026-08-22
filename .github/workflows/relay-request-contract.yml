@@ -24,6 +24,7 @@ on:
       - 'data/reykjavik-form.json'
       - 'worker/**'
       - 'android/**'
+      - 'ios/**'
       - 'scripts/check-relay-contract.mjs'
       - '.github/workflows/relay-request-contract.yml'
   workflow_dispatch:
@@ -61,3 +62,21 @@ jobs:
 
       - name: The app's asset copy of the contract is byte-identical
         run: node scripts/check-relay-contract.mjs --require-asset
+
+  # The iOS side of the same contract. BorgarlandCore imports Foundation and
+  # ImageIO only, so `swift test` compiles for the macOS host and runs with no
+  # simulator, no signing and no Xcode project — the same shape as the Android
+  # unit tests running on the JVM with no device. The SwiftUI shell, when it
+  # exists, is what needs xcodebuild; this job deliberately does not wait for it.
+  #
+  # macos-latest minutes are free because this repository is public.
+  ios-core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Record the toolchain
+        run: swift --version
+
+      - name: The Swift port builds exactly the contract's parts
+        run: swift test --package-path ios/BorgarlandCore

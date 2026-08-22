@@ -1,0 +1,52 @@
+import Foundation
+
+/// What would be posted, field for field, to OUR relay. The city's type and
+/// display names are derived by the relay's adapter from the slug; this
+/// package never sees or sends them (AGENTS.md: the adapter is the only place
+/// allowed to know the city's vocabulary). The wire names of the parts are
+/// the contract's field keys (data/relay-request.json), applied in
+/// MultipartBodyBuilder.
+public struct Photo {
+    public let bytes: Data
+    public let name: String
+    public let mime: String
+    public let rotationDegrees: Int
+
+    public init(bytes: Data, name: String, mime: String, rotationDegrees: Int) {
+        self.bytes = bytes
+        self.name = name
+        self.mime = mime
+        self.rotationDegrees = rotationDegrees
+    }
+
+    public var sizeBytes: Int { bytes.count }
+}
+
+public struct Payload {
+    /// Category slug, one of the twelve in the facts file.
+    public let categorySlug: String
+    public let latitude: Double
+    public let longitude: Double
+    public let description: String
+    public let photos: [Photo]
+
+    public init(
+        categorySlug: String,
+        latitude: Double,
+        longitude: Double,
+        description: String,
+        photos: [Photo]
+    ) {
+        self.categorySlug = categorySlug
+        self.latitude = latitude
+        self.longitude = longitude
+        self.description = description
+        self.photos = photos
+    }
+
+    /// Formatted the way the relay script formats them: shortest round-trip
+    /// decimal with a dot separator. Not fixed-point — a fixed width would
+    /// pad and round differently than the Kotlin's toString().
+    public var latitudeText: String { String(latitude) }
+    public var longitudeText: String { String(longitude) }
+}
