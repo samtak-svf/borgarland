@@ -30,8 +30,9 @@ import { checkJurisdiction } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
-import { getReport, insertReport, setOutcome } from './db'
+import { getReport, insertClientEvents, insertReport, setOutcome } from './db'
 import { RegistryNotLoadedError, readRegistryHealth } from './registry-loader'
+import { EVENTS_PATH, validateBatch } from './events'
 import relayRequestJson from '../../data/relay-request.json'
 
 // ---------------------------------------------------------------------------
@@ -302,6 +303,33 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     return json({ report })
   }
 
+  // The client event stream (data/relay-events.json). This is the half of a
+  // field test the relay could not see: everything the app did before it posted
+  // a report, including the reports it never got to post.
+  //
+  // It is instrumentation, so it answers fast and it never becomes a reason a
+  // report fails. It is also the one endpoint an app could accidentally put
+  // personal data into, which is why validateBatch refuses anything the
+  // contract does not name rather than storing it and sorting it out later.
+  async function handleEvents(request: Request): Promise<Response> {
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      throw new HttpError(400, 'invalid-event-batch', { reason: 'body is not JSON' })
+    }
+    const batch = validateBatch(body)
+    const stored = await insertClientEvents(db, batch, now())
+    logEvent({
+      kind: 'events',
+      outcome: 'recorded',
+      session: batch.session,
+      platform: batch.platform,
+      count: stored,
+    })
+    return json({ stored }, 202)
+  }
+
   // Operational readout, deliberately not part of data/relay-request.json: that
   // file is the contract for the request an APP sends, and this is not one.
   //
@@ -329,6 +357,11 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
   return async function handler(request: Request): Promise<Response> {
     try {
       const path = new URL(request.url).pathname
+
+      if (path === EVENTS_PATH) {
+        if (request.method === 'POST') return await handleEvents(request)
+        return json({ error: 'method-not-allowed' }, 405)
+      }
 
       if (path === '/api/health') {
         if (request.method === 'GET') return await handleHealth()

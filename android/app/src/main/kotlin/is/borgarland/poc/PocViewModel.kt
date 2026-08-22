@@ -1,7 +1,11 @@
 package `is`.borgarland.poc
 
 import android.app.Application
+import android.content.Context
+import android.location.LocationManager
 import `is`.borgarland.poc.net.RelayClient
+import `is`.borgarland.poc.net.Telemetry
+import `is`.borgarland.poc.net.TelemetryEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +21,8 @@ import `is`.borgarland.poc.location.DeviceFix
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlin.math.max
+import kotlin.math.roundToInt
 
 sealed interface Screen {
     data object Camera : Screen
@@ -63,6 +69,13 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     // exactly the names this file carries.
     private var relayRequest: RelayRequestFile? = null
 
+    /**
+     * When the current photo was captured — the start of the location step.
+     * The telemetry channel's `elapsedMs` for the location and category
+     * events measures from here (data/relay-events.json).
+     */
+    private var photoCapturedAtMs: Long? = null
+
     init {
         val text = runCatching {
             getApplication<Application>().assets.open("reykjavik-form.json")
@@ -87,9 +100,34 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+
+        // The telemetry channel is fire-and-forget by contract
+        // (data/relay-events.json): it must never affect the report. One
+        // instance per launch, and the app-opened event belongs to that
+        // moment.
+        Telemetry.shared.track(TelemetryEvent.AppOpened)
     }
 
-    fun onPhotoCaptured(bytes: ByteArray, rotationDegrees: Int) {
+    /**
+     * Whole milliseconds since the current photo was captured; 0 when there
+     * is no photo, which callers only hit in paths where one exists.
+     */
+    private fun elapsedSincePhoto(): Int {
+        val start = photoCapturedAtMs ?: return 0
+        return max(0, (System.currentTimeMillis() - start).toInt())
+    }
+
+    /**
+     * Whether any location provider is enabled at all — the contract's
+     * timeout/unavailable split for a failed fix.
+     */
+    private fun locationServicesEnabled(): Boolean {
+        val manager = getApplication<Application>().getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        return manager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
+            manager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+    }
+
+    fun onPhotoCaptured(bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) {
         val photo = Photo(bytes = bytes, name = "mynd.jpg", mime = "image/jpeg", rotationDegrees = rotationDegrees)
         _state.update {
             it.copy(
@@ -102,8 +140,17 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 locationError = null,
             )
         }
+        photoCapturedAtMs = System.currentTimeMillis()
+        Telemetry.shared.track(
+            TelemetryEvent.PhotoCaptured(captureElapsedMs, bytes.size, Telemetry.normalizedMime(photo.mime)),
+        )
         val gps = ExifGps.read(bytes)
         if (gps != null && isUsableCoordinate(gps.lat, gps.lng)) {
+            // EXIF carries no radius; 0 is the "no radius reported" value.
+            Telemetry.shared.track(
+                TelemetryEvent.LocationResolved(elapsedSincePhoto(), TelemetryEvent.LocationSource.EXIF, 0),
+            )
+            Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.CAMERA, true))
             _state.update {
                 it.copy(
                     coordinate = Coordinate(gps.lat, gps.lng),
@@ -112,6 +159,11 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         } else {
+            // The EXIF route yielded nothing for this photo; the flow falls
+            // through to the device fix, and the failed attempt is recorded.
+            Telemetry.shared.track(
+                TelemetryEvent.LocationFailed(elapsedSincePhoto(), TelemetryEvent.LocationFailure.NO_EXIF),
+            )
             // Photo carries no usable GPS: ask the device for a fix.
             _state.update { it.copy(needsLocationPermission = true) }
         }
@@ -122,9 +174,13 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onLocationPermissionResult(granted: Boolean) {
+        Telemetry.shared.track(TelemetryEvent.LocationPermission(granted))
         if (granted) {
             requestDeviceFix()
         } else {
+            Telemetry.shared.track(
+                TelemetryEvent.LocationFailed(elapsedSincePhoto(), TelemetryEvent.LocationFailure.PERMISSION),
+            )
             _state.update {
                 it.copy(
                     needsLocationPermission = false,
@@ -139,15 +195,34 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(locating = true, locationError = null, needsLocationPermission = false) }
         viewModelScope.launch {
             val location = DeviceFix(getApplication()).request()
-            _state.update {
-                if (location != null && isUsableCoordinate(location.latitude, location.longitude)) {
+            if (location != null && isUsableCoordinate(location.latitude, location.longitude)) {
+                Telemetry.shared.track(
+                    TelemetryEvent.LocationResolved(
+                        elapsedSincePhoto(),
+                        TelemetryEvent.LocationSource.DEVICE,
+                        max(0, location.accuracy.roundToInt()),
+                    ),
+                )
+                Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.CAMERA, true))
+                _state.update {
                     it.copy(
                         locating = false,
                         coordinate = Coordinate(location.latitude, location.longitude),
                         locationSource = "Tækjastaðsetning (GPS)",
                         screen = Screen.Details,
                     )
+                }
+            } else {
+                // A null fix means either nothing answered in time or the
+                // platform has location services off entirely; that is
+                // exactly the contract's timeout/unavailable split.
+                val reason = if (locationServicesEnabled()) {
+                    TelemetryEvent.LocationFailure.TIMEOUT
                 } else {
+                    TelemetryEvent.LocationFailure.UNAVAILABLE
+                }
+                Telemetry.shared.track(TelemetryEvent.LocationFailed(elapsedSincePhoto(), reason))
+                _state.update {
                     it.copy(
                         locating = false,
                         locationError = "Myndin ber enga GPS staðsetningu og tækið fékk enga staðsetningu. Ekki er hægt að halda áfram án hnitanna, enda getur enginn brugðist við skýrslu án staðsetningar.",
@@ -158,6 +233,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun retakePhoto() {
+        photoCapturedAtMs = null
         _state.update {
             it.copy(
                 photo = null,
@@ -172,12 +248,15 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectCategory(slug: String) {
+        Telemetry.shared.track(TelemetryEvent.CategoryChosen(elapsedSincePhoto(), slug))
         _state.update { it.copy(selectedSlug = slug) }
     }
 
     fun onDescriptionChange(text: String) {
         val max = _state.value.descriptionMaxLength
         _state.update { it.copy(description = if (text.length > max) text.take(max) else text) }
+        // The LENGTH of what was typed, never the text (data/relay-events.json).
+        Telemetry.shared.track(TelemetryEvent.DescriptionLength(_state.value.description.length))
     }
 
     fun continueToSummary() {
@@ -188,10 +267,13 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         val f = facts ?: return
         val outside = coord.lat < f.map.bounds.south || coord.lat > f.map.bounds.north ||
             coord.lng < f.map.bounds.west || coord.lng > f.map.bounds.east
+        Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.DETAILS, true))
         _state.update { it.copy(screen = Screen.Summary, outOfBounds = outside) }
     }
 
     fun startOver() {
+        Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
+        photoCapturedAtMs = null
         _state.update {
             PocUiState(categories = it.categories, descriptionMaxLength = it.descriptionMaxLength)
         }
@@ -215,8 +297,27 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         _state.update { it.copy(sending = true, sendResult = null) }
+        Telemetry.shared.track(TelemetryEvent.SendStarted)
+        val startedAt = System.currentTimeMillis()
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) { RelayClient.send(payload, contract) }
+            val elapsedMs = max(0, (System.currentTimeMillis() - startedAt).toInt())
+            if (result.status != 0) {
+                // The relay answered, whatever the status: the send completed.
+                Telemetry.shared.track(TelemetryEvent.SendResult(elapsedMs, result.status, result.ok))
+            } else {
+                val reason = result.failure?.let {
+                    when (it) {
+                        RelayClient.Failure.CONNECTION -> TelemetryEvent.SendFailure.CONNECTION
+                        RelayClient.Failure.TIMEOUT -> TelemetryEvent.SendFailure.TIMEOUT
+                        RelayClient.Failure.ENCODING -> TelemetryEvent.SendFailure.ENCODING
+                        RelayClient.Failure.OTHER -> TelemetryEvent.SendFailure.OTHER
+                    }
+                } ?: TelemetryEvent.SendFailure.OTHER
+                Telemetry.shared.track(TelemetryEvent.SendFailed(elapsedMs, reason))
+            }
+            // A natural end point: the events around the report send go now.
+            Telemetry.shared.flush()
             _state.update {
                 it.copy(
                     sending = false,

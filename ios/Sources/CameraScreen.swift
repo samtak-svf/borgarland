@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import BorgarlandCore
 
 /// The app opens here. The camera is the entry point and there is no path
 /// that starts with a form (decision 0004). A captured photo is resolved to
@@ -32,9 +33,9 @@ struct CameraScreen: View {
             }
         }
         .onAppear {
-            camera.onPhotoCaptured = { data in
+            camera.onPhotoCaptured = { data, captureElapsedMs in
                 Task { @MainActor in
-                    model.onPhotoCaptured(bytes: data, rotationDegrees: 0)
+                    model.onPhotoCaptured(bytes: data, rotationDegrees: 0, captureElapsedMs: captureElapsedMs)
                 }
             }
             camera.onPhotoError = { message in
@@ -46,8 +47,12 @@ struct CameraScreen: View {
         .task {
             // The Kotlin checks permission on first composition without
             // prompting; the prompt comes from the button below. Same here:
-            // no dialog on first launch.
-            if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
+            // no dialog on first launch. The observed state is the camera
+            // permission event — a person who has already denied still gets
+            // counted, which is exactly the friction the channel measures.
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
+            Telemetry.shared.track(.cameraPermission(granted: status == .authorized))
+            if status == .authorized {
                 cameraAuthorized = true
                 startCamera()
             }
@@ -155,10 +160,14 @@ struct CameraScreen: View {
             switch AVCaptureDevice.authorizationStatus(for: .video) {
             case .authorized:
                 cameraAuthorized = true
+                Telemetry.shared.track(.cameraPermission(granted: true))
             case .notDetermined:
-                cameraAuthorized = await AVCaptureDevice.requestAccess(for: .video)
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                cameraAuthorized = granted
+                Telemetry.shared.track(.cameraPermission(granted: granted))
             default:
                 cameraAuthorized = false
+                Telemetry.shared.track(.cameraPermission(granted: false))
             }
         }
     }
@@ -168,6 +177,7 @@ struct CameraScreen: View {
         // fix; otherwise run the permission launcher. DeviceFix owns the
         // CoreLocation equivalent of that launcher.
         if DeviceFix.shared.isAuthorized {
+            Telemetry.shared.track(.locationPermission(granted: true))
             model.requestDeviceFix()
         } else {
             Task {
@@ -199,10 +209,16 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
     // stopRunning cannot interleave.
     private let sessionQueue = DispatchQueue(label: "is.borgarland.camera-session")
 
-    /// Called on the main actor with the captured JPEG bytes.
-    var onPhotoCaptured: ((Data) -> Void)?
+    /// Called on the main actor with the captured JPEG bytes and the
+    /// shutter-to-bytes time in milliseconds (the telemetry channel's
+    /// photo-captured elapsedMs).
+    var onPhotoCaptured: ((Data, Int) -> Void)?
     /// Called on the main actor with a user-facing message.
     var onPhotoError: ((String) -> Void)?
+
+    /// When the last capture was requested; the elapsed time is measured
+    /// from here to the delegate callback.
+    private var captureStartedAt = Date()
 
     /// Published, because the capture button's .disabled() reads it: without
     /// it the view never re-renders when configuration finishes and the button
@@ -242,6 +258,7 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
 
     func capture() {
         guard isConfigured else { return }
+        captureStartedAt = Date()
         // JPEG, explicitly, and on the request itself: this is the settings
         // object the output actually uses. The iPhone shoots HEIC by default
         // and the city accepts only image/jpeg, image/png and image/gif, so on
@@ -265,7 +282,9 @@ final class CameraController: NSObject, ObservableObject, AVCapturePhotoCaptureD
             DispatchQueue.main.async { self.onPhotoError?("myndin kom ekki í JPEG") }
             return
         }
-        DispatchQueue.main.async { self.onPhotoCaptured?(data) }
+        // Shutter-to-bytes, the telemetry channel's photo-captured elapsedMs.
+        let elapsedMs = max(0, Int(Date().timeIntervalSince(captureStartedAt) * 1000))
+        DispatchQueue.main.async { self.onPhotoCaptured?(data, elapsedMs) }
     }
 }
 

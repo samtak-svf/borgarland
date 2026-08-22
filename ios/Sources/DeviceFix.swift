@@ -84,10 +84,14 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     /// because the coordinate is where the thing is. The Kotlin has no such
     /// bug because it re-reads the providers' own last-known fix each time
     /// rather than remembering one.
-    func request(timeout: TimeInterval = 15) async -> CLLocationCoordinate2D? {
+    ///
+    /// The full CLLocation is returned, not just the coordinate, because the
+    /// telemetry channel reports the fix's radius (`accuracyM` in
+    /// data/relay-events.json): horizontalAccuracy is part of the same answer.
+    func request(timeout: TimeInterval = 15) async -> CLLocation? {
         if let cached = manager.location,
            Date().timeIntervalSince(cached.timestamp) < Self.staleAfter {
-            return cached.coordinate
+            return cached
         }
         manager.startUpdatingLocation()
         defer { manager.stopUpdatingLocation() }
@@ -105,7 +109,7 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
         }
         timeoutTask?.cancel()
         timeoutTask = nil
-        return fix?.coordinate
+        return fix
     }
 
     private func resumeFix(_ location: CLLocation?) {

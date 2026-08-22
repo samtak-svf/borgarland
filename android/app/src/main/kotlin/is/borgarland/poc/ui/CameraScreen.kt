@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Matrix
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -57,6 +58,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `is`.borgarland.poc.PocUiState
 import `is`.borgarland.poc.Photo
+import `is`.borgarland.poc.net.Telemetry
+import `is`.borgarland.poc.net.TelemetryEvent
 
 /**
  * The app opens here. The camera is the entry point and there is no path that
@@ -67,7 +70,7 @@ import `is`.borgarland.poc.Photo
 @Composable
 fun CameraScreen(
     state: PocUiState,
-    onPhotoCaptured: (bytes: ByteArray, rotationDegrees: Int) -> Unit,
+    onPhotoCaptured: (bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) -> Unit,
     onPhotoError: (String) -> Unit,
     onRetakePhoto: () -> Unit,
     onLocationPermissionResult: (Boolean) -> Unit,
@@ -77,15 +80,26 @@ fun CameraScreen(
     var cameraPermissionGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.CAMERA)) }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { granted -> cameraPermissionGranted = granted }
+    ) { granted ->
+        cameraPermissionGranted = granted
+        Telemetry.shared.track(TelemetryEvent.CameraPermission(granted))
+    }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> onLocationPermissionResult(granted) }
 
+    // The observed camera permission state on entry, exactly as the iOS shell
+    // tracks it: a person who has already denied still gets counted, which is
+    // the friction the channel measures.
+    LaunchedEffect(Unit) {
+        Telemetry.shared.track(TelemetryEvent.CameraPermission(hasPermission(context, Manifest.permission.CAMERA)))
+    }
+
     LaunchedEffect(state.needsLocationPermission) {
         if (state.needsLocationPermission) {
             if (hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
+                Telemetry.shared.track(TelemetryEvent.LocationPermission(true))
                 onRequestDeviceFix()
             } else {
                 locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -196,7 +210,7 @@ private fun ColumnScope.CapturedPhoto(
 @Composable
 private fun CameraPreview(
     enabled: Boolean,
-    onPhotoCaptured: (bytes: ByteArray, rotationDegrees: Int) -> Unit,
+    onPhotoCaptured: (bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) -> Unit,
     onPhotoError: (String) -> Unit,
 ) {
     val context = LocalContext.current
@@ -244,13 +258,18 @@ private fun CameraPreview(
 
         Button(
             onClick = {
+                // Shutter-to-bytes, the telemetry channel's photo-captured
+                // elapsedMs. SystemClock.elapsedRealtime is monotonic, so a
+                // wall-clock jump cannot skew the measurement.
+                val captureStart = SystemClock.elapsedRealtime()
                 imageCapture.takePicture(executor, object : ImageCapture.OnImageCapturedCallback() {
                     override fun onCaptureSuccess(image: ImageProxy) {
                         val bytes = image.jpegBytes()
                         val rotation = image.imageInfo.rotationDegrees
+                        val elapsedMs = (SystemClock.elapsedRealtime() - captureStart).toInt()
                         image.close()
                         if (bytes != null) {
-                            onPhotoCaptured(bytes, rotation)
+                            onPhotoCaptured(bytes, rotation, elapsedMs)
                         } else {
                             onPhotoError("myndin kom ekki í JPEG")
                         }

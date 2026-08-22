@@ -1,0 +1,45 @@
+{
+  "$comment": "Machine-readable record of the CLIENT EVENT stream the apps send to OUR relay, and the single place its vocabulary lives. Sibling of relay-request.json, deliberately a separate file: that one describes the report a person files, this one describes what the app noticed while they filed it, and the two have different lifetimes, different privacy properties and different reasons to change. Both sides read this: the Worker (worker/src/events.ts) rejects any event name or field it does not name here, and both apps build their events from it. THE ALLOWLIST IS THE PRIVACY BOUNDARY. Every field below is a number, a boolean or a value from a fixed enum. There is deliberately no free-text field anywhere in this contract, so the description, the coordinate, the photo and the reporter's email cannot travel this channel even by mistake. Adding a string field here is a privacy decision, not a schema change. What enforces all of this: worker/src/events.ts refuses anything this file does not name, worker/tests/events.test.ts proves a description cannot pass through, and worker/tests/contract.test.ts holds this file to the same no-city-vocabulary rule as its sibling.",
+  "verifiedAt": "2026-08-22",
+  "source": "The field test in #29 and #48 established what we cannot see: everything the app does before it posts a report leaves no trace at all, so a send that never happened is indistinguishable from one that failed silently.",
+  "endpoint": {
+    "path": "/api/events",
+    "method": "POST",
+    "contentType": "application/json",
+    "notes": "best effort and never blocking. The app must not delay, retry or fail a report because this endpoint did not answer; the report is the product and this is instrumentation."
+  },
+  "envelope": {
+    "session": {
+      "required": true,
+      "format": "32 lowercase hex characters, generated fresh on every app LAUNCH",
+      "notes": "groups the events of one sitting so a timeline can be read. Deliberately NOT persisted across launches and not derived from any device identifier: it must not be able to follow a person between sessions, which is the difference between a timeline and a tracker."
+    },
+    "platform": { "required": true, "enum": ["ios", "android"] },
+    "appVersion": { "required": true, "format": "the app's own version string, e.g. 0.1.0 (3)" },
+    "events": { "required": true, "maxLength": 100, "notes": "a batch; the relay rejects a longer one rather than truncating it" }
+  },
+  "eventFields": {
+    "name": { "required": true, "notes": "one of events below" },
+    "atMs": { "required": true, "format": "whole milliseconds since the session started, never a wall clock" }
+  },
+  "events": {
+    "app-opened": { "fields": {} },
+    "camera-permission": { "fields": { "granted": "boolean" } },
+    "location-permission": { "fields": { "granted": "boolean" } },
+    "photo-captured": { "fields": { "elapsedMs": "integer", "bytes": "integer", "mime": ["image/jpeg", "image/png", "image/gif", "image/heic", "other"] } },
+    "location-resolved": { "fields": { "elapsedMs": "integer", "source": ["device", "exif"], "accuracyM": "integer" } },
+    "location-failed": { "fields": { "elapsedMs": "integer", "reason": ["permission", "timeout", "unavailable", "no-exif"] } },
+    "category-chosen": { "fields": { "elapsedMs": "integer", "slug": "categorySlug" } },
+    "description-length": { "fields": { "length": "integer" } },
+    "send-started": { "fields": {} },
+    "send-result": { "fields": { "elapsedMs": "integer", "status": "integer", "ok": "boolean" } },
+    "send-failed": { "fields": { "elapsedMs": "integer", "reason": ["connection", "timeout", "encoding", "other"] } },
+    "screen-left": { "fields": { "screen": ["camera", "details", "confirm"], "completed": "boolean" } }
+  },
+  "notes": {
+    "description-length": "the LENGTH of what was typed, never the text. This is how we learn whether the city's mandatory description is friction without reading what anyone wrote.",
+    "accuracyM": "the radius the platform reports in whole metres. Not the coordinate. A coordinate is what the report carries, deliberately and with the reporter's knowledge; instrumentation carries no location at all.",
+    "screen": "the last screen is called `confirm` here and SummaryScreen in the app on purpose. `summary` is one of the city's own payload field names, and NoCityEndpointTest forbids the library from spelling any of those. The library has to spell every value in this file, so a value that collides with the city's vocabulary would force that guard to be weakened. Renaming ours was the cheaper of the two.",
+    "slug": "a category slug from data/reykjavik-form.json. It is our own vocabulary and identifies a taxonomy choice, not a person."
+  }
+}

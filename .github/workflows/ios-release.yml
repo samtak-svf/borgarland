@@ -6,10 +6,11 @@
 # should not produce a red build that means nothing.
 #
 # Ported from the Rósa Parks pipeline, which has produced a real TestFlight
-# build on this same Apple team. The Crashlytics dSYM upload that pipeline
-# carries is deliberately absent here: Borgarland has no Firebase project yet,
-# and which project it should use is an open decision rather than an oversight
-# (a citizen-reporting app's crash data touches the privacy policy in #5).
+# build on this same Apple team. The dSYM upload below is now here too, but
+# pointed at a DIFFERENT Firebase project: `borgarland-app` on the personal
+# Google account, which also owns the Worker and its D1. Rósa Parks sends its
+# crashes to the party's project; this is a Samtak svf. app and does not (#37).
+# Crashlytics only, no Analytics.
 name: ios-release
 
 on:
@@ -110,6 +111,25 @@ jobs:
           tail -200 archive-raw.log
           echo "::endgroup::"
           grep -nE "error:|warning: .*(sign|provision)" archive-raw.log | tail -40 || true
+
+      # Without this, a crash report is a list of hexadecimal addresses. The
+      # binary is what carries the symbols and it is stripped on the way out,
+      # so they have to be uploaded from the archive at build time or they do
+      # not exist anywhere afterwards.
+      #
+      # upload-symbols ships inside the SPM checkout of firebase-ios-sdk rather
+      # than as a released binary, so it is found rather than installed. If the
+      # find comes up empty this fails loudly: a silent skip here produces a
+      # working build whose crash reports are useless, which is discovered only
+      # when someone actually crashes.
+      - name: Upload dSYMs to Crashlytics
+        run: |
+          UPLOAD_SYMBOLS=$(find ~/Library/Developer/Xcode/DerivedData -type f -name upload-symbols -path '*firebase-ios-sdk*' | head -1)
+          if [[ -z "$UPLOAD_SYMBOLS" ]]; then
+            echo "::error::upload-symbols not found in the firebase-ios-sdk SPM checkout"
+            exit 1
+          fi
+          "$UPLOAD_SYMBOLS" -gsp Resources/GoogleService-Info.plist -p ios build/Borgarland.xcarchive/dSYMs
 
       - name: Export the .ipa
         run: |

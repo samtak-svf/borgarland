@@ -22,6 +22,7 @@ import `is`.borgarland.poc.ui.BorgarlandPocTheme
 import `is`.borgarland.poc.ui.CameraScreen
 import `is`.borgarland.poc.ui.DetailsScreen
 import `is`.borgarland.poc.ui.SummaryScreen
+import `is`.borgarland.poc.net.Telemetry
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,5 +86,14 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // One of the telemetry channel's natural flush points: the buffer
+        // goes out when the app leaves the foreground, so a session that ends
+        // in the background is not lost (data/relay-events.json). The flush
+        // never blocks: the network send runs on its own IO dispatcher.
+        Telemetry.shared.flush()
     }
 }

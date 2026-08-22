@@ -3,6 +3,7 @@
 // domain.ts) — the city's field names never reach this layer.
 
 import type { Outcome, Rejection, ReportRecord } from './domain'
+import type { ValidatedBatch } from './events'
 
 interface ReportRow {
   id: string
@@ -131,4 +132,38 @@ function mapRow(row: ReportRow): ReportRecord {
     outcome: row.outcome,
     outcomeAt: row.outcome_at,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Client events. Everything written here has already passed the allowlist in
+// events.ts, which is what makes the `fields` JSON safe to store: the contract
+// names no free-text field, so there is nothing in it but numbers, booleans and
+// values from fixed sets.
+// ---------------------------------------------------------------------------
+
+
+export async function insertClientEvents(
+  db: D1Database,
+  batch: ValidatedBatch,
+  receivedAt: string,
+): Promise<number> {
+  const statement = db.prepare(
+    `INSERT INTO client_events (session, name, at_ms, platform, app_version, fields, received_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  )
+  const bound = batch.events.map((event) =>
+    statement.bind(
+      batch.session,
+      event.name,
+      event.atMs,
+      batch.platform,
+      batch.appVersion,
+      JSON.stringify(event.fields),
+      receivedAt,
+    ),
+  )
+  // One round trip for the batch. D1's batch is a transaction, so a timeline
+  // either lands whole or not at all.
+  await db.batch(bound)
+  return bound.length
 }

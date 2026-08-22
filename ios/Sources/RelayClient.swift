@@ -27,15 +27,26 @@ enum RelayClient {
     #endif
 
     struct Result {
+        /// Why a non-HTTP failure happened, when it did. Feeds the telemetry
+        /// channel's `send-failed` reason (data/relay-events.json); nil means
+        /// the relay answered, whatever the status.
+        enum Failure: Equatable {
+            case connection
+            case timeout
+            case encoding
+            case other
+        }
+
         let ok: Bool
         let status: Int
         let body: String
+        let failure: Failure?
     }
 
     static func send(payload: Payload, contract: RelayRequestFile) async -> Result {
         let boundary = "----borgarland\(Int(Date().timeIntervalSince1970 * 1000))"
         guard let url = URL(string: baseURL + contract.endpoint.path) else {
-            return Result(ok: false, status: 0, body: "ógilt vistfang")
+            return Result(ok: false, status: 0, body: "ógilt vistfang", failure: .other)
         }
         var request = URLRequest(url: url)
         request.httpMethod = contract.endpoint.method
@@ -49,11 +60,35 @@ enum RelayClient {
             let (data, response) = try await URLSession.shared.upload(for: request, from: body)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let text = String(data: data, encoding: .utf8) ?? ""
-            return Result(ok: (200...299).contains(status), status: status, body: text)
+            return Result(ok: (200...299).contains(status), status: status, body: text, failure: nil)
         } catch {
             // The Kotlin maps any exception to status 0; the model renders
-            // that as "could not reach the relay".
-            return Result(ok: false, status: 0, body: error.localizedDescription)
+            // that as "could not reach the relay". The failure class is for
+            // the telemetry channel only and never changes the report path.
+            return Result(
+                ok: false,
+                status: 0,
+                body: error.localizedDescription,
+                failure: Self.classify(error)
+            )
+        }
+    }
+
+    /// The telemetry contract's send-failed reasons (connection, timeout,
+    /// encoding, other), mapped from the transport error. Approximate by
+    /// nature — the goal is a signal, not a network diagnostic.
+    private static func classify(_ error: Error) -> Failure {
+        let ns = error as NSError
+        guard ns.domain == NSURLErrorDomain else { return .other }
+        switch ns.code {
+        case NSURLErrorTimedOut:
+            return .timeout
+        case NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
+             NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost,
+             NSURLErrorDNSLookupFailed:
+            return .connection
+        default:
+            return .other
         }
     }
 }
