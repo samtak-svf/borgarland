@@ -107,10 +107,33 @@ it yet, and nothing should be until the design says what it is for.
 
 `data/reykjavik-form.json` records the form's accepted types: `image/jpeg`,
 `image/png`, `image/gif`. HEIC is not among them, and HEIC is what an iPhone
-shoots by default. So the iOS app cannot send what its own camera hands it —
-this is a capture-path problem, not a gallery edge case.
+shoots by default.
 
-Transcoding is not free, and it does not go the direction you would guess:
+**On our own capture path that default is ours to override, and this section
+first said otherwise.** The HEIC default belongs to Apple's Camera app and the
+Settings → Camera → Formats toggle; it does not govern a third-party app.
+An app driving `AVCapturePhotoOutput` names its own codec per shot:
+
+```swift
+if photoOutput.availablePhotoCodecTypes.contains(.jpeg) {
+    settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
+}
+```
+
+So the iOS app should ask for JPEG at capture and never transcode its own
+photograph at all. (Established from Apple's AVCam sample and WWDC 2017 session
+511, *Working with HEIF and HEVC*, not from a compiled test — nothing here can
+build Swift.)
+
+The one caveat carries over from Android: capturing JPEG does not give us a
+coordinate. AVFoundation writes no GPS unless the app attaches it through
+`AVCapturePhotoSettings.metadata`, exactly as CameraX writes none unless asked.
+The device fix stays the primary source on the capture path on both platforms.
+
+**Where the format genuinely is not ours is the gallery**, which is the reverse
+of what this document originally claimed. A picked file is whatever the phone
+stored, usually HEIC, and there conversion is unavoidable. Transcoding is not
+free, and it does not go the direction you would guess:
 
 | | bytes |
 |---|---|
@@ -122,6 +145,16 @@ A faithful conversion is **15 % larger than the original**. Against the unknown
 upload limit, the Android measurements (1.1 MB and 2.66 MB) made 8 MB look like
 a three-photo ceiling; two iPhone photos at quality 90 pass it. The transcode
 quality is therefore a decision with a consequence, not a default to inherit.
+
+The iOS gallery path has a second trap in the same place. Reading a picked photo
+as a `UIImage` loses the metadata: with no Photo Library authorization the picker
+hands back an image with no EXIF and no asset identifier, which would silently
+cost us the coordinate on exactly the path where EXIF is the primary source.
+The fix is to take the **file**, not the image — `itemProvider.loadFileRepresentation`
+returns the original bytes with EXIF intact and needs no Photos permission, which
+is also Apple's own recommendation on the developer forums over configuring the
+picker with a `PHPhotoLibrary`. Read the coordinate out of those bytes, the same
+way Android reads it.
 
 Android has the mirror of this problem waiting. `PocViewModel.onPhotoCaptured`
 hardcodes `name = "mynd.jpg"` and `mime = "image/jpeg"`, which is true for
