@@ -23,6 +23,14 @@ settings:
     # Mirrors android/app/build.gradle.kts: versionName 0.1.0, versionCode 1.
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: 1
+  configs:
+    # Explicit rather than left to XcodeGen's preset, because RelayClient
+    # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
+    # safe in the dangerous direction — an undefined DEBUG makes a debug build
+    # talk to the deployed relay, never the reverse — but a build setting that
+    # decides where a report goes should be written down, not inherited.
+    Debug:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
 
 packages:
   BorgarlandCore:

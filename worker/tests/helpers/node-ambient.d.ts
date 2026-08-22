@@ -18,4 +18,5 @@ declare module 'node:sqlite' {
 
 declare module 'node:fs' {
   export function readFileSync(path: string | URL, encoding: string): string
+  export function readdirSync(path: string | URL): string[]
 }

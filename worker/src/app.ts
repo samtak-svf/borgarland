@@ -31,7 +31,7 @@ import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
 import { getReport, insertReport, setOutcome } from './db'
-import { RegistryNotLoadedError } from './registry-loader'
+import { RegistryNotLoadedError, readRegistryHealth } from './registry-loader'
 import relayRequestJson from '../../data/relay-request.json'
 
 // ---------------------------------------------------------------------------
@@ -262,11 +262,38 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     return json({ report })
   }
 
+  // Operational readout, deliberately not part of data/relay-request.json: that
+  // file is the contract for the request an APP sends, and this is not one.
+  //
+  // It exists because decision 0009 left the registry refresh unowned, and a
+  // stale registry degrades the jurisdiction check quietly instead of failing
+  // it. An empty registry answers 503 here for the same reason a report does:
+  // the relay refuses every submission in that state, so it is not healthy.
+  async function handleHealth(): Promise<Response> {
+    const registry = await readRegistryHealth(db, now)
+    const loaded = registry.rows > 0
+    return json(
+      {
+        status: loaded ? 'ok' : 'registry-not-loaded',
+        // Whether the deliberate CITY_SEND_KEY secret is in place. Not a
+        // secret itself, and the one thing an operator most needs to know.
+        dryRun: isDryRun(env),
+        registry,
+      },
+      loaded ? 200 : 503,
+    )
+  }
+
   const db = env.DB
 
   return async function handler(request: Request): Promise<Response> {
     try {
       const path = new URL(request.url).pathname
+
+      if (path === '/api/health') {
+        if (request.method === 'GET') return await handleHealth()
+        return json({ error: 'method-not-allowed' }, 405)
+      }
 
       if (path === RELAY.endpoint.path) {
         if (request.method === 'POST') return await createReport(request)

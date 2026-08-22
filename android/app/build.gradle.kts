@@ -6,6 +6,25 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Where the relay lives, per build type (#29). The counterpart of
+// ios/BorgarlandCore/.../RelayEndpoint.swift, and the same reasoning: a release
+// build carrying the loopback is dead in the field, because on a real phone
+// 127.0.0.1 is the phone. It fails loudly for the user and silently for us —
+// no test and no CI run notices, since RelayRequestTest pins the body and
+// never the host.
+val relayBaseUrlDebug = "http://127.0.0.1:8787"
+val relayBaseUrlRelease = "https://borgarland.samtak.is"
+
+// The guard that makes a loopback release impossible rather than unlikely.
+// This runs at configuration time, so a wrong value fails the build before it
+// produces an artifact anyone could install.
+check(relayBaseUrlRelease.startsWith("https://")) {
+    "the release relay URL must be https, not: $relayBaseUrlRelease"
+}
+check(listOf("127.0.0.1", "localhost", "::1", "0.0.0.0").none { relayBaseUrlRelease.contains(it) }) {
+    "the release relay URL must not be a loopback: $relayBaseUrlRelease"
+}
+
 android {
     namespace = "is.borgarland.poc"
     compileSdk = 36
@@ -19,8 +38,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "RELAY_BASE_URL", "\"$relayBaseUrlDebug\"")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "RELAY_BASE_URL", "\"$relayBaseUrlRelease\"")
         }
     }
 
@@ -31,6 +54,8 @@ android {
 
     buildFeatures {
         compose = true
+        // Required for buildConfigField above; off by default since AGP 8.
+        buildConfig = true
     }
 }
 

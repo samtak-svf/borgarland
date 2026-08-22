@@ -77,7 +77,10 @@ struct SummaryScreen: View {
                 .padding(.top, 16)
                 .disabled(state.sending)
 
-                Text("Sendist á \(RelayClient.baseURL), ekki til borgarinnar. Relay-ið er í þurrkeyrslu og framsendir ekkert.")
+                // Where the report goes, in words rather than a hostname. A URL tells
+                // a reader nothing they can act on, and the loopback one told them
+                // something false (#29).
+                Text("Sendist á þjónustu Borgarlands, ekki beint til borgarinnar. Þjónustan er í þurrkeyrslu og framsendir ekkert.")
                     .font(.caption)
                     .padding(.top, 8)
 

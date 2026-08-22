@@ -5,7 +5,7 @@
 // path reaching the real network fails the test loudly (rule 1 — never send a
 // request to reykjavik.is from tests).
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
 import { createApp } from '../../src/app'
 import type { Env } from '../../src/env'
@@ -17,7 +17,15 @@ import relayRequestJson from '../../../data/relay-request.json'
 
 const RELAY_FIELDS = (relayRequestJson as unknown as { fields: Record<string, unknown> }).fields
 
-export const MIGRATION_SQL = readFileSync('migrations/0001_init.sql', 'utf8')
+// Every migration, in order — the tests build the database the same way D1
+// does. Reading only 0001 would mean a table added in a later migration exists
+// in production and not in the tests, which is a failure that looks like a
+// passing suite.
+export const MIGRATION_SQL = readdirSync('migrations')
+  .filter((name) => name.endsWith('.sql'))
+  .sort()
+  .map((name) => readFileSync(`migrations/${name}`, 'utf8'))
+  .join('\n')
 
 // Laugavegur 1 is the registry's own coordinate (verified against the HMS
 // export to the last decimal — see docs/research/payload-map.md).

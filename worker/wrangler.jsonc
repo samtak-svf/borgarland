@@ -1,10 +1,16 @@
 // Cloudflare Worker configuration for the Borgarland relay.
 //
-// The D1 `database_id` here is a deliberate placeholder: this file must never
-// be deployed as-is. The real database is created with
-// `wrangler d1 create borgarland-relay --jurisdiction eu` (the jurisdiction
-// can only be set at creation and can never be added afterwards — AGENTS.md)
-// and the real id is pasted into this file at deploy time.
+// The D1 database was created 2026-08-22 with
+// `wrangler d1 create borgarland-relay --jurisdiction eu` on the PERSONAL
+// Cloudflare account (af4d4a9c…, the one that serves samtak.is). The
+// jurisdiction can only be set at creation and can never be added afterwards
+// (AGENTS.md), and it was verified after the fact against
+// GET /accounts/{id}/d1/database/{id}, which returns `"jurisdiction": "eu"`.
+// Nothing else reports it: the create command prints only a region.
+//
+// Replacing this database means recreating it WITH the flag. A plain
+// `wrangler d1 create` succeeds, behaves identically and silently drops the
+// guarantee.
 //
 // There is deliberately NO variable here that takes the relay out of dry run.
 // Live sending requires the CITY_SEND_KEY secret binding, created with
@@ -16,11 +22,26 @@
   "name": "borgarland-relay",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
+
+  // The hostname the released apps are built against (#29). A custom domain
+  // rather than the implicit *.workers.dev name, because this string is
+  // compiled into an iOS and an Android release: moving off workers.dev later
+  // would cost an App Store review before anyone could report anything.
+  //
+  // borgarland.is is unregistered as of 2026-08-22 (ISNIC). If it is ever
+  // taken, it can be added here as a second route to this same Worker and
+  // every installed app keeps working.
+  "routes": [
+    {
+      "pattern": "borgarland.samtak.is",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "borgarland-relay",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "84af231a-395c-4239-8e23-99dbbc4aad4a",
       "migrations_dir": "migrations"
     }
   ]

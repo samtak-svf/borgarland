@@ -231,7 +231,7 @@ final class ReportModel: ObservableObject {
                 state.sendResult = if result.ok {
                     "HTTP \(result.status)\n\(result.body)"
                 } else if result.status == 0 {
-                    "Náði ekki sambandi við relay á \(RelayClient.baseURL): \(result.body)"
+                    "Náði ekki sambandi við þjónustu Borgarlands (\(RelayClient.baseURL)): \(result.body)"
                 } else {
                     "HTTP \(result.status)\n\(result.body)"
                 }
