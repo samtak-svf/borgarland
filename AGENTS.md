@@ -116,8 +116,13 @@ That also gives us reverse geocoding, which reykjavik.is does not have anywhere.
 Put the nearest registered address in the description we send, so the crew can
 find a bin that has no address of its own.
 
-The Reykjavík subset is 23,057 addresses, 0.25 MB gzipped, so it ships on the
-phone and works with no signal.
+The Reykjavík subset is 23,057 addresses and 0.25 MB gzipped, small enough to
+ship on a phone and answer with no signal. It does not ship on the phone.
+[Decision 0009](decisions/0009-the-registry-stays-in-the-relay.md) keeps the
+registry in the relay, and the relay carries the **full national** registry
+rather than the subset, because a coordinate in Kópavogur has to find a
+Kópavogur address or the municipality check cannot fail it. Neither app has any
+address capability at all.
 
 **Check the municipality before sending.** The city validates nothing — not
 even that a coordinate exists, let alone where it falls — so a pothole in
@@ -161,11 +166,12 @@ Do not add a shortcut around that flag.
 
 ## Where things are written down
 
-Three artifacts, one job each. Putting a fact in the wrong one is how they drift.
+Four artifacts, one job each. Putting a fact in the wrong one is how they drift.
 
 | Where | What |
 |---|---|
 | [`data/reykjavik-form.json`](data/reykjavik-form.json) | **Facts** about the city's form, with how and when each was established. `scripts/send-report.mjs` and `.github/workflows/contract.yml` read it. Change a fact here first. |
+| [`data/relay-request.json`](data/relay-request.json) | **Facts** about the request the apps send to OUR relay, in our vocabulary only. Both sides read it: the Worker rejects any part it does not name, and both apps build the request from it. A request-contract fact belongs here, never in the city's facts file and never in prose. |
 | [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
 | [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
 

@@ -1,8 +1,9 @@
 # The SwiftUI shell builds. Separate from relay-request-contract.yml on
 # purpose: that workflow's ios-core job proves the CONTRACT holds and needs
-# nothing but `swift test` on a macOS host — no simulator, no Xcode project,
-# no signing. This one needs all three, so it is slower and fails for
-# different reasons. Keeping them apart means a broken shell never hides a
+# nothing but `swift test` on a macOS host — no simulator, no Xcode project.
+# This one needs both, so it is slower and fails for different reasons. It does
+# NOT need signing: the build below is explicitly unsigned, and signing belongs
+# to ios-release.yml, which is the only workflow that touches a certificate. Keeping them apart means a broken shell never hides a
 # broken contract, and a contract failure is never diagnosed as a UI problem.
 #
 # macos-latest minutes are free because this repository is public.

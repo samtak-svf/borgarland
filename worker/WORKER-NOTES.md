@@ -219,10 +219,11 @@ report` / `city-unreachable` (502, with the recorded `report` embedded),
    keeps it. Chosen: a D1 `addresses` table seeded by
    `scripts/refresh-registry.mjs` (which downloads the HMS export and emits
    `data/addresses.seed.sql`), loaded once per isolate, refreshed on a
-   schedule. **The full national registry is used, not the Reykjavík subset**
-   the app ships: a point in Kópavogur must find a Kópavogur address, or the
-   jurisdiction check would wrongly pass it. The 0.25 MB "ships on the phone"
-   figure is the app's.
+   schedule. **The full national registry is used, not the Reykjavík
+   subset**: a point in Kópavogur must find a Kópavogur address, or the
+   jurisdiction check would wrongly pass it. The 0.25 MB figure quoted for the
+   subset elsewhere describes what a phone COULD carry; decision 0009 keeps the
+   registry here instead, and no app ships one.
 6. **The dry-run gate shape.** The repo requires the safe default and a
    deliberate act to go live, but not the mechanism. Chosen: the
    `CITY_SEND_KEY` secret with a shape check, above.

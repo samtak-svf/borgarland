@@ -55,7 +55,7 @@ iOS (Swift/SwiftUI)       ─┘         │
                                      └─→  D1: our record of what was sent, when
 ```
 
-Four decisions worth stating early.
+Five decisions worth stating early.
 
 **The location is the photo's, not an address.** The city's form leads with
 "type in an address", but there is no address field in the payload at all: the
@@ -86,9 +86,12 @@ its own submissions and later asks the reporter whether the thing actually got
 fixed is the only instrument anyone has for measuring the city's follow-through.
 That measurement is worth as much as the convenience.
 
-**A graceful fallback.** When the relay cannot reach the city, the app opens the
-city's own form pre-filled in a web view rather than failing. A report that takes
-thirty seconds beats a report that never happens.
+**A graceful fallback, once it is built.** When the relay cannot be reached, the
+app should open the city's own form pre-filled in a web view rather than
+failing: a report that takes thirty seconds beats a report that never happens.
+Neither app does this yet. Today both say they could not reach the relay and
+stop, and the fallback is an open acceptance criterion in
+[#2](https://github.com/samtak-svf/borgarland/issues/2).
 
 ## Scope
 

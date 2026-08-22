@@ -4,11 +4,13 @@ Numbered, dated records of choices this project has made and why, in the MADR
 shape. A record is written **after** the discovery that justified it, never
 instead of one.
 
-Three things are recorded separately and should not be confused:
+Three kinds of thing are recorded separately and should not be confused, across
+four files and directories:
 
 | Where | What it holds |
 |---|---|
 | [`../data/reykjavik-form.json`](../data/reykjavik-form.json) | **Facts** about the city's form, machine-readable, with how and when each was established. Read by `scripts/send-report.mjs` and CI. |
+| [`../data/relay-request.json`](../data/relay-request.json) | **Facts** about the request the apps send to our own relay, in our vocabulary only. Read by the Worker and by both apps. |
 | [`../docs/research/`](../docs/research/) and [`../docs/incidents/`](../docs/incidents/) | **Reasoning** and write-ups. Prose, for humans. |
 | `decisions/` (here) | **Choices**, with the options that lost. |
 

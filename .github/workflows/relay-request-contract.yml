@@ -66,8 +66,10 @@ jobs:
   # The iOS side of the same contract. BorgarlandCore imports Foundation and
   # ImageIO only, so `swift test` compiles for the macOS host and runs with no
   # simulator, no signing and no Xcode project — the same shape as the Android
-  # unit tests running on the JVM with no device. The SwiftUI shell, when it
-  # exists, is what needs xcodebuild; this job deliberately does not wait for it.
+  # unit tests running on the JVM with no device. The SwiftUI shell now exists
+  # and is what needs xcodebuild; it is built by ios-ci.yml, and this job
+  # deliberately does not wait for it. A broken shell must never be able to hide
+  # a broken contract.
   #
   # macos-latest minutes are free because this repository is public.
   ios-core:
