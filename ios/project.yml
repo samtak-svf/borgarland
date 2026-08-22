@@ -20,9 +20,18 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    # Mirrors android/app/build.gradle.kts: versionName 0.1.0, versionCode 1.
+    # MARKETING_VERSION mirrors versionName in android/app/build.gradle.kts and
+    # is the number a person reads. CURRENT_PROJECT_VERSION does NOT mirror
+    # versionCode: it is the upload counter for this platform's store, and
+    # TestFlight refuses a second upload that reuses one. It advances whenever a
+    # build is uploaded, which iOS has now done twice and Android not at all, so
+    # the two deliberately no longer agree.
+    #
+    # 2: the first build reached TestFlight pointing at http://127.0.0.1:8787,
+    # which on a phone is the phone (#29). This one is built against the
+    # deployed relay.
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 1
+    CURRENT_PROJECT_VERSION: 2
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
