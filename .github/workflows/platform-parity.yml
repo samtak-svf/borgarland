@@ -1,0 +1,53 @@
+# The two apps drifted apart and nothing said so.
+#
+# iOS gained Crashlytics and a signed release pipeline while Android gained
+# neither; both facts were true for hours and were found by a person reading the
+# code rather than by a build. Individual gaps have issues (#58, #2); nothing
+# detected a NEW gap, so the next divergence would also be found late, probably
+# by a tester.
+#
+# This does not enforce parity — whether Android follows iOS is a decision per
+# capability. It enforces that the decision is written down in
+# data/platform-parity.json before it can be merged.
+name: platform-parity
+
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'ios/**'
+      - 'data/platform-parity.json'
+      - 'scripts/check-parity.mjs'
+      - '.github/workflows/platform-parity.yml'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      # No dependencies: the checker is plain node, like every other script here.
+      - name: Report what each platform has
+        run: node scripts/check-parity.mjs
+
+      # The table above is printed even when the job passes, so a reviewer can
+      # see the current shape of both apps without running anything.
+      - name: Put the table in the job summary
+        if: always()
+        run: |
+          {
+            echo '## Platform parity'
+            echo ''
+            echo '```'
+            node scripts/check-parity.mjs || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
