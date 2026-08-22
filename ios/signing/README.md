@@ -33,6 +33,57 @@ and temporarily, so one tester can install it on one phone. A bundle identifier
 moves between teams later. See issue #37 for the reasoning and what it does not
 commit us to.
 
+## Most of this was already done, and this section says which
+
+**An Apple Distribution certificate and an App Store Connect API key are scoped
+to the TEAM, not to an app.** Verified 2026-08-22 by reading the certificate:
+`UID=B4724Z74TM`, `OU=B4724Z74TM`, valid to 2027-05-20. The App Store Connect
+API key's issuer identifies the same team and its App Manager role reaches every
+app on it.
+
+So for Borgarland, **steps 1 to 4 and step 7 below were already done** and cost
+nothing. They stay written down because the certificate expires in May 2027 and
+somebody will have to do them then.
+
+| Step | For a new app on this team |
+|---|---|
+| 1-3 key, certificate, `.p12` | **already exists**, reuse it |
+| 4 App Store Connect API key | **already exists**, reuse it |
+| 5 App ID and app record | **must be created**, once per app |
+| 6 Provisioning profile | **must be created**, once per app |
+| 7 GitHub secrets | copy the same five values from GCP |
+
+The five values live in GCP Secret Manager, project `fedora-setup-secrets`,
+account `gudrodur@gmail.com`, and the whole of step 7 is:
+
+```bash
+gcloud secrets versions access latest --secret=samtakamatt-rosaparks-ios-signing-p12 \
+  | gh secret set IOS_SIGNING_P12_BASE64
+gcloud secrets versions access latest --secret=samtakamatt-rosaparks-ios-signing-p12-password \
+  | gh secret set IOS_SIGNING_P12_PASSWORD
+gcloud secrets versions access latest --secret=samtakamatt-rosaparks-asc-api-key-id \
+  | gh secret set ASC_API_KEY_ID
+gcloud secrets versions access latest --secret=samtakamatt-rosaparks-asc-api-issuer-id \
+  | gh secret set ASC_API_ISSUER_ID
+gcloud secrets versions access latest --secret=samtakamatt-rosaparks-asc-api-key-p8 \
+  | gh secret set ASC_API_KEY_P8
+```
+
+The names say `rosaparks` because that is the app they were made for. They are
+not specific to it. **Do not create a second certificate for a new app.**
+
+**Steps 5 and 6 do not need the web UI either, except for one part.** The App
+Store Connect API registers a bundle id and creates a profile in seconds:
+
+```
+POST /v1/bundleIds   {identifier, name, platform: IOS}
+POST /v1/profiles    {name, profileType: IOS_APP_STORE} + bundleId + certificate
+```
+
+What it will not do is create the **app record**, and it says so plainly:
+`The resource 'apps' does not allow 'CREATE'`. That one is the web UI, and so is
+creating an API key in the first place.
+
 ## Setup, in order
 
 ### 1. Key and certificate request, on Linux
