@@ -10,6 +10,8 @@ import kotlinx.coroutines.withContext
 import `is`.borgarland.poc.data.Category
 import `is`.borgarland.poc.data.Facts
 import `is`.borgarland.poc.data.FactsFile
+import `is`.borgarland.poc.data.RelayRequest
+import `is`.borgarland.poc.data.RelayRequestFile
 import `is`.borgarland.poc.exif.ExifGps
 import `is`.borgarland.poc.location.DeviceFix
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,12 +58,22 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     private var facts: FactsFile? = null
 
+    // The relay request contract, from the same assets copy the facts file
+    // uses. Sending is impossible without it: RelayClient writes parts under
+    // exactly the names this file carries.
+    private var relayRequest: RelayRequestFile? = null
+
     init {
         val text = runCatching {
             getApplication<Application>().assets.open("reykjavik-form.json")
                 .bufferedReader().use { it.readText() }
         }.getOrNull()
         val parsed = text?.let { runCatching { Facts.parse(it) }.getOrNull() }
+        val relayText = runCatching {
+            getApplication<Application>().assets.open("relay-request.json")
+                .bufferedReader().use { it.readText() }
+        }.getOrNull()
+        relayRequest = relayText?.let { runCatching { RelayRequest.parse(it) }.getOrNull() }
         if (parsed == null) {
             _state.update {
                 it.copy(factsError = "reykjavik-form.json vantar eða er ólæsilegt í assets. Ekki er hægt að halda áfram.")
@@ -193,9 +205,18 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun sendToRelay() {
         val payload = payload() ?: return
+        val contract = relayRequest
+        if (contract == null) {
+            _state.update {
+                it.copy(
+                    sendResult = "relay-request.json vantar eða er ólæsilegt í assets. Ekki er hægt að senda.",
+                )
+            }
+            return
+        }
         _state.update { it.copy(sending = true, sendResult = null) }
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) { RelayClient.send(payload) }
+            val result = withContext(Dispatchers.IO) { RelayClient.send(payload, contract) }
             _state.update {
                 it.copy(
                     sending = false,
@@ -216,13 +237,11 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         val category = facts?.categories?.firstOrNull { it.slug == s.selectedSlug } ?: return null
         val coord = s.coordinate ?: return null
         return Payload(
-            type = category.type,
-            category = category.category,
-            summary = category.summary,
-            lat = coord.lat,
-            lng = coord.lng,
+            categorySlug = category.slug,
+            latitude = coord.lat,
+            longitude = coord.lng,
             description = s.description,
-            files = listOfNotNull(s.photo),
+            photos = listOfNotNull(s.photo),
         )
     }
 }

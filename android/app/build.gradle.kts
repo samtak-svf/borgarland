@@ -69,4 +69,14 @@ val copyFacts by tasks.registering(Copy::class) {
     into(layout.projectDirectory.dir("src/main/assets"))
 }
 
-tasks.named("preBuild") { dependsOn(copyFacts) }
+// The relay request contract has the same single home: data/relay-request.json
+// at the repo root, read by the Worker (worker/src/app.ts) and CI
+// (scripts/check-relay-contract.mjs). The app needs it on the device to know
+// what it may send, so it is copied in at build time, same pattern and same
+// reasoning as the facts file above.
+val copyRelayRequest by tasks.registering(Copy::class) {
+    from(rootProject.file("../data/relay-request.json"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+
+tasks.named("preBuild") { dependsOn(copyFacts, copyRelayRequest) }

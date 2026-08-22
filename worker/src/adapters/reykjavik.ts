@@ -21,7 +21,6 @@ import type { PhotoPart, ReportDraft } from '../domain'
 
 interface Facts {
   endpoints: { submit: { url: string } }
-  fields: { description: { maxLength: number }; files: { accept: string[] } }
   categories: { slug: string; type: string; category: string; summary: string }[]
 }
 
@@ -46,15 +45,6 @@ export function isKnownCategory(slug: string): boolean {
 }
 
 export const knownCategorySlugs: readonly string[] = facts.categories.map((c) => c.slug)
-
-export const maxDescriptionLength: number = facts.fields.description.maxLength
-
-/** MIME types the city accepts for photo parts (facts.fields.files.accept). */
-export const acceptedPhotoMimes: ReadonlySet<string> = new Set(facts.fields.files.accept)
-
-export function isAcceptedPhotoMime(mime: string): boolean {
-  return acceptedPhotoMimes.has(mime)
-}
 
 // ---------------------------------------------------------------------------
 // The payload that would go over the wire, in the city's vocabulary. Only this

@@ -1,0 +1,63 @@
+# Fails when the two sides of the relay request contract drift apart.
+#
+# The app and the Worker used to disagree about the request they exchange —
+# the app sent the city's vocabulary (type, summary, the display name, lat/lng,
+# files), the Worker read category slugs, latitude/longitude and photo parts —
+# and nobody noticed because the app was tested against a permissive mock. The
+# fix is data/relay-request.json, the one file that names the parts, read by
+# the Worker and copied into the app at build time. This workflow is the gate
+# that makes a re-introduced disagreement a red build:
+#
+#   1. scripts/check-relay-contract.mjs pins the file itself (field set,
+#      requiredness, no city vocabulary, agreement with the city facts).
+#   2. The Worker test suite (worker/tests/contract.test.ts) proves the wire
+#      enforces it: a request carrying any non-contract part is a 400.
+#   3. The Android test suite (RelayRequestTest) proves the app builds exactly
+#      the contract's parts, and regenerates the asset copy, which the script
+#      then byte-compares with --require-asset.
+name: relay-request-contract
+
+on:
+  pull_request:
+    paths:
+      - 'data/relay-request.json'
+      - 'data/reykjavik-form.json'
+      - 'worker/**'
+      - 'android/**'
+      - 'scripts/check-relay-contract.mjs'
+      - '.github/workflows/relay-request-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: The contract file holds, and the Worker reads it
+        run: node scripts/check-relay-contract.mjs
+
+      - name: Worker tests prove the wire enforces the contract
+        working-directory: worker
+        run: |
+          npm ci
+          npm test
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android tests prove the app builds exactly the contract's parts
+        working-directory: android
+        run: ./gradlew testDebugUnitTest
+
+      - name: The app's asset copy of the contract is byte-identical
+        run: node scripts/check-relay-contract.mjs --require-asset

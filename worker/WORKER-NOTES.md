@@ -231,7 +231,8 @@ report` / `city-unreachable` (502, with the recorded `report` embedded),
    `CITY_SEND_KEY` secret with a shape check, above.
 7. **Photo handling.** The repo lists the city's upload limit as unknown and
    says finding it means uploading until something breaks. The relay forwards
-   photo parts as-is (MIME-allowlisted from the facts file), records count +
+   photo parts as-is (MIME-allowlisted from data/relay-request.json, which
+   scripts/check-relay-contract.mjs pins to the facts file), records count +
    total bytes in D1, and stores no photo bytes. The API part name is `photo`;
    the adapter renames it to the city's `files`. No size/count cap is
    invented.

@@ -1,6 +1,9 @@
 package `is`.borgarland.poc.net
 
+import `is`.borgarland.poc.Photo
 import `is`.borgarland.poc.Payload
+import `is`.borgarland.poc.data.RelayRequestFile
+import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -14,6 +17,12 @@ import java.net.URL
  * does so in dry run by default, on infrastructure we can fix with a deploy
  * rather than an App Store review.
  *
+ * The request shape comes from data/relay-request.json (copied into assets at
+ * build time): the multipart parts are written under exactly the field names
+ * that file carries, in its order. Nothing else is sent — in particular no
+ * city vocabulary (type, summary, display name, lat/lng, files), which belongs
+ * to the relay's adapter alone.
+ *
  * The base URL is 127.0.0.1 because `adb reverse tcp:8787 tcp:8787` maps it to
  * the development machine. network_security_config.xml permits cleartext to
  * localhost alone, so a mistyped host does not silently reach the internet.
@@ -24,11 +33,11 @@ object RelayClient {
 
     data class Result(val ok: Boolean, val status: Int, val body: String)
 
-    fun send(payload: Payload): Result {
+    fun send(payload: Payload, contract: RelayRequestFile): Result {
         val boundary = "----borgarland${System.currentTimeMillis()}"
-        val url = URL("$BASE_URL/api/reports")
+        val url = URL("$BASE_URL${contract.endpoint.path}")
         val conn = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
+            requestMethod = contract.endpoint.method
             doOutput = true
             connectTimeout = 10_000
             readTimeout = 30_000
@@ -37,29 +46,7 @@ object RelayClient {
 
         return try {
             DataOutputStream(conn.outputStream).use { out ->
-                fun field(name: String, value: String) {
-                    out.writeBytes("--$boundary\r\n")
-                    out.writeBytes("Content-Disposition: form-data; name=\"$name\"\r\n\r\n")
-                    out.write(value.toByteArray(Charsets.UTF_8))
-                    out.writeBytes("\r\n")
-                }
-                // Our own vocabulary. The relay's adapter maps it to whatever
-                // the city calls these today.
-                field("type", payload.type)
-                field("category", payload.category)
-                field("summary", payload.summary)
-                field("lat", payload.latText)
-                field("lng", payload.lngText)
-                field("description", payload.description)
-                for (photo in payload.files) {
-                    out.writeBytes("--$boundary\r\n")
-                    out.writeBytes(
-                        "Content-Disposition: form-data; name=\"files\"; filename=\"${photo.name}\"\r\n")
-                    out.writeBytes("Content-Type: ${photo.mime}\r\n\r\n")
-                    out.write(photo.bytes)
-                    out.writeBytes("\r\n")
-                }
-                out.writeBytes("--$boundary--\r\n")
+                out.write(buildBody(payload, contract, boundary))
             }
             val status = conn.responseCode
             val stream = if (status in 200..299) conn.inputStream else conn.errorStream
@@ -70,5 +57,66 @@ object RelayClient {
         } finally {
             conn.disconnect()
         }
+    }
+
+    /**
+     * The exact multipart body the app posts, built from the contract. Parts
+     * are written under the contract's field names in the contract's order.
+     * The literal in the role binding is which role a contract field plays;
+     * the wire name written is the contract's own key. A required field the
+     * app has no value for fails loudly instead of sending a request the
+     * relay would reject, and a part the contract does not name is never
+     * written (RelayRequestTest pins the parts to the contract).
+     */
+    internal fun buildBody(payload: Payload, contract: RelayRequestFile, boundary: String): ByteArray {
+        val out = ByteArrayOutputStream()
+
+        fun writeTextPart(name: String, value: String) {
+            out.write("--$boundary\r\n".toByteArray(Charsets.UTF_8))
+            out.write("Content-Disposition: form-data; name=\"$name\"\r\n\r\n".toByteArray(Charsets.UTF_8))
+            out.write(value.toByteArray(Charsets.UTF_8))
+            out.write("\r\n".toByteArray(Charsets.UTF_8))
+        }
+
+        fun writePhotoPart(name: String, photo: Photo) {
+            out.write("--$boundary\r\n".toByteArray(Charsets.UTF_8))
+            out.write(
+                "Content-Disposition: form-data; name=\"$name\"; filename=\"${photo.name}\"\r\n"
+                    .toByteArray(Charsets.UTF_8),
+            )
+            out.write("Content-Type: ${photo.mime}\r\n\r\n".toByteArray(Charsets.UTF_8))
+            out.write(photo.bytes)
+            out.write("\r\n".toByteArray(Charsets.UTF_8))
+        }
+
+        val fields = contract.fields
+
+        fun valueFor(name: String): String? = when (name) {
+            "category" -> payload.categorySlug
+            "latitude" -> payload.latitudeText
+            "longitude" -> payload.longitudeText
+            "description" -> payload.description
+            // Optional roles the POC never fills; written only when the
+            // contract names them and a value exists.
+            "email" -> null
+            "photo" -> null
+            else -> null
+        }
+
+        for ((name, spec) in fields) {
+            if (name == "photo") {
+                for (photo in payload.photos) writePhotoPart(name, photo)
+                continue
+            }
+            val value = valueFor(name)
+            if (spec.required && value == null) {
+                throw IllegalStateException(
+                    "relay contract field '$name' is required but the app has nothing to send",
+                )
+            }
+            if (value != null) writeTextPart(name, value)
+        }
+        out.write("--$boundary--\r\n".toByteArray(Charsets.UTF_8))
+        return out.toByteArray()
     }
 }

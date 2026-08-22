@@ -68,19 +68,23 @@ the manifest.
    does not enforce (`validation.onlyDescriptionIsEnforced` in the facts file).
 4. **All twelve categories from the facts file.** `data/reykjavik-form.json`
    is shipped verbatim as an app asset and parsed with kotlinx-serialization.
-   `type` and `summary` are taken per category from that file at runtime, never
-   hardcoded: `almenn-abending` is `general`, the other eleven `specific`.
-   `FactsFileTest` asserts the asset parses to 12 categories with that exact
-   split and the documented 2500-character description limit. The suggestion
-   slot sits above the picker and is empty in this POC; per decisions/0008 it
-   may be late or absent and never blocks, and the flow completes without it.
+   `type` is read per category from that file at runtime, never hardcoded, and
+   used only as the picker's general/specific label (`almenn-abending` is
+   `general`, the other eleven `specific`); `summary` is no longer read at all
+   since the payload dropped the city's vocabulary. `FactsFileTest` asserts the
+   asset parses to 12 categories with that exact split and the documented
+   2500-character description limit. The suggestion slot sits above the picker
+   and is empty in this POC; per decisions/0008 it may be late or absent and
+   never blocks, and the flow completes without it.
 5. **Description field** with the 2500-character limit enforced, taken from
    `fields.description.maxLength` in the facts file.
-6. **Final screen shows every field that would be posted**: `type`, `category`,
-   `summary`, `lat`, `lng`, `description`, `files` (name, MIME, byte size,
-   thumbnail), plus the location source and a non-blocking warning when the
-   point falls outside the city map widget's panning bounds (mirroring
-   `send-report.mjs`). The screen states that nothing is sent.
+6. **Final screen shows every field that would be posted**: `category` (the
+   slug), `latitude`, `longitude`, `description`, `photo` (name, MIME, byte
+   size, thumbnail), plus the location source and a non-blocking warning when
+   the point falls outside the city map widget's panning bounds (mirroring
+   `send-report.mjs`). The request shape comes from `data/relay-request.json`
+   (copied into assets like the facts file), and the screen states that the
+   relay, not the city, is the only destination and that it is in dry run.
 
 ## What it fakes or stubs
 

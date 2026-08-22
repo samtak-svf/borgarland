@@ -29,6 +29,6 @@ class FactsFileTest {
         assertEquals(11, specific.size)
         assertTrue(specific.all { it.type == "specific" })
 
-        assertTrue(facts.categories.all { it.slug.isNotBlank() && it.category.isNotBlank() && it.summary.isNotBlank() })
+        assertTrue(facts.categories.all { it.slug.isNotBlank() && it.category.isNotBlank() })
     }
 }

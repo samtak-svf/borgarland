@@ -28,16 +28,51 @@ import type { Registry } from './registry'
 import { describeAddress } from './registry'
 import { checkJurisdiction } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
-import {
-  buildCityPayload,
-  isAcceptedPhotoMime,
-  isKnownCategory,
-  maxDescriptionLength,
-  submitCityPayload,
-} from './adapters/reykjavik'
+import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
 import { getReport, insertReport, setOutcome } from './db'
 import { RegistryNotLoadedError } from './registry-loader'
+import relayRequestJson from '../../data/relay-request.json'
+
+// ---------------------------------------------------------------------------
+// The relay request contract. data/relay-request.json is the one place the
+// multipart field names live, and everything the relay reads from a request
+// is validated against it. The city's vocabulary — type, summary, the display
+// name, lat/lng, files — is deliberately absent here: a stale app that still
+// sends it gets a 400 (unknown-field) instead of being silently ignored, and
+// scripts/check-relay-contract.mjs pins the parts of this contract that
+// restate city facts (the description limit, the photo MIME list) to
+// data/reykjavik-form.json.
+// ---------------------------------------------------------------------------
+
+interface RelayFieldSpec {
+  required: boolean
+  maxLength?: number
+  accept?: string[]
+}
+
+interface RelayRequestContract {
+  endpoint: { path: string; method: string; contentType: string }
+  fields: {
+    category: RelayFieldSpec
+    latitude: RelayFieldSpec
+    longitude: RelayFieldSpec
+    description: RelayFieldSpec & { maxLength: number }
+    email: RelayFieldSpec
+    photo: RelayFieldSpec & { accept: string[] }
+  }
+}
+
+const RELAY = relayRequestJson as unknown as RelayRequestContract
+
+/** The part names a request may carry, from the contract. Anything else is a 400. */
+const KNOWN_FIELD_NAMES: ReadonlySet<string> = new Set(Object.keys(RELAY.fields))
+
+/** The description limit, from the contract (pinned to the city's by the contract check). */
+const maxDescriptionLength: number = RELAY.fields.description.maxLength
+
+/** Photo MIME types the relay accepts, from the contract (pinned to the city's list). */
+const acceptedPhotoMimes: ReadonlySet<string> = new Set(RELAY.fields.photo.accept)
 
 export interface AppDeps {
   /** The outbound fetch — the only path to the city. Tests stub this. */
@@ -62,6 +97,16 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       throw new HttpError(400, 'invalid-multipart')
     }
 
+    // Wire-level contract enforcement: a request may carry only the parts the
+    // contract names. This is how a stale app that still speaks the city's
+    // vocabulary (type, summary, lat, lng, files) fails loudly instead of
+    // being ignored field by field.
+    for (const name of form.keys()) {
+      if (!KNOWN_FIELD_NAMES.has(name)) {
+        throw new HttpError(400, 'unknown-field', { field: name })
+      }
+    }
+
     const categoryValue = form.get('category')
     const category = typeof categoryValue === 'string' ? categoryValue.trim() : ''
     if (category === '' || !isKnownCategory(category)) {
@@ -84,7 +129,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       if (!(part instanceof File)) {
         throw new HttpError(400, 'invalid-photo', { reason: 'photo parts must be files' })
       }
-      if (!isAcceptedPhotoMime(part.type)) {
+      if (!acceptedPhotoMimes.has(part.type)) {
         throw new HttpError(400, 'invalid-photo', { reason: 'mime not accepted', mime: part.type })
       }
       photos.push({
@@ -223,7 +268,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     try {
       const path = new URL(request.url).pathname
 
-      if (path === '/api/reports') {
+      if (path === RELAY.endpoint.path) {
         if (request.method === 'POST') return await createReport(request)
         return json({ error: 'method-not-allowed' }, 405)
       }

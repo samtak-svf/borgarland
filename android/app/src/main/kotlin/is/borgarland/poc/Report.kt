@@ -1,9 +1,15 @@
 package `is`.borgarland.poc
 
 /**
- * What would be posted, field for field. The POC only ever displays this; the
- * send step does not exist in this app, by design (decisions/0002 and the
- * AGENTS.md rule that this app has no capability to reach the city).
+ * What would be posted, field for field, to OUR relay. The city's type,
+ * display name and summary are derived by the relay's adapter from the slug
+ * (worker/src/adapters/reykjavik.ts); this app never sees or sends them
+ * (AGENTS.md: the adapter is the only place allowed to know the city's
+ * vocabulary). The wire names of the parts are the contract's field keys
+ * (data/relay-request.json), applied in net/RelayClient.kt.
+ *
+ * The POC only ever displays this and sends it to the relay; it has no
+ * capability to reach the city (decisions/0002).
  */
 data class Photo(
     val bytes: ByteArray,
@@ -15,15 +21,14 @@ data class Photo(
 }
 
 data class Payload(
-    val type: String,
-    val category: String,
-    val summary: String,
-    val lat: Double,
-    val lng: Double,
+    /** Category slug, one of the twelve in the facts file. */
+    val categorySlug: String,
+    val latitude: Double,
+    val longitude: Double,
     val description: String,
-    val files: List<Photo>,
+    val photos: List<Photo>,
 ) {
     /** Formatted the way send-report.mjs formats them: shortest round-trip decimal. */
-    val latText: String get() = lat.toString()
-    val lngText: String get() = lng.toString()
+    val latitudeText: String get() = latitude.toString()
+    val longitudeText: String get() = longitude.toString()
 }

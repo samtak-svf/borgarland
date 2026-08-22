@@ -18,17 +18,25 @@ data class FactsFile(
 )
 
 @Serializable
-data class Fields(val description: Description)
+data class Fields(
+    val description: Description,
+    /** The city's accepted photo MIME list; read only to cross-check the relay contract. */
+    val files: Files? = null,
+)
 
 @Serializable
 data class Description(val maxLength: Int)
 
 @Serializable
+data class Files(val accept: List<String>)
+
+@Serializable
 data class Category(
     val slug: String,
+    /** The city's type (general/specific); used only as a picker label, never sent. */
     val type: String,
+    /** The city's display name; used only as the picker label, never sent. */
     val category: String,
-    val summary: String,
 )
 
 @Serializable
