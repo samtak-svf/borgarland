@@ -11,8 +11,14 @@ import BorgarlandCore
 final class ExifGpsTest: XCTestCase {
 
     func testReadsNorthEast() throws {
+        // EXIF stores GPS as an UNSIGNED magnitude plus a hemisphere
+        // reference, and ImageIO enforces that on write: handed a negative
+        // magnitude it writes 0, which is how this fixture first failed. So
+        // the fixture carries the magnitude the way a camera would and the
+        // reader is what applies the sign — which is the behaviour worth
+        // testing anyway.
         let data = try XCTUnwrap(
-            jpegWithGps(latitude: 64.14658919, latitudeRef: "N", longitude: -21.93279823, longitudeRef: "W")
+            jpegWithGps(latitude: 64.14658919, latitudeRef: "N", longitude: 21.93279823, longitudeRef: "W")
         )
         let coordinate = try XCTUnwrap(ExifGps.read(from: data))
         XCTAssertEqual(coordinate.latitude, 64.14658919, accuracy: 0.000_01)
