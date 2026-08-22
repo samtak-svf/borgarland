@@ -77,9 +77,17 @@ product.
 
 The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
 here. As Biggi put it when the idea started: *the bin has no address, only the
-coordinate that came with the photo.* So: EXIF GPS first, device fix as
-fallback, map correction optional, and reverse geocoding only to fill the city's
-fields after the fact.
+coordinate that came with the photo.* So the coordinate travels with the
+picture, the map is a correction rather than an entry point, and reverse
+geocoding only fills the city's fields after the fact.
+
+**Which source comes first depends on where the photo came from, and testing on
+a real phone reversed the order we assumed.** A photo the app captures itself
+carries no EXIF GPS at all, because CameraX does not write it unless asked, so
+the device fix is the primary source on that path and not the fallback. EXIF is
+the primary source for a photo chosen from the gallery — which is also the path
+where it is most often missing, since messaging apps strip it. Ask both, label
+which one answered, and refuse when neither does.
 
 ## Addresses: use the registry, not the city
 
