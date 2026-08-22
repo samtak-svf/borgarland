@@ -1,0 +1,49 @@
+{
+  "$comment": "Machine-readable record of the request the apps send to OUR relay (decisions/0002), and the single place the multipart field names live. Both sides read this file: the Worker (worker/src/app.ts imports it and rejects any part it does not name) and the Android app (copied into assets at build time by android/app/build.gradle.kts, and the app constructs the request from it). It speaks our vocabulary only: the field keys are the wire names, no city display name, type or summary string appears anywhere in this file, because those belong to worker/src/adapters/reykjavik.ts alone (AGENTS.md). Where this file must agree with a city fact (the description limit, the accepted photo MIME types), it restates the fact with its source and scripts/check-relay-contract.mjs fails if the two files drift. Re-verify with: node scripts/check-relay-contract.mjs, which CI also runs.",
+  "verifiedAt": "2026-08-22",
+  "source": "decisions/0002 (the apps post to our relay, never to the city) and the repository's own request contract, established the day the app and the relay were first pointed at each other and disagreed on every field",
+  "endpoint": {
+    "path": "/api/reports",
+    "method": "POST",
+    "contentType": "multipart/form-data",
+    "notes": "the apps reach this on the relay's host; the POC talks to 127.0.0.1:8787 via adb reverse (net/RelayClient.kt). The city is never on this path. The relay is in dry run by default (src/config.ts) and forwards nothing without the deliberate CITY_SEND_KEY secret."
+  },
+  "fields": {
+    "category": {
+      "required": true,
+      "source": "one of data/reykjavik-form.json categories[].slug",
+      "notes": "the only identifier the app has for a category. The relay's adapter derives the city's type, display name and summary from the slug; the app must not send them."
+    },
+    "latitude": {
+      "required": true,
+      "format": "WGS84 decimal degrees, dot separator, e.g. 64.14658919",
+      "notes": "full words, not the city's abbreviations: the short forms are the city's own field names for the same values (data/reykjavik-form.json fields.lat and fields.lng) and belong to the adapter alone."
+    },
+    "longitude": {
+      "required": true,
+      "format": "WGS84 decimal degrees, dot separator, e.g. -21.93279823",
+      "notes": "full words, not the city's abbreviation; see latitude."
+    },
+    "description": {
+      "required": true,
+      "maxLength": 2500,
+      "maxLengthSource": "data/reykjavik-form.json fields.description.maxLength",
+      "notes": "the relay appends the nearest registered address line for the crew (AGENTS.md) and drops it rather than overflow the limit; the limit is the city's, enforced by the relay."
+    },
+    "email": {
+      "required": false,
+      "notes": "the only way the reporter hears back; the POC never collects it, the relay forwards it when present."
+    },
+    "photo": {
+      "required": false,
+      "repeated": true,
+      "accept": [
+        "image/jpeg",
+        "image/png",
+        "image/gif"
+      ],
+      "acceptSource": "data/reykjavik-form.json fields.files.accept",
+      "notes": "the app sends one today; the relay accepts repeated photo parts. The city calls these parts by another name; ours is photo, and it is the only name the app may write."
+    }
+  }
+}

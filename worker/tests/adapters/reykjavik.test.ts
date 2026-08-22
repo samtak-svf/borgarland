@@ -8,10 +8,8 @@ import { describe, expect, it } from 'vitest'
 import type { ReportDraft } from '../../src/domain'
 import {
   buildCityPayload,
-  isAcceptedPhotoMime,
   isKnownCategory,
   knownCategorySlugs,
-  maxDescriptionLength,
   submitCityPayload,
 } from '../../src/adapters/reykjavik'
 import { createRegistry } from '../../src/registry'
@@ -61,14 +59,6 @@ describe('category knowledge comes from data/reykjavik-form.json', () => {
     expect(isKnownCategory('waste-bins')).toBe(false)
     expect(isKnownCategory('nonsense')).toBe(false)
     expect(knownCategorySlugs).toHaveLength(12)
-  })
-
-  it('reads the description limit and photo MIME list from the facts file', () => {
-    expect(maxDescriptionLength).toBe(2500)
-    expect(isAcceptedPhotoMime('image/jpeg')).toBe(true)
-    expect(isAcceptedPhotoMime('image/png')).toBe(true)
-    expect(isAcceptedPhotoMime('image/gif')).toBe(true)
-    expect(isAcceptedPhotoMime('application/octet-stream')).toBe(false)
   })
 })
 

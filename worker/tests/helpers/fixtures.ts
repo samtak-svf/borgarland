@@ -13,6 +13,9 @@ import { createRegistry } from '../../src/registry'
 import type { AddressPoint, Registry } from '../../src/registry'
 import { RegistryNotLoadedError } from '../../src/registry-loader'
 import { FakeD1 } from './fake-d1'
+import relayRequestJson from '../../../data/relay-request.json'
+
+const RELAY_FIELDS = (relayRequestJson as unknown as { fields: Record<string, unknown> }).fields
 
 export const MIGRATION_SQL = readFileSync('migrations/0001_init.sql', 'utf8')
 
@@ -99,14 +102,23 @@ export function createTestApp(options: TestAppOptions = {}): TestApp {
   return { app, sqlite, env, cityFetch }
 }
 
-/** A report in the app's vocabulary, as a multipart body. */
+/** A report in the app's vocabulary, as a multipart body built from the contract. */
 export function reportForm(overrides: Record<string, string> = {}): FormData {
   const fd = new FormData()
-  fd.set('category', 'ruslafotur')
-  fd.set('latitude', REYKJAVIK_POINT.latitude)
-  fd.set('longitude', REYKJAVIK_POINT.longitude)
-  fd.set('description', 'Full ruslafata við stíginn')
-  fd.append('photo', new File([new Uint8Array([1, 2, 3])], 'bin.jpg', { type: 'image/jpeg' }))
+  // Values bound by role; the wire name of each part is the contract's own
+  // key, so a field renamed in data/relay-request.json fails these tests
+  // instead of silently changing what goes over the wire.
+  const values: Record<string, string | File> = {
+    category: 'ruslafotur',
+    latitude: REYKJAVIK_POINT.latitude,
+    longitude: REYKJAVIK_POINT.longitude,
+    description: 'Full ruslafata við stíginn',
+    photo: new File([new Uint8Array([1, 2, 3])], 'bin.jpg', { type: 'image/jpeg' }),
+  }
+  for (const name of Object.keys(RELAY_FIELDS)) {
+    const value = values[name]
+    if (value !== undefined) fd.append(name, value)
+  }
   for (const [key, value] of Object.entries(overrides)) {
     if (value === '__remove__') {
       fd.delete(key)

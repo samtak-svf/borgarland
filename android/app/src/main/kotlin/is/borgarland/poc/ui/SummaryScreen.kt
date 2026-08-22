@@ -58,7 +58,7 @@ fun SummaryScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         ) {
             Text(
-                "Ekkert er sent. Þessi app hefur enga internetheimild, engan HTTP client og enga sendingargetu. Hún sýnir aðeins nákvæmlega það sem myndi fara yfir línuna.",
+                "Ekkert fer til borgarinnar. Þetta app sendir aðeins á okkar relay (ákvörðun 0002) og relay-ið er í þurrkeyrslu og framsendir ekkert. Hér fyrir neðan er nákvæmlega það sem færi yfir línuna.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(12.dp),
             )
@@ -73,19 +73,17 @@ fun SummaryScreen(
             )
         }
 
-        FieldRow("type", payload.type)
-        FieldRow("category", payload.category)
-        FieldRow("summary", payload.summary)
-        FieldRow("lat", payload.latText)
-        FieldRow("lng", payload.lngText)
+        FieldRow("category", payload.categorySlug)
+        FieldRow("latitude", payload.latitudeText)
+        FieldRow("longitude", payload.longitudeText)
         FieldRow("description", payload.description)
 
         Text(
-            "files",
+            "photo",
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(top = 12.dp),
         )
-        payload.files.forEach { file ->
+        payload.photos.forEach { file ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
             ) {
