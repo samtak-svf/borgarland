@@ -34,14 +34,16 @@ targets:
     platform: iOS
     sources:
       - path: Sources
-      # There is no Resources directory yet, and there is deliberately no
-      # placeholder for one: XcodeGen validates every source path and fails the
-      # spec on a directory that is not there, which is exactly how this broke
-      # the first time (git does not track an empty directory, so the entry
-      # existed and the directory did not). The app icon and, if it ever lands,
-      # GoogleService-Info.plist bring the entry back along with the file that
-      # needs it.
+      # Note `buildPhase: resources` on every entry below. `resources:` is NOT
+      # a XcodeGen target key: it parses, it is silently ignored, and it once
+      # shipped an .ipa with no assets in it.
       #
+      # This entry was removed while the directory was empty, because XcodeGen
+      # validates every source path and git does not track empty directories.
+      # It is back now that it holds the thing the App Store refuses a build
+      # without.
+      - path: Resources
+        buildPhase: resources
       # The facts file and the relay request contract have exactly one home
       # each: data/ at the repository root (decision 0001). Android copies them
       # into assets at build time because Gradle has no way to reference a file
@@ -68,6 +70,11 @@ targets:
         # signed .ipa, which is the only place it was visible.
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Required since the iOS 11 SDK, and TestFlight rejects the upload
+        # without it: error 90713, which arrives after a full successful build
+        # and export. ASSETCATALOG_COMPILER_APPICON_NAME below names the same
+        # set in the catalogue; both are needed.
+        CFBundleIconName: AppIcon
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
@@ -91,6 +98,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: is.borgarland
         TARGETED_DEVICE_FAMILY: "1"
+        # Names the icon set inside Resources/Assets.xcassets. The Info.plist's
+        # CFBundleIconName above names the same set; the build needs this one
+        # to compile the catalogue and the upload needs that one to accept it.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: "NO"
         # Simulator builds in CI are unsigned. Signing settings belong on the
         # Release config alone: passing them as xcodebuild command-line
