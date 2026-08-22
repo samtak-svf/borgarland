@@ -126,7 +126,7 @@ jobs:
       # look: Apple's error strings run past 400 characters and grepping the
       # logs truncates them, which once produced a confident and false "fixed".
       - name: Keep the .ipa
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Borgarland-${{ github.ref_name }}.ipa
           path: ios/build/ipa/Borgarland.ipa
