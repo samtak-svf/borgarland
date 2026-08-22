@@ -1,0 +1,27 @@
+// Cloudflare Worker configuration for the Borgarland relay.
+//
+// The D1 `database_id` here is a deliberate placeholder: this file must never
+// be deployed as-is. The real database is created with
+// `wrangler d1 create borgarland-relay --jurisdiction eu` (the jurisdiction
+// can only be set at creation and can never be added afterwards — AGENTS.md)
+// and the real id is pasted into this file at deploy time.
+//
+// There is deliberately NO variable here that takes the relay out of dry run.
+// Live sending requires the CITY_SEND_KEY secret binding, created with
+// `wrangler secret put CITY_SEND_KEY` — see src/config.ts. Doing nothing leaves
+// the relay in dry run, which is the point.
+
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "borgarland-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-21",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "borgarland-relay",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

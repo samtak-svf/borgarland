@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+dist/
+# Generated from Staðfangaskrá by scripts/refresh-registry.mjs. 8.8 MB of
+# derived data with an upstream that already publishes it; regenerate rather
+# than commit.
+data/addresses.seed.sql

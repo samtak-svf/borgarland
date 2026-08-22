@@ -1,0 +1,23 @@
+{
+  "name": "borgarland-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker relay that files citizen reports (ábendingar) with Reykjavík and records what was sent and what came back.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run test",
+    "refresh:registry": "node scripts/refresh-registry.mjs"
+  },
+  "dependencies": {
+    "iceaddr-ts": "file:../../../../../home/gudro/Development/projects/stadfangaskra"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.0.0"
+  }
+}
