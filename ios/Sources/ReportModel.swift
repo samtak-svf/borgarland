@@ -25,7 +25,9 @@ struct Coordinate {
 struct ReportUiState {
     var screen: Screen = .camera
     var factsError: String? = nil
-    var categories: [Category] = []
+    // Module-qualified: the SDK carries a type of the same name, and an
+    // unqualified `Category` is ambiguous at type position.
+    var categories: [BorgarlandCore.Category] = []
     var descriptionMaxLength: Int = 2500
     var photo: Photo? = nil
     var photoError: String? = nil

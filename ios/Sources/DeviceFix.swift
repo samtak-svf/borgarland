@@ -114,19 +114,30 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
         continuation.resume(returning: location)
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    // The delegate methods are nonisolated because the protocol is: a
+    // MainActor-isolated conformance is a warning today and an error in the
+    // Swift 6 language mode. CoreLocation delivers callbacks on the queue the
+    // manager was created on, and this manager is created on the main actor,
+    // so assumeIsolated states a fact rather than hoping for one. It is also
+    // synchronous, which matters: hopping through a Task would let a delivery
+    // and the timeout both see a live continuation.
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-        resumeFix(location)
+        MainActor.assumeIsolated {
+            resumeFix(location)
+        }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard let continuation = authorizationContinuation else { return }
-        authorizationContinuation = nil
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            continuation.resume(returning: true)
-        default:
-            continuation.resume(returning: false)
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        MainActor.assumeIsolated {
+            guard let continuation = authorizationContinuation else { return }
+            authorizationContinuation = nil
+            switch manager.authorizationStatus {
+            case .authorizedWhenInUse, .authorizedAlways:
+                continuation.resume(returning: true)
+            default:
+                continuation.resume(returning: false)
+            }
         }
     }
 }
