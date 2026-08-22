@@ -60,6 +60,14 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: Borgarland POC
+        # Both are required, and the build settings alone are not enough.
+        # MARKETING_VERSION and CURRENT_PROJECT_VERSION populate an Info.plist
+        # only where the plist references them; the one XcodeGen generates from
+        # this block does not, so without these two lines Xcode's defaults win
+        # silently and the app reports 1.0 (1). Found by unpacking the first
+        # signed .ipa, which is the only place it was visible.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
