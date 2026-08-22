@@ -37,6 +37,19 @@
       "custom_domain": true
     }
   ],
+  // Workers Logs, which are OFF unless this block exists. Without it the only
+  // trace of a field test is the rows the relay chose to keep, and a report
+  // that was REFUSED is not one of them: the jurisdiction check and every
+  // validation failure throw before the insert, deliberately, so nothing is
+  // stored about a report we declined to file. During a field test that is
+  // exactly the interesting case, and it was invisible.
+  //
+  // head_sampling_rate 1 = keep everything. The traffic is one tester.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
   "d1_databases": [
     {
       "binding": "DB",

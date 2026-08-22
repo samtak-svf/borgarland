@@ -6,7 +6,7 @@
     "path": "/api/reports",
     "method": "POST",
     "contentType": "multipart/form-data",
-    "notes": "the apps reach this on the relay's host; the POC talks to 127.0.0.1:8787 via adb reverse (net/RelayClient.kt). The city is never on this path. The relay is in dry run by default (src/config.ts) and forwards nothing without the deliberate CITY_SEND_KEY secret."
+    "notes": "the apps reach this on the relay's host, which is per build type and lives in BuildConfig.RELAY_BASE_URL on Android and BorgarlandCore.RelayEndpoint on iOS, never as a literal at the call site: the deployed https host for a release, and 127.0.0.1:8787 via adb reverse for development. The city is never on this path. The relay is in dry run by default (src/config.ts) and forwards nothing without the deliberate CITY_SEND_KEY secret."
   },
   "fields": {
     "category": {

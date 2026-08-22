@@ -84,10 +84,41 @@ export interface AppDeps {
   randomId?: () => string
 }
 
+// ---------------------------------------------------------------------------
+// One structured line per outcome, for Workers Logs (enabled in
+// wrangler.jsonc). This exists because the relay's D1 record is deliberately
+// incomplete as a picture of a field test: a refused report is never inserted,
+// so the jurisdiction check rejecting a coordinate — the single most
+// interesting thing that can happen to a tester in the field — left no trace
+// anywhere at all.
+//
+// What is deliberately NOT logged: the description, the email, and the raw
+// coordinate. Those are the reporter's, the privacy policy is still open (#5),
+// and none of them are needed to answer the questions a field test asks. The
+// municipality code and the postcode are enough to tell a correct refusal from
+// a registry bug, which is what we would actually be looking at.
+// ---------------------------------------------------------------------------
+
+/** Fields from an HttpError's extra that are safe to keep in a log line. */
+const LOGGABLE_EXTRA = ['svfnr', 'field', 'mime', 'reason'] as const
+
+function safeExtra(extra: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (extra === undefined) return {}
+  const out: Record<string, unknown> = {}
+  for (const key of LOGGABLE_EXTRA) {
+    if (key in extra) out[key] = extra[key]
+  }
+  return out
+}
+
 export function createApp(env: Env, deps: AppDeps): (request: Request) => Promise<Response> {
   const doFetch = deps.fetch
   const now = deps.now ?? (() => new Date().toISOString())
   const randomId = deps.randomId ?? (() => randomHex(16))
+
+  function logEvent(event: Record<string, unknown>): void {
+    console.log(JSON.stringify({ at: now(), ...event }))
+  }
 
   async function createReport(request: Request): Promise<Response> {
     let form: FormData
@@ -195,6 +226,15 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
         cityStatus: null,
         cityReference: null,
         rejection: null,
+      })
+      logEvent({
+        kind: 'report',
+        outcome: 'recorded',
+        dryRun: true,
+        category,
+        photoCount: photos.length,
+        photoBytes: base.photoBytes,
+        postalCode: jurisdiction.nearest.postalCode,
       })
       return json(
         {
@@ -315,9 +355,17 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       return json({ error: 'not-found' }, 404)
     } catch (error) {
       if (error instanceof HttpError) {
+        logEvent({
+          kind: 'report',
+          outcome: 'refused',
+          code: error.code,
+          status: error.status,
+          ...safeExtra(error.extra),
+        })
         return json({ error: error.code, ...error.extra }, error.status)
       }
       if (error instanceof RegistryNotLoadedError) {
+        logEvent({ kind: 'report', outcome: 'refused', code: 'registry-not-loaded', status: 503 })
         return json({ error: 'registry-not-loaded' }, 503)
       }
       console.error('internal error', error)

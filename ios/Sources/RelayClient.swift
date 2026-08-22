@@ -4,8 +4,9 @@ import BorgarlandCore
 /// Posts a report to OUR relay. Never to the city.
 ///
 /// Decision 0002: the apps post to our relay, never to the city directly.
-/// That is why there is exactly one URL in this app and no city hostname
-/// anywhere: RelayClient.baseURL is the only URL literal in the source. The
+/// That is why there is no city hostname anywhere in this app. The relay's own
+/// host is not a literal here at all any more: both candidates live in
+/// BorgarlandCore.RelayEndpoint and this file only selects between them. The
 /// relay decides whether anything is forwarded, and it does so in dry run by
 /// default, on infrastructure we can fix with a deploy rather than an App
 /// Store review.
