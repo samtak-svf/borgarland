@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app may now reach the network, but only one place: the relay.
+
+  cleartextTrafficPermitted is false everywhere by default, and true for
+  localhost alone. adb reverse maps 127.0.0.1:8787 on the phone to the mock
+  relay on the development machine, so this is the only host the app can talk
+  to in plain HTTP. Anything else, the city included, fails at the platform
+  before a single byte leaves.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

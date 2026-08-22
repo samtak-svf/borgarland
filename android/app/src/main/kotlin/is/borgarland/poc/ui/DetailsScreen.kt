@@ -1,0 +1,111 @@
+package `is`.borgarland.poc.ui
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import `is`.borgarland.poc.PocUiState
+
+/**
+ * The suggestion slot sits above the category picker and is empty in this POC.
+ * Per decisions/0008 a suggestion may arrive late or never and must never
+ * block, so the flow completes without it: the slot is present, the send path
+ * does not depend on it.
+ */
+@Composable
+fun DetailsScreen(
+    state: PocUiState,
+    onSelectCategory: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onContinue: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+    ) {
+        Text("Skrá ábendingu", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "Staðsetning: ${state.locationSource.orEmpty()}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+
+        OutlinedCard(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Tillaga úr myndinni", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Engin tillaga í þessari POC. Þegar greining verður til birtist tillagan hér, seint eða aldrei. Hún kemur aldrei í veg fyrir áframhald.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
+        Text(
+            "Flokkur",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
+        )
+        state.categories.forEach { category ->
+            val selected = state.selectedSlug == category.slug
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectable(
+                        selected = selected,
+                        onClick = { onSelectCategory(category.slug) },
+                    )
+                    .padding(vertical = 6.dp),
+            ) {
+                RadioButton(selected = selected, onClick = null)
+                Column {
+                    Text(category.category, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        if (category.type == "general") "Almenn ábending" else "Sérstök ábending",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        OutlinedTextField(
+            value = state.description,
+            onValueChange = onDescriptionChange,
+            label = { Text("Lýsing") },
+            supportingText = {
+                Text("${state.description.length} / ${state.descriptionMaxLength}")
+            },
+            minLines = 4,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        )
+
+        Button(
+            onClick = onContinue,
+            enabled = state.selectedSlug != null && state.description.isNotBlank(),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        ) { Text("Áfram") }
+        if (state.selectedSlug == null || state.description.isBlank()) {
+            Text(
+                "Veldu flokk og skrifaðu lýsingu til að halda áfram. Borgin krefst lýsingar.",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}

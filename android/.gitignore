@@ -1,0 +1,6 @@
+build/
+.gradle/
+local.properties
+# Copied from data/reykjavik-form.json by the copyFacts Gradle task. The
+# canonical file is the one in the repo root; this one is generated.
+app/src/main/assets/reykjavik-form.json
