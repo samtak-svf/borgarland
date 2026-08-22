@@ -24,8 +24,8 @@ public enum ExifGps {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
             let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
             let gps = properties[kCGImagePropertyGPSDictionary] as? [CFString: Any],
-            let latitude = decimalDegrees(gps[kCGImagePropertyGPSLatitude]),
-            let longitude = decimalDegrees(gps[kCGImagePropertyGPSLongitude])
+            let rawLatitude = decimalDegrees(gps[kCGImagePropertyGPSLatitude]),
+            let rawLongitude = decimalDegrees(gps[kCGImagePropertyGPSLongitude])
         else { return nil }
 
         // The hemisphere reference is applied defensively. Some encoders sign
@@ -33,8 +33,11 @@ public enum ExifGps {
         // reference; normalising through abs() makes both readings land on
         // the same sign for the same reference. No reference at all means the
         // value arrived signed and is trusted as-is.
-        var latitude = latitude
-        var longitude = longitude
+        // Named apart from the guard's bindings: `guard let` binds into this
+        // same scope, so `var latitude = latitude` is a redeclaration here
+        // rather than the shadowing it looks like.
+        var latitude = rawLatitude
+        var longitude = rawLongitude
         if let ref = gps[kCGImagePropertyGPSLatitudeRef] as? String {
             latitude = ref == "S" ? -abs(latitude) : abs(latitude)
         }
