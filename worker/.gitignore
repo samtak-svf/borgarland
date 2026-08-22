@@ -5,3 +5,5 @@ dist/
 # derived data with an upstream that already publishes it; regenerate rather
 # than commit.
 data/addresses.seed.sql
+# The half-written seed a crashed refresh leaves behind.
+data/addresses.seed.sql.partial

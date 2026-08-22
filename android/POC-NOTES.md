@@ -40,10 +40,15 @@ What replaced "no network at all" is narrower and still checkable:
 1. **No city endpoint anywhere in the app.** No hostname, no category slug, no
    path. `NoCityEndpointTest` asserts it on every build, and strips comments
    before scanning so the rule can be documented in the file it governs.
-2. **One URL constant**, in `net/RelayClient.kt`, pointing at the relay.
-3. **Cleartext to localhost only**, via `network_security_config.xml`. That is
-   right for `adb reverse` during development and has to change when a real
-   relay hostname exists.
+2. **One relay URL**, from `BuildConfig.RELAY_BASE_URL`, per build type: the
+   loopback for debug, `https://borgarland.samtak.is` for release (#29).
+   `build.gradle.kts` refuses at configuration time to build a release whose URL
+   is not https or names a loopback host.
+3. **Cleartext to localhost only**, via `network_security_config.xml`. This does
+   NOT need widening now that a real relay hostname exists, and an earlier
+   version of this note said it did. The deployed relay is https, so the policy
+   keeps doing its job: cleartext reaches the development machine and nothing
+   else.
 4. **`ACCESS_NETWORK_STATE` is still stripped** with `tools:node="remove"`,
    because nothing here reads connectivity.
 

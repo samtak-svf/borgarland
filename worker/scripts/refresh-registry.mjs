@@ -26,13 +26,27 @@
 // The snapshot is attributed to its source:
 //   Staðfangaskrá by HMS / Þjóðskrá Íslands, CC-BY 4.0.
 
-import { createWriteStream } from 'node:fs'
+import { createWriteStream, renameSync, unlinkSync } from 'node:fs'
 import { once } from 'node:events'
 import { streamStadfangaskra } from 'iceaddr-ts'
 
 const BATCH = 500
 
-const out = createWriteStream(new URL('../data/addresses.seed.sql', import.meta.url))
+// The seed is written to a temporary path and renamed into place only after the
+// last byte, so an interrupted run leaves no seed at all rather than a bad one.
+//
+// This matters because the file now opens with `DELETE FROM addresses`. Before
+// that line existed, a crash mid-download produced a short but harmless
+// additive file. With it, the same crash produces a file that deletes 139k rows
+// and then inserts a fraction of them, and applying it — which is exactly what
+// an automated refresh would do to whatever seed it finds — empties the
+// registry. The relay then fails closed on every report (503
+// registry-not-loaded), which is the safe direction but is still an outage
+// caused by a download that dropped.
+const FINAL = new URL('../data/addresses.seed.sql', import.meta.url)
+const TEMP = new URL('../data/addresses.seed.sql.partial', import.meta.url)
+
+const out = createWriteStream(TEMP)
 let count = 0
 let batch = []
 
@@ -71,13 +85,23 @@ out.write('-- Apply with: wrangler d1 execute borgarland-relay --file data/addre
 // file can have.
 out.write('\nDELETE FROM addresses;\n\n')
 
-for await (const row of streamStadfangaskra()) {
-  const t = tuple(row)
-  if (t === null) continue
-  batch.push(t)
-  if (batch.length >= BATCH) flush()
+try {
+  for await (const row of streamStadfangaskra()) {
+    const t = tuple(row)
+    if (t === null) continue
+    batch.push(t)
+    if (batch.length >= BATCH) flush()
+  }
+  flush()
+} catch (error) {
+  out.destroy()
+  try {
+    unlinkSync(TEMP)
+  } catch {
+    // Nothing to clean up.
+  }
+  throw error
 }
-flush()
 
 // The registry's own age, written from the same run that produced the rows, so
 // the date at GET /api/health always describes the rows that were applied and
@@ -89,4 +113,8 @@ out.write(
 
 out.end('\n')
 await once(out, 'finish')
+
+// Only now is the file a complete seed. The rename is what publishes it.
+renameSync(TEMP, FINAL)
+
 console.log(`wrote ${count} address rows to data/addresses.seed.sql (snapshot ${SNAPSHOT_AT})`)
