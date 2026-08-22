@@ -63,10 +63,17 @@ So the boundary is drawn in the interaction instead:
   filing an idea with nothing attached to it. Someone who wants that has the
   city's own form, and the app should say so rather than pretend to be it.
 
-`almenn-abending` is still reworded in the interface. The city calls it
-suggestions, praise and ideas; here it is the net under a broken bench, a fallen
-tree, a collapsed fence — a walker's find with no category of its own. Present
-it as *something else in the public realm*, never as a suggestion box.
+`almenn-abending` **should be** reworded in the interface, and is not. The city
+calls it suggestions, praise and ideas; here it is the net under a broken bench,
+a fallen tree, a collapsed fence — a walker's find with no category of its own.
+Present it as *something else in the public realm*, never as a suggestion box.
+
+This paragraph was written in the present tense as though the rewording existed.
+It does not: both apps render the city's own string verbatim
+(`DetailsScreen.kt`, `DetailsScreen.swift`), which is also why the picker shows
+"Almenn ábending" as a category and "Almenn ábending" as its kind. That is
+tracked in #40, which reads as a cosmetic collision and is really this
+requirement going unbuilt.
 
 **`scripts/send-report.mjs` and `payload-map.md` document all twelve** because
 that is what the city accepts. They now agree with the app, but keep the
@@ -78,8 +85,9 @@ product.
 The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
 here. As Biggi put it when the idea started: *the bin has no address, only the
 coordinate that came with the photo.* So the coordinate travels with the
-picture, the map is a correction rather than an entry point, and reverse
-geocoding only fills the city's fields after the fact.
+picture, a map would be a correction rather than an entry point, and reverse
+geocoding only fills the city's fields after the fact. (No map exists in either
+app yet; the sentence describes the intended shape, not a built surface.)
 
 **Which source comes first depends on where the photo came from, and testing on
 a real phone reversed the order we assumed.** A photo the app captures itself
