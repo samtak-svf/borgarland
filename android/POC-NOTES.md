@@ -1,9 +1,15 @@
 # Borgarland Android POC — notes
 
 A single-screen Android proof of concept for the citizen-report (ábending) app:
-camera first, coordinate from the photo's EXIF GPS with a device-fix fallback,
-category and description chosen by a person, and the exact payload displayed.
-It sends nothing, and structurally cannot.
+camera first, a coordinate the flow refuses to proceed without, category and
+description chosen by a person, and the exact payload displayed. It posts to our
+own relay, which is in dry run unless someone deliberately hands it a key, and it
+has no way to reach the city.
+
+Two sentences of this summary outlived the code. It said the coordinate comes
+from EXIF with the device fix as a fallback, and that the app sends nothing and
+structurally cannot. Neither is true, and the rest of this file was corrected in
+#25 and #26 without the summary above it being reread.
 
 ## Build
 
@@ -55,15 +61,22 @@ the manifest.
 
 1. **Opens on the camera.** Initial screen is a live CameraX preview; there is
    no path that starts with a form (decisions/0004).
-2. **EXIF GPS read, ported not imported.** `ExifGps.kt` is a line-for-line port
-   of `exifGps` in `scripts/send-report.mjs`: JPEG segment walk to APP1, TIFF
-   endianness, GPS IFD via tag 0x8825, the four GPS tags, out-of-line
-   rationals. No library. Six unit tests exercise it against hand-built JPEG
-   buffers in both endiannesses and both hemispheres, plus the malformed-input
-   cases that must read as "no GPS". Device fallback via framework
-   `LocationManager` (last-known GPS fix, then a single live request with a
-   15 s timeout), and the UI labels which source was used ("EXIF GPS úr mynd"
-   vs "Tækjastaðsetning (GPS)").
+2. **Both location sources, and the device one is what answers.** `ExifGps.kt`
+   is a line-for-line port of `exifGps` in `scripts/send-report.mjs`: JPEG
+   segment walk to APP1, TIFF endianness, GPS IFD via tag 0x8825, the four GPS
+   tags, out-of-line rationals. No library. Six unit tests exercise it against
+   hand-built JPEG buffers in both endiannesses and both hemispheres, plus the
+   malformed-input cases that must read as "no GPS". The device source is the
+   framework `LocationManager`, asking every enabled provider and taking
+   whichever answers first, and the UI labels which one was used ("EXIF GPS úr
+   mynd" vs "Tækjastaðsetning (GPS)").
+
+   **On this POC the EXIF read always returns nothing**, because CameraX writes
+   no GPS unless asked and nobody asks. So the device fix is the primary source
+   here rather than the fallback the code reads like, and the EXIF reader is
+   waiting for the gallery path that does not exist yet. `AGENTS.md` carries the
+   corrected ordering, and `docs/research/photos-exif-and-formats.md` has the
+   measurements behind it.
 3. **The coordinate guard.** `isUsableCoordinate` rejects no-coordinate,
    non-finite values (which EXIF rationals with a zero denominator can
    produce) and out-of-WGS84-range values. The flow refuses to advance to the
@@ -93,9 +106,11 @@ the manifest.
 
 - **The suggestion slot** is an empty placeholder card. No model produces
   suggestions; per decisions/0008 where the model runs is deliberately open.
-- **The relay** (decisions/0002 option B) does not exist here, by design: the
-  POC ends at the payload display, so there is no worker, no D1, and nothing
-  to measure follow-through with.
+- ~~**The relay** does not exist here~~ — it does. The worker landed in #22 and
+  the app has posted to it since #23. What is still absent is the deployment:
+  no D1 exists, nothing is deployed, and the relay is in dry run unless a key is
+  deliberately supplied, so nothing has reached the city and follow-through is
+  still unmeasured.
 - **Reverse geocoding and the address registry** (iceaddr-ts) are not shipped.
   The city's payload has no address field anyway
   (`validation.noAddressFieldInPayload`), so the final screen is faithful
@@ -108,9 +123,11 @@ the manifest.
   and the report was refused while the network and fused providers held a
   three-minute-old fix accurate to eighteen metres. It now asks every enabled
   provider and takes whichever answers first.
-- **No jurisdiction check** (SVFNR). AGENTS.md puts that in the relay, not the
-  app, and there is no relay here. The map-bounds warning is the only
-  geo-sanity signal.
+- **No jurisdiction check** (SVFNR) **in the app**. AGENTS.md puts it in the
+  relay, and the relay implements it (`worker/src/jurisdiction.ts`); the app has
+  only the map-bounds warning. Nothing in this POC reaches a deployed relay, so
+  in practice no coordinate has been jurisdiction-checked outside the worker's
+  own tests.
 
 ## Places the repo did not say, so the POC guessed
 
