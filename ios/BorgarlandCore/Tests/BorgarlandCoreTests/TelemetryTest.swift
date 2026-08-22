@@ -160,7 +160,11 @@ final class TelemetryTest: XCTestCase {
         telemetry.track(.categoryChosen(elapsedMs: 1, slug: "ruslafotur"))
         telemetry.flush()
 
-        let body = try XCTUnwrap(bodies.first.map { String(data: $0, encoding: .utf8) })
+        // Two unwraps, not one: `bodies.first` is optional and the String
+        // initialiser is failable, so `.map` produces a String?? and a single
+        // XCTUnwrap leaves an optional behind.
+        let data = try XCTUnwrap(bodies.first)
+        let body = try XCTUnwrap(String(data: data, encoding: .utf8))
         XCTAssertFalse(body.contains(secret), "the description text must never reach the wire")
         // No description field exists anywhere in the contract; a stray one
         // would be rejected by the relay and is a privacy violation here.

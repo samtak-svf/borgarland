@@ -64,11 +64,13 @@ class Telemetry {
             if (raw in ALLOWED_MIMES) raw else "other"
 
         private val ALLOWED_MIMES = setOf("image/jpeg", "image/png", "image/gif", "image/heic")
-    }
 
-    private const val PLATFORM = "android"
-    private const val ENDPOINT_PATH = "/api/events"
-    private const val MAX_AT_MS = 86_400_000
+        private const val PLATFORM = "android"
+        private const val ENDPOINT_PATH = "/api/events"
+
+        /** A day in milliseconds; beyond that is a broken clock, not a session. */
+        private const val MAX_AT_MS = 86_400_000
+    }
 
     /** Fresh per launch, 32 lowercase hex characters, never persisted. */
     val sessionId: String = newSessionId()

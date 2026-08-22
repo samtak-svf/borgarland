@@ -77,7 +77,7 @@ enum RelayClient {
     /// The telemetry contract's send-failed reasons (connection, timeout,
     /// encoding, other), mapped from the transport error. Approximate by
     /// nature — the goal is a signal, not a network diagnostic.
-    private static func classify(_ error: Error) -> Failure {
+    private static func classify(_ error: Error) -> Result.Failure {
         let ns = error as NSError
         guard ns.domain == NSURLErrorDomain else { return .other }
         switch ns.code {
