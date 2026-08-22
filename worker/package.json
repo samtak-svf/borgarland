@@ -12,7 +12,7 @@
     "refresh:registry": "node scripts/refresh-registry.mjs"
   },
   "dependencies": {
-    "iceaddr-ts": "file:../../../../../home/gudro/Development/projects/stadfangaskra"
+    "iceaddr-ts": "^0.1.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260820.1",

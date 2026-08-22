@@ -47,19 +47,16 @@ locally — `--dry-run` exits before any API call):
 npx wrangler deploy --dry-run --outdir dist
 ```
 
-Last verified: typecheck clean, 57 tests passing across 4 files, bundle
+Last verified: typecheck clean, 62 tests passing across 5 files, bundle
 69.33 KiB total / 11.70 KiB gzipped.
 
-**The iceaddr-ts dependency needs a manual step on a fresh install.** It is a
-`file:` dependency on the local repo (`~/Development/projects/stadfangaskra`,
-whose `dist/` must be built — `pnpm install && pnpm build` there). npm created
-the symlink for it one level short in the deep `/tmp` scratch path, so after
-`npm install`, check `node_modules/iceaddr-ts` resolves; if not:
+**iceaddr-ts comes from npm.** `iceaddr-ts@^0.1.0` is published, so a fresh
+`npm install` resolves it with no manual step.
 
-```bash
-rm node_modules/iceaddr-ts
-ln -s /home/gudro/Development/projects/stadfangaskra node_modules/iceaddr-ts
-```
+It used to be a `file:` dependency pointing at `~/Development/projects/stadfangaskra`.
+That worked on one machine and nowhere else: CI failed with
+`Cannot find package 'iceaddr-ts'` on the first run that left this laptop, which
+is the only place a path like that can ever be found.
 
 That absolute path is machine-specific; in the real repo the dependency should
 be published or pinned by git URL.
