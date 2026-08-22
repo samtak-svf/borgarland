@@ -74,7 +74,8 @@
         "image/jpeg",
         "image/png",
         "image/gif"
-      ]
+      ],
+      "notes": "HEIC is absent from the list and it is what an iPhone shoots by default, so the iOS capture path has to transcode before it can send; measured 2026-08-22 on an iPhone 13 original, transcoding grew the file rather than shrank it"
     },
     "email": {
       "required": false,
@@ -255,7 +256,8 @@
   },
   "unknown": [
     "maximum upload size and file count — the client sets no maxSize, so the limit is the server's and finding it means uploading until something breaks",
-    "for scale rather than as an answer: real captures measured 2026-08-22 were 1.1 MB from a Galaxy A71 and 2.66 MB from a Galaxy S23 Ultra, so three photos from a recent phone approach 8 MB and the unknown limit is not academic"
+    "for scale rather than as an answer: real captures measured 2026-08-22 were 1.1 MB from a Galaxy A71 and 2.66 MB from a Galaxy S23 Ultra, so three photos from a recent phone approach 8 MB and the unknown limit is not academic",
+    "an iPhone 13 original measured 2026-08-22 was 4.14 MB as HEIC, 4.78 MB transcoded to JPEG at quality 90 and 3.30 MB at quality 80, so two iPhone photos at a faithful quality already pass 8 MB and the transcode setting decides whether a report fits"
   ],
   "backend": {
     "$comment": "Read passively from the confirmation email's headers. No probing.",

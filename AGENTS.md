@@ -89,6 +89,15 @@ the primary source for a photo chosen from the gallery — which is also the pat
 where it is most often missing, since messaging apps strip it. Ask both, label
 which one answered, and refuse when neither does.
 
+**The city accepts `image/jpeg`, `image/png` and `image/gif`, and an iPhone
+shoots HEIC.** So iOS has to transcode its own capture, and a faithful
+conversion is *larger* than the original — 4.14 MB became 4.78 MB at quality 90.
+Android inherits the same problem the moment a gallery picker lands, because
+`ExifGps.read` understands only JPEG and reads a HEIC as having no location at
+all. Measured against a real original, along with what else the GPS block
+carries and the reverse lookup running end to end:
+[docs/research/photos-exif-and-formats.md](docs/research/photos-exif-and-formats.md).
+
 ## Addresses: use the registry, not the city
 
 The city's address endpoints are Staðfangaskrá passed through unchanged —
