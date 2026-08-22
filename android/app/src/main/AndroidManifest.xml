@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- The app may now reach the network, but it still has no way to reach
+         the city. There is exactly one URL constant in the source (the relay,
+         net/RelayClient.kt), no city hostname anywhere, and
+         network_security_config.xml permits cleartext to localhost only.
+         Decision 0002 says the apps never post to the city directly; this
+         permission exists to talk to our own relay and nothing else. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- CameraX pulls androidx.media3, whose manifest declares this. Nothing
+         here reads connectivity, so it stays stripped. -->
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <application
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:label="Borgarland POC"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
