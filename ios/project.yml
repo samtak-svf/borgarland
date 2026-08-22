@@ -28,10 +28,13 @@ settings:
     # the two deliberately no longer agree.
     #
     # 2: the first build reached TestFlight pointing at http://127.0.0.1:8787,
-    # which on a phone is the phone (#29). This one is built against the
-    # deployed relay.
+    # which on a phone is the phone (#29). That one was built against the
+    # deployed relay, but could not be PROVEN to be: both hosts were
+    # unconditional constants, so `strings` on the .ipa found both.
+    # 3: the loopback is behind `#if DEBUG` (#51), so a release binary carries
+    # one host and the artifact check finally discriminates.
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 2
+    CURRENT_PROJECT_VERSION: 3
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
