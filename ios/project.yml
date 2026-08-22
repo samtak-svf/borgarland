@@ -34,8 +34,14 @@ targets:
     platform: iOS
     sources:
       - path: Sources
-      - path: Resources
-        buildPhase: resources
+      # There is no Resources directory yet, and there is deliberately no
+      # placeholder for one: XcodeGen validates every source path and fails the
+      # spec on a directory that is not there, which is exactly how this broke
+      # the first time (git does not track an empty directory, so the entry
+      # existed and the directory did not). The app icon and, if it ever lands,
+      # GoogleService-Info.plist bring the entry back along with the file that
+      # needs it.
+      #
       # The facts file and the relay request contract have exactly one home
       # each: data/ at the repository root (decision 0001). Android copies them
       # into assets at build time because Gradle has no way to reference a file
