@@ -235,7 +235,7 @@
   "registry": {
     "$comment": "The city's address endpoints are Staðfangaskrá unchanged — Laugavegur 1 matched the HMS export to the last decimal, and the city's district '0000' is the registry's SVFNR column. We read the registry ourselves via iceaddr-ts.",
     "csv": "https://hmsstgsftpprodweu001.blob.core.windows.net/fasteignaskra/Stadfangaskra.csv",
-    "client": "iceaddr-ts (~/Development/projects/stadfangaskra), zero-dependency and edge-native",
+    "client": "iceaddr-ts on npm (MIT, https://github.com/gudrodur/iceaddr-ts), zero-dependency and edge-native. Depend on the published package, never on a local checkout.",
     "rowsTotal": 139347,
     "rowsReykjavikByPostcode": 23057,
     "rowsReykjavikBySvfnr": 23835,

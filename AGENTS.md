@@ -85,8 +85,12 @@ fields after the fact.
 
 The city's address endpoints are Staðfangaskrá passed through unchanged —
 verified to the last decimal against the HMS export. Do not call them. Use
-**`iceaddr-ts`** (`~/Development/projects/stadfangaskra/`), which is a
-zero-dependency, edge-native port already built for Cloudflare Workers.
+**`iceaddr-ts`**, a zero-dependency, edge-native port already built for
+Cloudflare Workers. Depend on the **published package** (`iceaddr-ts` on npm,
+MIT, source at [gudrodur/iceaddr-ts](https://github.com/gudrodur/iceaddr-ts)),
+the same way `xj-greenfield` consumes it. Never point a dependency at a local
+checkout: this repository is public, and a path into one machine's home
+directory resolves nowhere else.
 
 That also gives us reverse geocoding, which reykjavik.is does not have anywhere.
 Put the nearest registered address in the description we send, so the crew can

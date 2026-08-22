@@ -32,8 +32,10 @@ we can read directly.
 
 **We already have the client.** `iceaddr-ts` — a zero-dependency, edge-native
 port of the data layer of Sveinbjörn Þórðarson's `iceaddr`, written for
-Cloudflare Workers, at `~/Development/projects/stadfangaskra/`. The Worker relay
-runs on Workers. Use it rather than writing a lookup.
+Cloudflare Workers. It is published on npm under MIT
+([gudrodur/iceaddr-ts](https://github.com/gudrodur/iceaddr-ts)) and that is what
+to depend on; `xj-greenfield` consumes it the same way. The Worker relay runs on
+Workers. Use it rather than writing a lookup.
 
 **Two dependencies drop off.** `/location/addresses` and
 `/abendingar/addressInfo` stop being part of the surface we rely on. Both stay

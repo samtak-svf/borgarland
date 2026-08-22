@@ -25,9 +25,11 @@ empty it would like the nearest one.
 - ➖ Requires a network round trip, in an app used while walking.
 
 ### B. Read the registry ourselves via `iceaddr-ts`
-`iceaddr-ts` (`~/Development/projects/stadfangaskra`) is a zero-dependency,
-edge-native port of the data layer of Sveinbjörn Þórðarson's `iceaddr`, written
-for Cloudflare Workers, which is what the relay runs on.
+`iceaddr-ts` is a zero-dependency, edge-native port of the data layer of
+Sveinbjörn Þórðarson's `iceaddr`, written for Cloudflare Workers, which is what
+the relay runs on. It is published on npm under MIT, source at
+[gudrodur/iceaddr-ts](https://github.com/gudrodur/iceaddr-ts), and that
+published package is what we depend on.
 - ➕ Already exists and is already ours. Reuse rather than build.
 - ➕ Reverse geocoding, which the city cannot do at all.
 - ➕ `SVFNR` gives the jurisdiction check: `0000` is Reykjavíkurborg, and the city
