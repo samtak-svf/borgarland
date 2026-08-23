@@ -1,8 +1,12 @@
 package `is`.borgarland.poc.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
@@ -40,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +60,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `is`.borgarland.poc.PocUiState
 import `is`.borgarland.poc.Photo
@@ -73,7 +81,8 @@ fun CameraScreen(
     onPhotoCaptured: (bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) -> Unit,
     onPhotoError: (String) -> Unit,
     onRetakePhoto: () -> Unit,
-    onLocationPermissionResult: (Boolean) -> Unit,
+    onLocationPermissionResult: (granted: Boolean, permanentlyDenied: Boolean) -> Unit,
+    onLocationPermissionRechecked: (Boolean) -> Unit,
     onRequestDeviceFix: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -91,7 +100,30 @@ fun CameraScreen(
     // grants coarse, which is worse than a real fix and much better than none.
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { results -> onLocationPermissionResult(results.values.any { it }) }
+    ) { results ->
+        val granted = results.values.any { it }
+        // Android's own way of saying "the dialog will not come back": after a
+        // refusal, no rationale means the system has stopped asking, and only
+        // app settings can undo it. Read AFTER the launcher answers, because
+        // before the first ask it reads false too and would call an
+        // unanswered permission a denied one (#76).
+        onLocationPermissionResult(granted, !granted && !shouldShowLocationRationale(context))
+    }
+
+    // The way back from app settings, which is the only place a denied
+    // location permission can be opened. Without this the person returns to a
+    // screen still showing the refusal they just undid (#76).
+    val recheck by rememberUpdatedState(onLocationPermissionRechecked)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                recheck(hasAnyLocationPermission(context))
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // The observed camera permission state on entry, exactly as the iOS shell
     // tracks it: a person who has already denied still gets counted, which is
@@ -188,13 +220,21 @@ private fun ColumnScope.CapturedPhoto(
                     Text(state.locationError, color = MaterialTheme.colorScheme.onErrorContainer)
                     Spacer(Modifier.height(8.dp))
                     Row {
-                        Button(onClick = {
-                            if (hasAnyLocationPermission(context)) {
-                                onRequestDeviceFix()
-                            } else {
-                                locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
-                            }
-                        }) { Text("Reyna aftur") }
+                        if (state.locationDenied) {
+                            // The dialog will not come back, so Reyna aftur
+                            // could only return the same refusal forever. The
+                            // one place the decision can be undone is app
+                            // settings, so that is the button (#76).
+                            Button(onClick = { openAppSettings(context) }) { Text("Opna stillingar") }
+                        } else {
+                            Button(onClick = {
+                                if (hasAnyLocationPermission(context)) {
+                                    onRequestDeviceFix()
+                                } else {
+                                    locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
+                                }
+                            }) { Text("Reyna aftur") }
+                        }
                         Spacer(Modifier.width(8.dp))
                         OutlinedButton(onClick = onRetakePhoto) { Text("Taka nýja mynd") }
                     }
@@ -310,6 +350,35 @@ private fun hasAnyLocationPermission(context: Context): Boolean =
 
 private fun hasPermission(context: Context, permission: String): Boolean =
     ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+/**
+ * Whether Android would still show the permission dialog. False after a
+ * refusal means it has stopped asking, and only app settings can change the
+ * answer. Meaningful ONLY after a request has been answered: before the first
+ * ask it is false as well, and reading it then calls an unanswered permission
+ * a denied one (#76).
+ *
+ * Any of the two counts, matching [hasAnyLocationPermission]: while the system
+ * will still offer either, the dialog is worth showing.
+ */
+private fun shouldShowLocationRationale(context: Context): Boolean {
+    val activity = context as? Activity ?: return false
+    return LOCATION_PERMISSIONS.any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+}
+
+/**
+ * The app's own page in system settings, where a denied permission is undone.
+ * Package-scoped rather than the general location settings screen: the general
+ * one is about the device, and the decision that blocks this walk is about this
+ * app (#76).
+ */
+private fun openAppSettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", context.packageName, null),
+    ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    runCatching { context.startActivity(intent) }
+}
 
 private fun ImageProxy.jpegBytes(): ByteArray? {
     if (format != ImageFormat.JPEG) return null

@@ -53,6 +53,13 @@ data class PocUiState(
     val locationSource: String? = null,
     val locating: Boolean = false,
     val needsLocationPermission: Boolean = false,
+    /**
+     * The permission is denied for good, not merely unanswered. The difference
+     * decides which way out the screen offers, because Android does not show
+     * the dialog again once someone has refused twice and only app settings
+     * can undo it (#76).
+     */
+    val locationDenied: Boolean = false,
     val locationError: String? = null,
     val selectedSlug: String? = null,
     val description: String = "",
@@ -166,6 +173,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 locationSource = null,
                 locating = false,
                 needsLocationPermission = false,
+                locationDenied = false,
                 locationError = null,
             )
         }
@@ -202,7 +210,14 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(photoError = message) }
     }
 
-    fun onLocationPermissionResult(granted: Boolean) {
+    /**
+     * [permanentlyDenied] is the caller's answer to a question this view model
+     * cannot ask the platform: whether the refusal can still change its mind.
+     * A screen that treats the two the same offers a button that can only ever
+     * return the same refusal, which is what the first field test walked into
+     * on the iOS side (#76).
+     */
+    fun onLocationPermissionResult(granted: Boolean, permanentlyDenied: Boolean = false) {
         Telemetry.shared.track(TelemetryEvent.LocationPermission(granted))
         if (granted) {
             requestDeviceFix()
@@ -214,14 +229,33 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 it.copy(
                     needsLocationPermission = false,
                     locating = false,
-                    locationError = "Staðsetningarleyfi vantar. Borgin samþykkir skýrslu án hnitanna, en þá getur enginn brugðist við henni.",
+                    locationDenied = permanentlyDenied,
+                    locationError = if (permanentlyDenied) {
+                        "Staðsetningarleyfi er lokað fyrir Borgarland í stillingum símans. Ábending þarf hnit, annars getur enginn brugðist við henni, og leyfið verður ekki opnað nema í stillingunum."
+                    } else {
+                        "Staðsetningarleyfi vantar. Borgin samþykkir ábendingu án hnitanna, en þá getur enginn brugðist við henni."
+                    },
                 )
             }
         }
     }
 
+    /**
+     * Someone may have opened the permission in app settings and come back. If
+     * they did, the walk carries on from where it stopped rather than making
+     * them find a button (#76).
+     */
+    fun onLocationPermissionRechecked(granted: Boolean) {
+        if (!granted || !_state.value.locationDenied) return
+        Telemetry.shared.track(TelemetryEvent.LocationPermission(true))
+        _state.update { it.copy(locationDenied = false, locationError = null) }
+        requestDeviceFix()
+    }
+
     fun requestDeviceFix() {
-        _state.update { it.copy(locating = true, locationError = null, needsLocationPermission = false) }
+        _state.update {
+            it.copy(locating = true, locationError = null, locationDenied = false, needsLocationPermission = false)
+        }
         viewModelScope.launch {
             val location = DeviceFix(getApplication()).request()
             if (location != null && isUsableCoordinate(location.latitude, location.longitude)) {
@@ -254,7 +288,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 _state.update {
                     it.copy(
                         locating = false,
-                        locationError = "Myndin ber enga GPS staðsetningu og tækið fékk enga staðsetningu. Ekki er hægt að halda áfram án hnitanna, enda getur enginn brugðist við skýrslu án staðsetningar.",
+                        locationError = "Myndin ber enga GPS staðsetningu og tækið fékk enga staðsetningu. Ekki er hægt að halda áfram án hnitanna, enda getur enginn brugðist við ábendingu án staðsetningar.",
                     )
                 }
             }
@@ -271,6 +305,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 locationSource = null,
                 locating = false,
                 needsLocationPermission = false,
+                locationDenied = false,
                 locationError = null,
             )
         }

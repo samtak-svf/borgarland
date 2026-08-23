@@ -135,6 +135,15 @@
       }
     },
     {
+      "name": "location-denial-exit",
+      "intent": "parity",
+      "what": "A location permission that has been denied for good is told apart from one that has merely not been answered, and the screen offers the only thing that can undo it: a button into system settings (#76). Without the distinction the app offers a retry the system will refuse forever.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "ACTION_APPLICATION_DETAILS_SETTINGS" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "openSettingsURLString" }
+      }
+    },
+    {
       "name": "offline-queue",
       "intent": "ios-only",
       "what": "A report that cannot be sent is written to the phone before the attempt and retried when the app returns to the foreground or the network comes back, until it sends or a person discards it. Deliberately NOT a background upload: nothing here runs while the app is dead, which is why the detect pattern names our own type rather than BGTaskScheduler or a background URLSession. Those would be a different capability and a separate decision.",
