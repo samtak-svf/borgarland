@@ -21,7 +21,10 @@ import org.junit.Test
  */
 class CategoryLabelsTest {
 
-    private fun dataFile(name: String) = File("../data/$name").readText()
+    // The ASSET, not the repo file. Gradle runs unit tests with android/app as
+    // the working directory, and reading it here also proves the build-time copy
+    // in build.gradle.kts actually ran — the same thing FactsFileTest relies on.
+    private fun dataFile(name: String) = File("src/main/assets/$name").readText()
 
     private val labels = CategoryLabels.parse(dataFile("category-labels.json"))
     private val facts = Facts.parse(dataFile("reykjavik-form.json"))
