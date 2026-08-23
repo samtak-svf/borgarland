@@ -134,6 +134,66 @@ final class ReportQueueTest: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: outside.path))
     }
 
+    // MARK: - The bound
+
+    /// #82. Every policy that bounds a queue loses something somebody filed;
+    /// this one loses nothing, because it refuses the new report instead of
+    /// dropping an old one, in front of the person who can act on it.
+    func testTheQueueRefusesRatherThanEvictsWhenItIsFull() throws {
+        let queue = ReportQueue(root: root, maxReports: 3)
+        for i in 0..<3 {
+            try queue.enqueue(payload(description: "report \(i)"))
+        }
+
+        XCTAssertThrowsError(try queue.enqueue(payload(description: "one too many"))) { error in
+            guard case .full(let reports, _)? = error as? ReportQueue.QueueError else {
+                return XCTFail("expected .full, got \(error)")
+            }
+            XCTAssertEqual(reports, 3)
+        }
+
+        // The point of refusing: everything already waiting is still there.
+        XCTAssertEqual(queue.pending().count, 3)
+        XCTAssertFalse(
+            queue.pending().contains { $0.description == "one too many" },
+            "the refused report was not written down, which is what the caller has to say"
+        )
+    }
+
+    func testTheByteBoundRefusesBeforeTheCountDoes() throws {
+        // Room for twenty reports and for two photographs.
+        let queue = ReportQueue(root: root, maxBytes: 9000)
+        let photo = Data(repeating: 0xFF, count: 4096)
+        try queue.enqueue(payload(photo: photo))
+        try queue.enqueue(payload(photo: photo))
+        XCTAssertThrowsError(try queue.enqueue(payload(photo: photo)))
+        XCTAssertEqual(queue.pending().count, 2)
+    }
+
+    func testRoomIsMadeByThingsLeavingTheQueue() throws {
+        let queue = ReportQueue(root: root, maxReports: 2)
+        try queue.enqueue(payload())
+        try queue.enqueue(payload())
+        XCTAssertThrowsError(try queue.enqueue(payload()))
+
+        // Sending one, or a person discarding one, is the only way back.
+        queue.remove(try XCTUnwrap(queue.pending().first).id)
+        XCTAssertNoThrow(try queue.enqueue(payload()))
+    }
+
+    func testTheAppsBoundsAreTheOnesWrittenDown() {
+        let queue = ReportQueue(root: root)
+        XCTAssertEqual(queue.maxReports, ReportQueue.defaultMaxReports)
+        XCTAssertEqual(queue.maxBytes, ReportQueue.defaultMaxBytes)
+    }
+
+    func testAReportKnowsWhatItCostsOnThePhone() throws {
+        let queue = makeQueue()
+        let bytes = Data(repeating: 0xAB, count: 4096)
+        try queue.enqueue(payload(photo: bytes))
+        XCTAssertEqual(queue.pending().first?.bytes, 4096)
+    }
+
     // MARK: - Attempts
 
     func testAttemptsAreCountedAndSurviveAReread() throws {
