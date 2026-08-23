@@ -12,13 +12,13 @@ final class RelayRequestTest: XCTestCase {
     func testAssetParsesToTheDocumentedContract() throws {
         let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
 
-        // The six field keys, in the file's order — the order the parts are
+        // The seven field keys, in the file's order — the order the parts are
         // written in. The check script asserts the same set on the relay
         // side. The fixed struct makes the order structural; this pins it to
         // the documented one so a reorder is a deliberate, reviewed change.
         XCTAssertEqual(
             contract.fieldsInContractOrder.map { $0.name },
-            ["category", "latitude", "longitude", "description", "email", "photo"]
+            ["reportId", "category", "latitude", "longitude", "description", "email", "photo"]
         )
         XCTAssertEqual(contract.endpoint.path, "/api/reports")
         XCTAssertEqual(contract.endpoint.method, "POST")
@@ -111,6 +111,48 @@ final class RelayRequestTest: XCTestCase {
         XCTAssertTrue(text.contains("name=\"category\""))
     }
 
+    /// #88. The id travels first, ahead of everything that describes the
+    /// report, and only when the app has one: a build that predates the queue
+    /// sends no part at all and the relay generates the id itself.
+    func testTheReportIdIsWrittenFirstWhenThereIsOne() throws {
+        let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
+        let id = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+        let body = try MultipartBodyBuilder.buildBody(
+            payload: Payload(
+                categorySlug: "ruslafotur",
+                latitude: 64.14658919,
+                longitude: -21.93279823,
+                description: "lýsing",
+                photos: [],
+                reportId: id
+            ),
+            contract: contract,
+            boundary: "----boundary"
+        )
+        let text = try XCTUnwrap(String(data: body, encoding: .utf8))
+        XCTAssertTrue(text.contains("name=\"reportId\"\r\n\r\n\(id)\r\n"))
+        let reportIdAt = try XCTUnwrap(text.range(of: "name=\"reportId\""))
+        let categoryAt = try XCTUnwrap(text.range(of: "name=\"category\""))
+        XCTAssertTrue(reportIdAt.lowerBound < categoryAt.lowerBound, "the id identifies the report, so it goes first")
+    }
+
+    func testNoReportIdMeansNoPart() throws {
+        let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
+        let body = try MultipartBodyBuilder.buildBody(
+            payload: Payload(
+                categorySlug: "ruslafotur",
+                latitude: 64.14658919,
+                longitude: -21.93279823,
+                description: "lýsing",
+                photos: []
+            ),
+            contract: contract,
+            boundary: "----boundary"
+        )
+        let text = try XCTUnwrap(String(data: body, encoding: .utf8))
+        XCTAssertFalse(text.contains("reportId"), "an optional part with no value is not written at all")
+    }
+
     func testRequiredRoleTheAppCannotFillFailsLoudly() throws {
         // A role the app has no binding for must not be silently omitted:
         // that is exactly how the app and the relay drift apart. The Kotlin
@@ -126,7 +168,8 @@ final class RelayRequestTest: XCTestCase {
             longitude: contract.longitude,
             description: contract.description,
             email: FieldSpec(required: true, maxLength: nil, accept: nil),
-            photo: contract.photo
+            photo: contract.photo,
+            reportId: contract.reportId
         )
         let payload = Payload(
             categorySlug: "ruslafotur",

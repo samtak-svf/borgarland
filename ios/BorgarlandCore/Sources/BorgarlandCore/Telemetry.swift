@@ -158,10 +158,7 @@ public final class Telemetry {
 
     /// 32 lowercase hex characters from the system's secure random source.
     public static func newSessionID() -> String {
-        var bytes = [UInt8](repeating: 0, count: 16)
-        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        precondition(status == errSecSuccess, "secure random is unavailable")
-        return bytes.map { String(format: "%02x", Int($0)) }.joined()
+        RandomHex.id()
     }
 
     /// The contract's mime enum, with an `other` fallback for anything the

@@ -27,11 +27,11 @@ class RelayRequestTest {
     fun assetParsesToTheDocumentedContract() {
         val contract = RelayRequest.parse(contractText)
 
-        // The six field keys, in the file's order — the order the parts are
+        // The seven field keys, in the file's order — the order the parts are
         // written in. The check script (scripts/check-relay-contract.mjs)
         // asserts the same set on the Worker side.
         assertEquals(
-            listOf("category", "latitude", "longitude", "description", "email", "photo"),
+            listOf("reportId", "category", "latitude", "longitude", "description", "email", "photo"),
             contract.fields.keys.toList(),
         )
         assertEquals("/api/reports", contract.endpoint.path)

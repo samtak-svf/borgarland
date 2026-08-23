@@ -128,6 +128,16 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
      */
     private var photoCapturedAtMs: Long? = null
 
+    /**
+     * The id of the report on screen, generated once and kept until the walk
+     * starts over (#88). Pressing send a second time therefore sends the SAME
+     * id, and the relay answers with the row it already has instead of storing
+     * a second one. A tester filed the same ábending twice on 2026-08-23
+     * because the screen never said the first one had worked; this is the half
+     * of that fix which does not depend on anybody reading the screen.
+     */
+    private var currentReportId: String? = null
+
     init {
         val text = runCatching {
             getApplication<Application>().assets.open("reykjavik-form.json")
@@ -330,6 +340,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     fun retakePhoto() {
         photoCapturedAtMs = null
+        currentReportId = null
         _state.update {
             it.copy(
                 photo = null,
@@ -365,12 +376,19 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         val outside = coord.lat < f.map.bounds.south || coord.lat > f.map.bounds.north ||
             coord.lng < f.map.bounds.west || coord.lng > f.map.bounds.east
         Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.DETAILS, true))
+        // The report becomes a thing that could be sent here, so this is where
+        // it gets its id (#88). Generated once and kept until the walk starts
+        // over, so a second press carries the same one.
+        currentReportId = newReportId()
         _state.update { it.copy(screen = Screen.Summary, outOfBounds = outside) }
     }
 
     fun startOver() {
         Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
         photoCapturedAtMs = null
+        // A new report is a new id. Inheriting the last one would make the
+        // relay answer this report with the previous report's row (#88).
+        currentReportId = null
         _state.update {
             PocUiState(
                 categories = it.categories,
@@ -448,6 +466,14 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** 32 lowercase hex, the same shape the relay generates for a report that
+     * arrives without one. */
+    private fun newReportId(): String {
+        val bytes = ByteArray(16)
+        java.security.SecureRandom().nextBytes(bytes)
+        return bytes.joinToString("") { b -> "%02x".format(b.toInt() and 0xff) }
+    }
+
     fun payload(): Payload? {
         val s = _state.value
         val category = facts?.categories?.firstOrNull { it.slug == s.selectedSlug } ?: return null
@@ -458,6 +484,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             longitude = coord.lng,
             description = s.description,
             photos = listOfNotNull(s.photo),
+            reportId = currentReportId,
         )
     }
 }

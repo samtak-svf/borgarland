@@ -5,15 +5,19 @@ import Foundation
 /// file; the body builder writes parts under exactly those names, in the
 /// file's order, and nothing else (decision 0002, AGENTS.md).
 ///
-/// The six fields are a fixed struct rather than a decoded dictionary on
-/// purpose: Swift's Dictionary is unordered, and the order of the parts on
-/// the wire is load-bearing — both the relay's Worker and the contract check
-/// pin it. Making the order structural means it cannot drift the way a
-/// decoded map's order can. JSONDecoder ignores keys this struct does not
-/// name, so a contract that grows a seventh part is a deliberate, reviewed
-/// change here rather than a silently reordered request.
+/// The fields are a fixed struct rather than a decoded dictionary on purpose:
+/// Swift's Dictionary is unordered, and the order of the parts on the wire is
+/// load-bearing — both the relay's Worker and the contract check pin it. Making
+/// the order structural means it cannot drift the way a decoded map's order
+/// can. JSONDecoder ignores keys this struct does not name, so a contract that
+/// grows a part is a deliberate, reviewed change here rather than a silently
+/// reordered request.
+///
+/// It grew one: `reportId` (#88), first in the order, so a report carries its
+/// own identity ahead of everything that describes it.
 public struct RelayRequestFile: Decodable, Equatable {
     public let endpoint: Endpoint
+    public let reportId: FieldSpec
     public let category: FieldSpec
     public let latitude: FieldSpec
     public let longitude: FieldSpec
@@ -28,9 +32,11 @@ public struct RelayRequestFile: Decodable, Equatable {
         longitude: FieldSpec,
         description: FieldSpec,
         email: FieldSpec,
-        photo: FieldSpec
+        photo: FieldSpec,
+        reportId: FieldSpec
     ) {
         self.endpoint = endpoint
+        self.reportId = reportId
         self.category = category
         self.latitude = latitude
         self.longitude = longitude
@@ -48,13 +54,14 @@ public struct RelayRequestFile: Decodable, Equatable {
     /// synthesized: a synthesized one would look for them at the top level and
     /// fail on the canonical contract.
     private enum FieldKeys: String, CodingKey {
-        case category, latitude, longitude, description, email, photo
+        case reportId, category, latitude, longitude, description, email, photo
     }
 
     public init(from decoder: Decoder) throws {
         let root = try decoder.container(keyedBy: CodingKeys.self)
         endpoint = try root.decode(Endpoint.self, forKey: .endpoint)
         let fields = try root.nestedContainer(keyedBy: FieldKeys.self, forKey: .fields)
+        reportId = try fields.decode(FieldSpec.self, forKey: .reportId)
         category = try fields.decode(FieldSpec.self, forKey: .category)
         latitude = try fields.decode(FieldSpec.self, forKey: .latitude)
         longitude = try fields.decode(FieldSpec.self, forKey: .longitude)
@@ -63,10 +70,10 @@ public struct RelayRequestFile: Decodable, Equatable {
         photo = try fields.decode(FieldSpec.self, forKey: .photo)
     }
 
-    /// The six roles in the contract's order — the order the parts are
-    /// written in.
+    /// The roles in the contract's order — the order the parts are written in.
     public var fieldsInContractOrder: [(name: String, spec: FieldSpec)] {
         [
+            ("reportId", reportId),
             ("category", category),
             ("latitude", latitude),
             ("longitude", longitude),

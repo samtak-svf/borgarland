@@ -123,6 +123,7 @@ object RelayClient {
         val fields = contract.fields
 
         fun valueFor(name: String): String? = when (name) {
+            "reportId" -> payload.reportId
             "category" -> payload.categorySlug
             "latitude" -> payload.latitudeText
             "longitude" -> payload.longitudeText
