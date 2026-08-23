@@ -65,6 +65,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `is`.borgarland.poc.PocUiState
+import `is`.borgarland.poc.data.LocationPermission
 import `is`.borgarland.poc.Photo
 import `is`.borgarland.poc.net.Telemetry
 import `is`.borgarland.poc.net.TelemetryEvent
@@ -102,12 +103,16 @@ fun CameraScreen(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
         val granted = results.values.any { it }
+        // Where the permission STANDS, which is not the same question as
+        // whether it is granted (#76, and the decision itself is tested in
+        // data/Decisions.kt per #89).
+        val standing = LocationPermission.of(granted, shouldShowLocationRationale(context))
         // Android's own way of saying "the dialog will not come back": after a
         // refusal, no rationale means the system has stopped asking, and only
         // app settings can undo it. Read AFTER the launcher answers, because
         // before the first ask it reads false too and would call an
         // unanswered permission a denied one (#76).
-        onLocationPermissionResult(granted, !granted && !shouldShowLocationRationale(context))
+        onLocationPermissionResult(granted, standing == LocationPermission.DENIED_FOR_GOOD)
     }
 
     // The way back from app settings, which is the only place a denied
