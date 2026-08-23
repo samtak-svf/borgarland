@@ -26,6 +26,35 @@ enum RelayClient {
     static let baseURL = RelayEndpoint.production
     #endif
 
+    /// Our own session, because the shared one's defaults are not the promise
+    /// this app makes.
+    ///
+    /// `URLRequest.timeoutInterval` is a per-request IDLE timeout, not a
+    /// ceiling on the operation, and a request that restarts on a network
+    /// change starts its idle clock again. That is not a theory: the first iOS
+    /// field test set a phone to airplane mode, pressed send with 30 written
+    /// on line 56, and the failure arrived at **84.1 seconds** (#73). The one
+    /// that bounds the whole operation is `timeoutIntervalForResource`, and
+    /// nothing was setting it.
+    ///
+    /// 60 rather than 30 for the ceiling: the body carries a photograph of a
+    /// few megabytes and a slow-but-working upload is not a failure. What made
+    /// 84 seconds unbearable was not its length but that the screen was dead
+    /// for all of it, and that the report died with the attempt. Both of those
+    /// are fixed where they belong — a cancel control and a queue — leaving
+    /// this number free to be generous to a bad connection.
+    ///
+    /// `waitsForConnectivity` is false, which is the default, stated because it
+    /// is now a decision: with a queue behind it, failing at once and waiting
+    /// for a better moment is better than holding someone at a spinner.
+    private static let session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 60
+        configuration.waitsForConnectivity = false
+        return URLSession(configuration: configuration)
+    }()
+
     struct Result {
         /// Why a non-HTTP failure happened, when it did. Feeds the telemetry
         /// channel's `send-failed` reason (data/relay-events.json); nil means
@@ -34,6 +63,7 @@ enum RelayClient {
             case connection
             case timeout
             case encoding
+            case cancelled
             case other
         }
 
@@ -52,12 +82,15 @@ enum RelayClient {
         request.httpMethod = contract.endpoint.method
         // The Kotlin splits this into connect (10 s) and read (30 s)
         // timeouts; URLRequest has one per-request idle timeout, so the read
-        // value is the one that survives here.
+        // value is the one that survives here. Set explicitly rather than left
+        // to the session: a request's own timeoutInterval OVERRIDES the
+        // configuration's, and its default is 60, so omitting this line would
+        // quietly double the idle timeout the app promises.
         request.timeoutInterval = 30
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         do {
             let body = try MultipartBodyBuilder.buildBody(payload: payload, contract: contract, boundary: boundary)
-            let (data, response) = try await URLSession.shared.upload(for: request, from: body)
+            let (data, response) = try await session.upload(for: request, from: body)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let text = String(data: data, encoding: .utf8) ?? ""
             return Result(ok: (200...299).contains(status), status: status, body: text, failure: nil)
@@ -83,6 +116,11 @@ enum RelayClient {
         switch ns.code {
         case NSURLErrorTimedOut:
             return .timeout
+        case NSURLErrorCancelled:
+            // Someone pressed the cancel control. The caller checks
+            // Task.isCancelled and never reports this as a failure; the value
+            // is here so the switch does not silently call it `other`.
+            return .cancelled
         case NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
              NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost,
              NSURLErrorDNSLookupFailed:

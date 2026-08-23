@@ -12,6 +12,23 @@ struct CameraScreen: View {
     @StateObject private var camera = CameraController()
     @State private var cameraAuthorized = false
 
+    /// Icelandic takes the singular for any count ending in 1 except 11, so
+    /// 21 reports is "21 ábending bíður" and 11 is "11 ábendingar bíða". A
+    /// count-is-one test would get both wrong.
+    private static func isSingular(_ count: Int) -> Bool {
+        count % 10 == 1 && count % 100 != 11
+    }
+
+    private static func waitingLine(count: Int) -> String {
+        isSingular(count)
+            ? "\(count) ábending bíður sendingar."
+            : "\(count) ábendingar bíða sendingar."
+    }
+
+    private static func discardLabel(count: Int) -> String {
+        isSingular(count) ? "Eyða ábendingunni" : "Eyða þeim öllum"
+    }
+
     var body: some View {
         let state = model.state
         VStack(spacing: 0) {
@@ -19,6 +36,31 @@ struct CameraScreen: View {
                 .font(.title2)
                 .fontWeight(.semibold)
                 .padding(16)
+
+            // Reports waiting to be sent (#73). This is the only place a
+            // queued report is visible once someone has pressed Byrja aftur,
+            // so it carries both controls: try now, or throw it away.
+            if state.queuedCount > 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(Self.waitingLine(count: state.queuedCount))
+                        .font(.footnote)
+                    HStack(spacing: 16) {
+                        Button("Senda núna") {
+                            model.deliverQueued()
+                        }
+                        .disabled(state.sending)
+                        Button(Self.discardLabel(count: state.queuedCount), role: .destructive) {
+                            model.discardAllQueued()
+                        }
+                    }
+                    .font(.footnote)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
 
             if let photoError = state.photoError {
                 Text(photoError)
