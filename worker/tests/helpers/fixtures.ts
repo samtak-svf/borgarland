@@ -83,6 +83,13 @@ export interface TestAppOptions {
   registry?: Registry
   /** Throw from getRegistry (simulates an unseeded addresses table). */
   registryError?: boolean
+  /**
+   * Give each report a distinct id. The default is a fixed string, which keeps
+   * assertions readable but means a second report through the same app collides
+   * on the reports primary key and answers 500. Any test that posts more than
+   * once needs this.
+   */
+  uniqueIds?: boolean
   cityFetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 }
 
@@ -116,7 +123,12 @@ export function createTestApp(options: TestAppOptions = {}): TestApp {
       return Promise.resolve(options.registry ?? createRegistry(FIXTURE_ADDRESSES))
     },
     now: () => '2026-08-21T12:00:00.000Z',
-    randomId: () => 'a1b2c3d4e5f60718',
+    randomId: options.uniqueIds
+      ? (() => {
+          let n = 0
+          return () => `a1b2c3d4e5f6071${(n++).toString(16)}`
+        })()
+      : () => 'a1b2c3d4e5f60718',
   })
 
   return { app, sqlite, env, cityFetch }

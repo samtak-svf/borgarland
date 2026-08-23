@@ -167,3 +167,15 @@ export async function insertClientEvents(
   await db.batch(bound)
   return bound.length
 }
+
+/**
+ * How many reports have actually been sent to the city.
+ *
+ * Read before every live send, to enforce decision 0006's "one". Counts rows
+ * rather than trusting a flag somewhere, because the database is the only thing
+ * that survives a deploy, a new isolate and a re-set secret.
+ */
+export async function countLiveReports(db: D1Database): Promise<number> {
+  const result = await db.prepare('SELECT COUNT(*) AS n FROM reports WHERE dry_run = 0').all()
+  return Number((result.results?.[0] as { n?: unknown } | undefined)?.n ?? 0)
+}

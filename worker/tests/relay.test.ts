@@ -514,3 +514,91 @@ describe('routing', () => {
     expect(response.status).toBe(404)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Decision 0006's "one", as a property of the code rather than of anyone's
+// attention. The CITY_SEND_KEY secret arms every request for as long as it
+// exists, and on 2026-08-21 being careful was not enough: report 110474 reached
+// a real work queue and had to be withdrawn by email.
+//
+// These tests are the safeguard being watched firing. AGENTS.md: a safety
+// mechanism you have not seen fire is not a safety mechanism.
+// ---------------------------------------------------------------------------
+
+describe('the relay files one real report, ever', () => {
+  /** Rows the relay believes it has actually sent. */
+  function liveRows(sqlite: TestApp['sqlite']): number {
+    const rows = sqlite.prepare('SELECT COUNT(*) AS n FROM reports WHERE dry_run = 0').all()
+    return Number((rows[0] as { n: number }).n)
+  }
+
+  it('sends the first one, because that is the whole point', async () => {
+    const calls: string[] = []
+    const { app, sqlite } = createTestApp({
+      live: true,
+      cityFetch: async (input) => {
+        calls.push(String(input))
+        return new Response(donePage('110999'), { status: 200 })
+      },
+    })
+
+    const response = await postReport(app, reportForm())
+    expect(response.status).toBe(201)
+    expect(calls).toHaveLength(1)
+
+    const report = (await json(response)).report as Record<string, unknown>
+    expect(report.dryRun).toBe(false)
+    expect(report.cityReference).toBe('110999')
+    expect(liveRows(sqlite)).toBe(1)
+  })
+
+  it('refuses the second, and does not call the city at all', async () => {
+    let called = 0
+    const { app, sqlite } = createTestApp({
+      live: true,
+      cityFetch: async () => {
+        called += 1
+        return new Response(donePage('110999'), { status: 200 })
+      },
+    })
+
+    expect((await postReport(app, reportForm())).status).toBe(201)
+    expect(called).toBe(1)
+
+    const second = await postReport(app, reportForm())
+    expect(second.status).toBe(409)
+    expect((await json(second)).error).toBe('live-send-already-used')
+
+    // The city was never asked, and nothing was recorded for an attempt that
+    // did not happen.
+    expect(called).toBe(1)
+    expect(liveRows(sqlite)).toBe(1)
+  })
+
+  it('does not count dry-run rows, so earlier testing does not consume the one', async () => {
+    // The live relay already holds several dry-run rows from the deploy checks.
+    // If those counted, the one real submission could never be made at all.
+    const { app, sqlite } = createTestApp({ live: false, uniqueIds: true })
+    expect((await postReport(app, reportForm())).status).toBe(201)
+    expect((await postReport(app, reportForm())).status).toBe(201)
+    expect(liveRows(sqlite)).toBe(0)
+
+    const live = createTestApp({
+      live: true,
+      cityFetch: async () => new Response(donePage('110999'), { status: 200 })
+    })
+    expect((await postReport(live.app, reportForm())).status).toBe(201)
+    expect(liveRows(live.sqlite)).toBe(1)
+    expect(sqlite).not.toBe(live.sqlite)
+  })
+
+  it('leaves dry run completely unaffected', async () => {
+    // The gate is on the live path only. A relay with no secret must keep
+    // accepting reports forever, which is its normal state.
+    const { app, sqlite } = createTestApp({ uniqueIds: true })
+    for (let i = 0; i < 3; i++) {
+      expect((await postReport(app, reportForm())).status).toBe(201)
+    }
+    expect(liveRows(sqlite)).toBe(0)
+  })
+})
