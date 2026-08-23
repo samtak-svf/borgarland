@@ -4,9 +4,10 @@
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
     "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
-    "atMs is milliseconds since the telemetry session began, which is the app process starting. It is the only ordering that survives: the relay stamps received_at at flush time, so every event in one batch shares it and the batch boundaries are invisible in that column.",
+    "atMs is milliseconds since the telemetry session began, which is the app process starting. It is the only ordering that survives, because the relay stamps received_at at flush time rather than at the moment of the event. That column is still worth reading: every event of one batch shares its value, so a batch boundary is legible, a flush is datable, and a batch that never arrived leaves a hole with a shape. Grouping one session by received_at is how #74 was found, and an earlier version of this note claimed the opposite.",
     "A session id is random per process, never persisted, and cannot follow anyone between sessions (data/relay-events.json). Recording it here links a timeline to its report and to nothing else.",
-    "dryRun records whether the relay was armed. A test against an unarmed relay proves the app and the relay and says nothing about the city."
+    "dryRun records whether the relay was armed. A test against an unarmed relay proves the app and the relay and says nothing about the city.",
+    "A screenshot is not in this repository and never will be. The five that came back from the first iOS field test are photographs of two volunteers' homes; the repository is public and MIT. Where a screenshot is the only source for a finding, the entry says so and the finding stands on that alone."
   ],
   "tests": [
     {
@@ -35,26 +36,157 @@
       },
       "session": "35e54373bde4e74c65fc33f0281773f4",
       "timeline": [
-        {"atMs": 1, "name": "app-opened", "fields": {}},
-        {"atMs": 117, "name": "camera-permission", "fields": {"granted": true}},
-        {"atMs": 28772, "name": "photo-captured", "fields": {"elapsedMs": 653, "bytes": 1958081, "mime": "image/jpeg"}},
-        {"atMs": 28773, "name": "location-failed", "fields": {"elapsedMs": 1, "reason": "no-exif"}},
-        {"atMs": 29012, "name": "location-permission", "fields": {"granted": true}},
-        {"atMs": 29022, "name": "location-resolved", "fields": {"elapsedMs": 250, "source": "device", "accuracyM": 14}},
-        {"atMs": 29022, "name": "screen-left", "fields": {"screen": "camera", "completed": true}},
-        {"atMs": 955703, "name": "app-opened", "fields": {}},
-        {"atMs": 955743, "name": "camera-permission", "fields": {"granted": true}},
-        {"atMs": 993529, "name": "photo-captured", "fields": {"elapsedMs": 645, "bytes": 2290923, "mime": "image/jpeg"}},
-        {"atMs": 993529, "name": "location-failed", "fields": {"elapsedMs": 0, "reason": "no-exif"}},
-        {"atMs": 993761, "name": "location-permission", "fields": {"granted": true}},
-        {"atMs": 993767, "name": "location-resolved", "fields": {"elapsedMs": 238, "source": "device", "accuracyM": 51}},
-        {"atMs": 993767, "name": "screen-left", "fields": {"screen": "camera", "completed": true}},
-        {"atMs": 994007, "name": "category-chosen", "fields": {"elapsedMs": 478, "slug": "umferdaroryggi"}},
-        {"atMs": 996615, "name": "category-chosen", "fields": {"elapsedMs": 3086, "slug": "almenn-abending"}},
-        {"atMs": 1007339, "name": "description-length", "fields": {"length": 6}},
-        {"atMs": 1009426, "name": "screen-left", "fields": {"screen": "details", "completed": true}},
-        {"atMs": 1057175, "name": "send-started", "fields": {}},
-        {"atMs": 1058565, "name": "send-result", "fields": {"elapsedMs": 1390, "status": 201, "ok": true}}
+        {
+          "atMs": 1,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 117,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 28772,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 653,
+            "bytes": 1958081,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 28773,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 29012,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 29022,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 250,
+            "source": "device",
+            "accuracyM": 14
+          }
+        },
+        {
+          "atMs": 29022,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 955703,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 955743,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 993529,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 645,
+            "bytes": 2290923,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 993529,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 0,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 993761,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 993767,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 238,
+            "source": "device",
+            "accuracyM": 51
+          }
+        },
+        {
+          "atMs": 993767,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 994007,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 478,
+            "slug": "umferdaroryggi"
+          }
+        },
+        {
+          "atMs": 996615,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 3086,
+            "slug": "almenn-abending"
+          }
+        },
+        {
+          "atMs": 1007339,
+          "name": "description-length",
+          "fields": {
+            "length": 6
+          }
+        },
+        {
+          "atMs": 1009426,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 1057175,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 1058565,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1390,
+            "status": 201,
+            "ok": true
+          }
+        }
       ],
       "report": {
         "id": "da8c3c88c703bc4df35d8c6bf6bef356",
@@ -72,9 +204,25 @@
       },
       "server": {
         "requests": [
-          {"at": "2026-08-23T01:34:57Z", "method": "POST", "path": "/api/events", "outcome": "ok"},
-          {"at": "2026-08-23T01:36:40Z", "method": "POST", "path": "/api/reports", "outcome": "ok", "status": 201},
-          {"at": "2026-08-23T01:36:41Z", "method": "POST", "path": "/api/events", "outcome": "ok"}
+          {
+            "at": "2026-08-23T01:34:57Z",
+            "method": "POST",
+            "path": "/api/events",
+            "outcome": "ok"
+          },
+          {
+            "at": "2026-08-23T01:36:40Z",
+            "method": "POST",
+            "path": "/api/reports",
+            "outcome": "ok",
+            "status": 201
+          },
+          {
+            "at": "2026-08-23T01:36:41Z",
+            "method": "POST",
+            "path": "/api/events",
+            "outcome": "ok"
+          }
         ],
         "errors": 0,
         "note": "No exception, no warning, no rejection anywhere in Workers Logs for the window."
@@ -148,10 +296,32 @@
       "session": "41881d63f91d93f34c3854099d36cf94",
       "method": "adb: force-stop for a fresh process, then launch, KEYCODE_BACK, launch, KEYCODE_BACK, launch, KEYCODE_HOME. Back finishes the Activity and clears the ViewModel while the process stays warm, which is what the first walk hit by hand. onStop flushes the buffer.",
       "timeline": [
-        {"atMs": 4, "name": "app-opened", "fields": {}},
-        {"atMs": 235, "name": "camera-permission", "fields": {"granted": true}},
-        {"atMs": 5925, "name": "camera-permission", "fields": {"granted": true}},
-        {"atMs": 12039, "name": "camera-permission", "fields": {"granted": true}}
+        {
+          "atMs": 4,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 235,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5925,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 12039,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        }
       ],
       "confirmed": [
         {
@@ -177,6 +347,714 @@
         "Nothing about a rotation, which is the other way Android recreates an Activity. Back was used because it is scriptable over adb; the lifetime argument is the same either way.",
         "Nothing about a process death and restore, where Android recreates the Activity after killing the process. That produces a NEW session, and a new app-opened is then correct.",
         "Nothing about the rest of the walk. This session never captured a photo, so it says nothing about location, the category picker or a send."
+      ]
+    },
+    {
+      "id": "2026-08-23-ios-seattle-outside-reykjavik",
+      "date": "2026-08-23",
+      "platform": "ios",
+      "what": "The first run of the app by somebody who did not build it: a volunteer tester in Seattle, on TestFlight, guided step by step over Messenger. Being 5,630 km from the nearest Icelandic address he could exercise everything up to the municipality check and nothing past it, which makes him the only person who has met the refusal path on a real phone.",
+      "device": {
+        "model": "not recorded",
+        "note": "The telemetry channel carries no device identifier of any kind, by design (data/relay-events.json), and nothing else in this test recorded one. Nobody's phone model is known here and that is the intended cost. His device clock was on Pacific time, which distorts nothing here: atMs is elapsed milliseconds since the process started, and received_at is stamped by the relay."
+      },
+      "build": {
+        "variant": "TestFlight, App Store distribution",
+        "appVersion": "0.1.0 (4)",
+        "signing": "Apple team B4724Z74TM, the party's team; the certificate and the API key are team-scoped, so nothing app-specific was created for this",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves. A release build carries one host and only one since #51, so an event arriving at the deployed relay is proof the build was not pointing at the loopback."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed throughout, and confirmed unarmed afterwards from /api/health. Nothing either tester did could reach the city, which is why it was safe to put the app in a stranger's hands at all, and why neither test says anything about the city's behaviour."
+      },
+      "session": "db6f441354536c88003804d234dc44c8",
+      "method": "Guided over Messenger by the developer, who could not see the screen. Every observation below is either in D1 or in a screenshot the tester sent; nothing here is a memory of what somebody said happened.",
+      "timeline": [
+        {
+          "atMs": 0,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 71,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 9781,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 14089,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 242011,
+            "elapsedMs": 448,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 14104,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 14,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 14127,
+          "name": "location-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 14127,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 37,
+            "reason": "permission"
+          }
+        },
+        {
+          "atMs": 30104,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 419360,
+            "elapsedMs": 327,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 30105,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 30108,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 30121,
+          "name": "location-resolved",
+          "fields": {
+            "accuracyM": 6,
+            "elapsedMs": 16,
+            "source": "device"
+          }
+        },
+        {
+          "atMs": 30121,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "camera"
+          }
+        },
+        {
+          "atMs": 179057,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 148953,
+            "slug": "numerlausir-bilar"
+          }
+        },
+        {
+          "atMs": 180924,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 150820,
+            "slug": "gras-og-grodur"
+          }
+        },
+        {
+          "atMs": 183028,
+          "name": "description-length",
+          "fields": {
+            "length": 5
+          }
+        },
+        {
+          "atMs": 184348,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "details"
+          }
+        },
+        {
+          "atMs": 190165,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 192375,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 2209,
+            "ok": false,
+            "status": 400
+          }
+        },
+        {
+          "atMs": 317911,
+          "name": "screen-left",
+          "fields": {
+            "completed": false,
+            "screen": "confirm"
+          }
+        },
+        {
+          "atMs": 317942,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "receivedAt": "2026-08-23T20:16:08.005Z",
+          "events": 12,
+          "firstAtMs": 0,
+          "lastAtMs": 30121
+        },
+        {
+          "receivedAt": "2026-08-23T20:16:23.090Z",
+          "events": 6,
+          "firstAtMs": 179057,
+          "lastAtMs": 192375
+        },
+        {
+          "receivedAt": "2026-08-23T20:18:35.518Z",
+          "events": 2,
+          "firstAtMs": 317911,
+          "lastAtMs": 317942
+        }
+      ],
+      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column and a flush is datable. Solving for the session start from the second and third batches puts it at about 20:13:11Z, which makes the first batch a flush that happened roughly two and a half minutes after its last event: the app being backgrounded, not a threshold being reached.",
+      "storedRow": "none. outside-reykjavik is thrown by the jurisdiction check before insertReport, so a refused report leaves nothing behind at all, and the reports table holds no row for this session.",
+      "confirmed": [
+        {
+          "claim": "The municipality check refuses a coordinate outside Reykjavík, and refuses it before storing anything.",
+          "evidence": "send-result {status: 400, ok: false} at atMs 192375, and no row in reports for this session, while the Reykjavík session the same evening produced two.",
+          "wherePredicted": "AGENTS.md: the city validates nothing, not even that a coordinate exists, so the relay has to."
+        },
+        {
+          "claim": "A photo the app captures itself carries no EXIF GPS on iOS either, so the device fix is the primary source on the capture path rather than the fallback.",
+          "evidence": "location-failed {reason: no-exif} preceded every fix, at elapsedMs 14 and 1.",
+          "wherePredicted": "docs/research/photos-exif-and-formats.md, established on Android and on Biggi's uncompressed original",
+          "note": "First observation of this on iOS hardware. It had been reasoned about from the API, not measured."
+        },
+        {
+          "claim": "The whole chain runs from a stranger's phone: TestFlight build, camera, device fix, category, relay, D1.",
+          "evidence": "Twenty events across three batches, and a relay answer in 2209 ms."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 75,
+          "severity": "design",
+          "what": "The registry's nearest-address scan has no distance bound, so every point on Earth resolves to an Icelandic address and the answer never says how far away nearest was.",
+          "evidence": "The refusal named Sauðanesviti, 431 Suðureyri as the nearest address to a coordinate in Seattle. Great-circle to the registry's own row for it: 5,630 km.",
+          "whyOnlyHere": "No test had ever put a coordinate outside Iceland through the check, because nobody working on it had been outside Iceland.",
+          "consequence": "The Seattle direction is benign, since it fails anyway. The mirror case is not: a coordinate whose nearest address happens to carry SVFNR 0000 passes however far away it is.",
+          "status": "open"
+        },
+        {
+          "issue": 77,
+          "severity": "defect",
+          "what": "The refusal was shown to him as the relay's raw JSON, with no sentence saying what had happened.",
+          "evidence": "He read {\"error\":\"outside-reykjavik\",...,\"nearestAddress\":\"Sauðanesviti, 431 Suðureyri\",\"svfnr\":4200} off the screen and asked what it meant.",
+          "whyOnlyHere": "Everyone who had used the app until this evening had written the relay, and read that body as a diagnostic rather than as a message.",
+          "status": "fixed in #84; every relay outcome is now one sentence from data/relay-outcomes.json, with the raw body behind a control"
+        },
+        {
+          "issue": 86,
+          "severity": "defect",
+          "what": "The app told him the location permission was missing 37 ms after the photograph, while the system dialog asking for it was still on his screen.",
+          "evidence": "location-permission {granted: false} at atMs 14127, elapsedMs 37 from the capture, then granted: true at 30108 once he had answered.",
+          "whyOnlyHere": "The developers' phones had granted the permission long ago, so the first-launch path had never run on a device that had not already answered it.",
+          "consequence": "Every first-time user emits a spurious denial, which is the exact event this channel exists to count.",
+          "status": "open"
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. The relay was in dry run and forwarded nothing, so this test proves the app and the relay and stops there.",
+        "Nothing about the gallery path, which does not exist on either platform (data/platform-parity.json records gallery-pick as neither-yet).",
+        "Nothing about a Reykjavík coordinate. He never reached the far side of the municipality check, so everything past it is untested by this entry.",
+        "No device model, no crash data and no screen recording. The channel is deliberately incapable of carrying the first, and nothing crashed."
+      ]
+    },
+    {
+      "id": "2026-08-23-ios-reykjavik-offline-and-denial",
+      "date": "2026-08-23",
+      "platform": "ios",
+      "what": "The second volunteer, in Reykjavík, on the same TestFlight build. He completed the walk end to end and then ran three deliberate tests on purpose: sending in airplane mode, taking a photo with the location permission turned off in Settings, and the category picker. Six of the seven issues from that night come from this session.",
+      "device": {
+        "model": "not recorded",
+        "note": "The telemetry channel carries no device identifier of any kind, by design (data/relay-events.json), and nothing else in this test recorded one. Nobody's phone model is known here and that is the intended cost."
+      },
+      "build": {
+        "variant": "TestFlight, App Store distribution",
+        "appVersion": "0.1.0 (4)",
+        "signing": "Apple team B4724Z74TM, the party's team; the certificate and the API key are team-scoped, so nothing app-specific was created for this",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves. A release build carries one host and only one since #51, so an event arriving at the deployed relay is proof the build was not pointing at the loopback."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed throughout, and confirmed unarmed afterwards from /api/health. Nothing either tester did could reach the city, which is why it was safe to put the app in a stranger's hands at all, and why neither test says anything about the city's behaviour."
+      },
+      "session": "223ba25118303cf6594d68a2c85a3315",
+      "method": "Guided over Messenger by the developer, who could not see the screen. Five screenshots came back and are NOT in this repository: they are photographs of a volunteer's home. Every observation below that a screenshot is the only source for says so.",
+      "timeline": [
+        {
+          "atMs": 0,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 73,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 6247,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 27511,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 426790,
+            "elapsedMs": 435,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 27528,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 17,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 27629,
+          "name": "location-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 27629,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 118,
+            "reason": "permission"
+          }
+        },
+        {
+          "atMs": 34528,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 34558,
+          "name": "location-resolved",
+          "fields": {
+            "accuracyM": 7,
+            "elapsedMs": 7046,
+            "source": "device"
+          }
+        },
+        {
+          "atMs": 34558,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "camera"
+          }
+        },
+        {
+          "atMs": 57308,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 29797,
+            "slug": "almenn-abending"
+          }
+        },
+        {
+          "atMs": 62789,
+          "name": "description-length",
+          "fields": {
+            "length": 5
+          }
+        },
+        {
+          "atMs": 65346,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "details"
+          }
+        },
+        {
+          "atMs": 70570,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 74182,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 3611,
+            "ok": true,
+            "status": 201
+          }
+        },
+        {
+          "atMs": 105431,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 108475,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 3043,
+            "ok": true,
+            "status": 201
+          }
+        },
+        {
+          "atMs": 417335,
+          "name": "screen-left",
+          "fields": {
+            "completed": false,
+            "screen": "confirm"
+          }
+        },
+        {
+          "atMs": 417390,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 427065,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 359853,
+            "elapsedMs": 400,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 427067,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 427073,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 427088,
+          "name": "location-resolved",
+          "fields": {
+            "accuracyM": 7,
+            "elapsedMs": 22,
+            "source": "device"
+          }
+        },
+        {
+          "atMs": 427088,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "camera"
+          }
+        },
+        {
+          "atMs": 441749,
+          "name": "description-length",
+          "fields": {
+            "length": 0
+          }
+        },
+        {
+          "atMs": 603005,
+          "name": "send-failed",
+          "fields": {
+            "elapsedMs": 84101,
+            "reason": "timeout"
+          }
+        },
+        {
+          "atMs": 604330,
+          "name": "screen-left",
+          "fields": {
+            "completed": false,
+            "screen": "confirm"
+          }
+        },
+        {
+          "atMs": 604381,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 631650,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 390498,
+            "elapsedMs": 462,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 631653,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 3,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 631734,
+          "name": "location-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 631734,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 84,
+            "reason": "permission"
+          }
+        },
+        {
+          "atMs": 641821,
+          "name": "location-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 641821,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 10170,
+            "reason": "permission"
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "receivedAt": "2026-08-23T20:20:21.535Z",
+          "events": 15,
+          "firstAtMs": 0,
+          "lastAtMs": 74182
+        },
+        {
+          "receivedAt": "2026-08-23T20:20:55.836Z",
+          "events": 2,
+          "firstAtMs": 105431,
+          "lastAtMs": 108475
+        },
+        {
+          "receivedAt": "2026-08-23T20:26:38.954Z",
+          "events": 8,
+          "firstAtMs": 417335,
+          "lastAtMs": 441749
+        },
+        {
+          "receivedAt": "2026-08-23T20:29:10.581Z",
+          "events": 1,
+          "firstAtMs": 603005,
+          "lastAtMs": 603005
+        },
+        {
+          "receivedAt": "2026-08-23T20:29:15.239Z",
+          "events": 2,
+          "firstAtMs": 604330,
+          "lastAtMs": 604381
+        },
+        {
+          "receivedAt": "2026-08-23T20:29:50.588Z",
+          "events": 6,
+          "firstAtMs": 631650,
+          "lastAtMs": 641821
+        }
+      ],
+      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column. That is not a detail: the fourth batch is a single send-failed arriving alone, with no send-started before it, and noticing that is how #74 was found.",
+      "timelineHole": {
+        "betweenAtMs": [
+          441749,
+          603005
+        ],
+        "seconds": 161,
+        "whatIsMissing": "A category was chosen, a description of 22 characters was typed, the details screen was left and a send was started. None of it is in D1.",
+        "howWeKnow": "send-failed at 603005 carries elapsedMs 84101, so its send started at 518904, and a send cannot run without a category (selectedSlug). The description is legible in the tester's screenshot while the last length D1 holds is 0.",
+        "why": "A flush fired while the phone was in airplane mode, took the buffer, failed, and discarded it (#74). The flush point was the app being backgrounded, which is what reaching the Control Center to toggle airplane mode does.",
+        "readingRule": "This gap is indistinguishable from a person standing still for two and a half minutes. It is recorded here because the timeline itself cannot say which it was, and a future reader must not count it as idle time."
+      },
+      "reports": [
+        {
+          "id": "f44c804eb37dc57ce14033f1e59cc11f",
+          "categorySlug": "almenn-abending",
+          "photoCount": 1,
+          "photoBytes": 426790,
+          "dryRun": true,
+          "createdAt": "2026-08-23T20:20:20.554Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed"
+        },
+        {
+          "id": "c23328e57794dfefcb487ca1713dc658",
+          "categorySlug": "almenn-abending",
+          "photoCount": 1,
+          "photoBytes": 426790,
+          "dryRun": true,
+          "createdAt": "2026-08-23T20:20:55.129Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed",
+          "note": "The same report as the row above, filed a second time 35 seconds later. Same byte count, same category, one photo-captured event in the whole session (#85)."
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "The whole walk works end to end from a stranger's phone in Reykjavík: camera, device fix, category, description, relay, a stored row.",
+          "evidence": "send-result {status: 201, ok: true} in 3611 ms at atMs 74182, and a matching row created at 20:20:20.554Z."
+        },
+        {
+          "claim": "A Reykjavík coordinate passes the municipality check, which is the half of it the Seattle test could not reach.",
+          "evidence": "Both stored rows exist, and the relay stores nothing that fails the check."
+        },
+        {
+          "claim": "The device fix answers fast and coarse indoors, exactly as it does on Android.",
+          "evidence": "accuracyM 7 twice, resolving in 7046 ms on the first attempt and 22 ms on the second, which is a cached or network fix rather than GPS.",
+          "wherePredicted": "the Android field test, 2026-08-23-android-first-walk, which saw 14 m and 51 m in about 240 ms",
+          "note": "Still nothing gates or stores the accuracy: #31."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 74,
+          "severity": "defect",
+          "what": "The telemetry buffer was emptied before the request and the flush was fire-and-forget, so a flush into airplane mode discarded its events.",
+          "evidence": "A 161-second hole between atMs 441749 and 603005, and a send-failed arriving alone in its own batch with no send-started before it.",
+          "whyOnlyHere": "No unit test and no CI run can put a phone in airplane mode between two events. The hole is only visible by grouping the events of one session by their delivery.",
+          "consequence": "The instrument loses data exactly while the failure it exists to measure is happening, so every offline defect is under-reported by construction.",
+          "status": "fixed in #80; a batch the relay did not take goes back in the buffer, on both platforms"
+        },
+        {
+          "issue": 73,
+          "severity": "defect",
+          "what": "The send lost the network and lost the report with it, and the wait was not bounded by the timeout in the code.",
+          "evidence": "send-failed {elapsedMs: 84101, reason: timeout} while RelayClient set a 30-second timeoutInterval. He restored the network about thirty seconds in and it failed anyway.",
+          "whyOnlyHere": "timeoutInterval is an idle timeout that restarts when the network changes; nothing but a real network change reveals that, and no test had ever produced one.",
+          "consequence": "He left the screen through Byrja aftur, which abandons the report rather than cancelling the request, because it was the only live control on the screen.",
+          "status": "fixed in #81; the report is written to the phone before the attempt, the whole operation is bounded, and the send control offers a way out"
+        },
+        {
+          "issue": 76,
+          "severity": "defect",
+          "what": "With the permission turned off in Settings, Reyna aftur could only ever return the same refusal, and nothing on the screen opened Settings.",
+          "evidence": "location-permission {granted: false} at atMs 631734 and again at 641821 after he pressed it, ten seconds apart, the second one returning the same answer.",
+          "whyOnlyHere": "It needs a permission that has been denied at the system level, which a developer's own phone almost never has.",
+          "status": "fixed in #83; a denial that will not be revisited is told apart from one that has not been answered, and offers Opna stillingar"
+        },
+        {
+          "issue": 77,
+          "severity": "defect",
+          "what": "The successful send was shown to him as the relay's whole stored row plus the whole cityPayload, with no sentence saying it had worked.",
+          "evidence": "He asked whether the app was connected to anything at all. The 201 body carries sentAt, accepted, cityStatus, cityReference, rejection, outcome and outcomeAt, which is the follow-through machinery of #56 and #57.",
+          "consequence": "He pressed send again 31 seconds later and filed the same ábending twice (#85).",
+          "status": "fixed in #84; the screen leads with one sentence and the raw body is behind a control"
+        },
+        {
+          "issue": 85,
+          "severity": "defect",
+          "what": "After a report is accepted the send button returns to its unsent state, fully live, as though nothing had been sent.",
+          "evidence": "Two stored rows 35 seconds apart, same photo byte count, one photo-captured event in the session; send-started at 70570 and again at 105431, with no retry path in the app at the time.",
+          "whyOnlyHere": "Everyone who had used the app knew what a 201 meant, so nobody had ever pressed the button twice.",
+          "consequence": "In dry run it costs a duplicate row. Once the relay is armed the same press files a second ábending into a real work queue.",
+          "status": "open"
+        },
+        {
+          "issue": 86,
+          "severity": "defect",
+          "what": "The app told him the location permission was missing 118 ms after the photograph, while the system dialog asking for it was still on his screen.",
+          "evidence": "location-permission {granted: false} at atMs 27629, elapsedMs 118 from the capture, then granted: true at 34528 once he had answered. The genuine denials in this same session, at 631734 and 641821, are a different situation.",
+          "consequence": "Every first-time user emits a spurious denial, which is the exact event this channel exists to count.",
+          "status": "open"
+        },
+        {
+          "issue": 78,
+          "severity": "defect",
+          "what": "The details screen scrolls under the status bar, so the system clock is drawn on top of a category name.",
+          "evidence": "A screenshot, which is the only source: nothing about layout can reach this channel. In it, 8:26 sits on top of Ruslafötur and both are unreadable.",
+          "status": "open"
+        },
+        {
+          "issue": 79,
+          "severity": "defect",
+          "what": "Once the description keyboard is up there is no way to put it away.",
+          "evidence": "The tester's own words, over Messenger: \"Enginn augljós leið til að loka þessu, og fjarlægja lyklaborðið.\" No timeline event can carry this.",
+          "consequence": "The description is the last field in the flow that asks anyone to type, so everyone who files a report meets it.",
+          "status": "open"
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. The relay was in dry run and forwarded nothing.",
+        "Nothing about what the offline walk actually looked like as an interaction. The events that would have said were discarded by the bug this test found, and the fix arrived after the test.",
+        "No confirmation that telemetry survives an outage. It did not, and the entry above records the opposite; the fix in #80 is unverified on a device.",
+        "Nothing about the gallery path or a map, neither of which exists.",
+        "No second opinion on the layout findings. #78 and #79 rest on one screenshot and one sentence from one person, on one device."
       ]
     }
   ]
