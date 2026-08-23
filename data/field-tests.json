@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. The `docs/research/` write-up of a test cites the id here; a decision that a test caused cites it too.",
+  "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. A `docs/research/` write-up of a test should cite the id here, and so should a decision a test caused; none does yet, because no test has produced one yet.",
   "verifiedAt": "2026-08-23",
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
@@ -25,7 +25,7 @@
         "signing": "debug keystore",
         "signingNote": "Android has no release signing chain yet (#58); the parity manifest records signed-release as ios-only. A release VARIANT was required regardless, because the relay host is a buildConfigField and only the release variant carries the deployed one.",
         "relayHost": "https://borgarland.samtak.is",
-        "hostVerifiedOn": "the artifact, not the build log: the deployed host is present in classes.dex and no loopback literal is"
+        "hostVerifiedOn": "the artifact, not the build log: classes.dex contains the deployed host and contains no loopback literal"
       },
       "relay": {
         "dryRun": true,
@@ -33,7 +33,7 @@
         "registryRows": 139360,
         "note": "Unarmed throughout. Nothing in this test could reach the city, which is why it was safe to run and why it says nothing about the city's behaviour."
       },
-      "session": "35e54373",
+      "session": "35e54373bde4e74c65fc33f0281773f4",
       "timeline": [
         {"atMs": 1, "name": "app-opened", "fields": {}},
         {"atMs": 117, "name": "camera-permission", "fields": {"granted": true}},
@@ -145,7 +145,7 @@
         "citySendKeySet": false,
         "note": "Unarmed. No report was created; this test never left the camera screen."
       },
-      "session": "41881d63",
+      "session": "41881d63f91d93f34c3854099d36cf94",
       "method": "adb: force-stop for a fresh process, then launch, KEYCODE_BACK, launch, KEYCODE_BACK, launch, KEYCODE_HOME. Back finishes the Activity and clears the ViewModel while the process stays warm, which is what the first walk hit by hand. onStop flushes the buffer.",
       "timeline": [
         {"atMs": 4, "name": "app-opened", "fields": {}},

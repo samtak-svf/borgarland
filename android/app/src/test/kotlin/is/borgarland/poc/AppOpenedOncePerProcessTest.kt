@@ -13,11 +13,15 @@ import org.junit.Test
  * lives exactly that long. The event therefore has to be emitted from
  * something with the same lifetime.
  *
- * It used to be emitted from `PocViewModel`'s `init`, which is Activity-scoped
- * and is constructed again every time the Activity is recreated — on
- * backgrounding, on rotation. The first Android field test measured two
- * `app-opened` events 16 minutes apart inside one session, which quietly
- * inflates the denominator of every funnel the channel exists to support.
+ * It used to be emitted from `PocViewModel`'s `init`. A ViewModel is cleared
+ * when its Activity FINISHES — Back, a swipe out of the recents list, an
+ * explicit finish() — while the process stays warm, so the next launch built a
+ * second one and emitted again into the same session. It is not cleared by a
+ * rotation or by backgrounding: surviving a configuration change is the whole
+ * point of a ViewModel, and Home does not destroy the Activity at all. The
+ * first Android field test measured two `app-opened` events 16 minutes apart
+ * inside one session, which quietly inflates the denominator of every funnel
+ * the channel exists to support.
  *
  * A unit test cannot construct an `AndroidViewModel` or an `Application`
  * without a device, and it cannot observe an Activity being recreated at all.
@@ -28,17 +32,6 @@ import org.junit.Test
  */
 class AppOpenedOncePerProcessTest {
 
-    /**
-     * Comments are stripped before scanning, exactly as in
-     * [NoCityEndpointTest]: the file that explains this rule names the symbol
-     * repeatedly, and a substring guard that fails its own documentation is a
-     * guard nobody can document.
-     */
-    private fun stripComments(text: String): String = text
-        .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
-        .lines()
-        .joinToString("\n") { it.substringBefore("//") }
-
     private fun sourceFiles(): List<File> {
         val src = File("src/main/kotlin")
         assertTrue("expected ${src.absolutePath} to exist", src.isDirectory)
@@ -47,10 +40,15 @@ class AppOpenedOncePerProcessTest {
 
     @Test
     fun `app-opened is emitted from exactly one place`() {
+        // No file is excluded, Telemetry.kt least of all. It owns the channel
+        // and is the most plausible home for a future startSession() hook,
+        // which is exactly where a second emission site would appear. It does
+        // not contain the literal today: the declaration reads
+        // `object AppOpened : TelemetryEvent("app-opened")`, which never spells
+        // TelemetryEvent.AppOpened.
         val emitters = sourceFiles()
-            .filter { file -> file.name != "Telemetry.kt" }
             .flatMap { file ->
-                stripComments(file.readText())
+                KotlinSource.stripComments(file.readText())
                     .lines()
                     .filter { it.contains("TelemetryEvent.AppOpened") }
                     .map { file.name }
@@ -68,10 +66,18 @@ class AppOpenedOncePerProcessTest {
         val application = File("src/main/kotlin/is/borgarland/poc/BorgarlandApplication.kt")
         assertTrue("expected ${application.absolutePath} to exist", application.isFile)
 
-        val code = stripComments(application.readText())
+        val code = KotlinSource.stripComments(application.readText())
         assertTrue(
             "the emitter must be an Application, whose onCreate runs once per process",
             code.contains("class BorgarlandApplication : Application()"),
+        )
+        // substringAfter returns the WHOLE string when the delimiter is
+        // missing, so this has to assert the delimiter exists first or it
+        // passes vacuously on a file that no longer overrides onCreate.
+        assertTrue(
+            "the emitter must override onCreate; nothing else in an Application " +
+                "runs once per process before the first Activity",
+            code.contains("override fun onCreate()"),
         )
         assertTrue(
             "the emission must happen in onCreate",

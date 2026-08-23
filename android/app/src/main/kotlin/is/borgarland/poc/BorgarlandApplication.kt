@@ -17,14 +17,24 @@ import `is`.borgarland.poc.net.TelemetryEvent
  * It used to be emitted from `PocViewModel`'s `init`, under a comment
  * asserting one instance per launch. That is true on iOS, where `ReportModel`
  * is a `@StateObject` on the `App` struct and SwiftUI keeps it for the app's
- * lifetime. It is not true on Android: the process outlives the Activity, so
- * backgrounding the app or rotating the phone destroys the ViewModel and the
- * next construction emitted a second `app-opened` into the same session.
+ * lifetime. It is not true on Android, because the process outlives the
+ * Activity: a ViewModel is cleared when its Activity FINISHES — Back, a swipe
+ * out of the recents list, an explicit finish() — and the next launch built a
+ * second one that emitted a second `app-opened` into the same session.
  *
- * That was measured rather than reasoned about — the first Android field test
- * on real hardware recorded two of them 16 minutes apart in one session, and
+ * Not a rotation and not backgrounding, which is worth stating because it is
+ * the guess a reader makes and it is wrong. Surviving a configuration change
+ * is the entire purpose of a ViewModel, and pressing Home does not destroy the
+ * Activity at all. Anyone debugging this by rotating the phone will see one
+ * event and conclude the write-up is mistaken.
+ *
+ * The duplicate was measured, not predicted: the first Android field test on
+ * real hardware recorded two of them 16 minutes apart in one session, and
  * `app-opened` is the denominator of every funnel this channel exists to
- * support. See `data/field-tests.json`, entry `2026-08-23-android-first-walk`.
+ * support. Which lifecycle event caused it is the reasoned half, and the first
+ * version of this paragraph got it wrong — see the two entries in
+ * `data/field-tests.json`, of which the second reproduces it deliberately with
+ * Back rather than with a rotation.
  */
 class BorgarlandApplication : Application() {
     override fun onCreate() {

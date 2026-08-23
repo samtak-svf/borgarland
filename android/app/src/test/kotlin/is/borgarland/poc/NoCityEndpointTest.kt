@@ -28,11 +28,14 @@ class NoCityEndpointTest {
      * explains it, and then the rule cannot be documented in the file it
      * governs. This test is about what the code can reach, not about which
      * words appear near it.
+     *
+     * The stripper lives in [KotlinSource] because the version that used to be
+     * inlined here did not know what a string literal is: it cut each line at
+     * the first `//`, so `"https://reykjavik.is/..."` lost its hostname before
+     * the scan and this test passed on the violation it exists to catch. A
+     * string literal is the most likely place for a city endpoint to enter the
+     * app, which made the blind spot exactly the size of the subject.
      */
-    private fun stripComments(text: String): String = text
-        .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
-        .lines()
-        .joinToString("\n") { it.substringBefore("//") }
 
     @Test
     fun `no city endpoint appears anywhere in the app source`() {
@@ -42,7 +45,7 @@ class NoCityEndpointTest {
         val offenders = src.walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
             .flatMap { file ->
-                val code = stripComments(file.readText())
+                val code = KotlinSource.stripComments(file.readText())
                 forbidden.filter { code.contains(it) }.map { "${file.name}: $it" }
             }
             .toList()
