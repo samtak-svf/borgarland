@@ -324,7 +324,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     if (outcome.status === 'accepted') {
       return json({ report: record }, 201)
     }
-    return json({ error: 'city rejected the report', report: record }, 502)
+    return json({ error: 'city-rejected', report: record }, 502)
   }
 
   async function handleGet(id: string): Promise<Response> {

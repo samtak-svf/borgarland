@@ -73,12 +73,12 @@ jobs:
         run: |
           app="$(find build/Build/Products -name 'Borgarland.app' -maxdepth 3 | head -1)"
           test -n "$app" || { echo "no Borgarland.app was produced"; exit 1; }
-          for f in reykjavik-form.json relay-request.json; do
+          for f in reykjavik-form.json relay-request.json category-labels.json relay-outcomes.json; do
             test -f "$app/$f" || { echo "::error::$f is missing from the bundle"; exit 1; }
             echo "$f is present"
           done
           # Referenced in place, so byte-identical is the only acceptable result.
-          for f in reykjavik-form.json relay-request.json; do
+          for f in reykjavik-form.json relay-request.json category-labels.json relay-outcomes.json; do
             cmp "$app/$f" "../data/$f" || { echo "::error::$f differs from data/$f"; exit 1; }
           done
 

@@ -135,6 +135,15 @@
       }
     },
     {
+      "name": "relay-answer-in-words",
+      "intent": "parity",
+      "what": "Every relay outcome is one sentence in Icelandic from data/relay-outcomes.json, with the relay's own body still reachable behind a control the person opens on purpose (#77). worker/tests/outcomes.test.ts holds that file to the relay's own source, so a code with no sentence fails the build rather than reaching somebody as raw JSON.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "RelayOutcomes" },
+        "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "RelayOutcomes" }
+      }
+    },
+    {
       "name": "location-denial-exit",
       "intent": "parity",
       "what": "A location permission that has been denied for good is told apart from one that has merely not been answered, and the screen offers the only thing that can undo it: a button into system settings (#76). Without the distinction the app offers a retry the system will refuse forever.",

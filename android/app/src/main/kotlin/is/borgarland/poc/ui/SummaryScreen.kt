@@ -20,8 +20,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
@@ -138,23 +142,47 @@ fun SummaryScreen(
             modifier = Modifier.padding(top = 8.dp),
         )
 
-        state.sendResult?.let { result ->
+        state.sendOutcome?.let { sent ->
+            var rawShown by remember(sent) { mutableStateOf(false) }
             Card(
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer),
             ) {
-                Text(
-                    "Svar frá relay",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp),
-                )
-                Text(
-                    result,
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(12.dp),
-                )
+                Column(modifier = Modifier.padding(12.dp)) {
+                    // The sentence first, and in the person's language. A
+                    // tester read the raw refusal off this screen and asked
+                    // what it meant (#77).
+                    sent.outcome?.let { outcome ->
+                        Text(outcome.says, style = MaterialTheme.typography.titleSmall)
+                        outcome.advice?.let { advice ->
+                            Text(
+                                advice,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
+
+                    // Still reachable, and still exactly what the relay said:
+                    // it is the fastest way to see what happened, and losing it
+                    // would trade one defect for another. Behind a control the
+                    // person opens on purpose, so the default screen is a
+                    // sentence rather than a diagnostic dump.
+                    TextButton(
+                        onClick = { rawShown = !rawShown },
+                        modifier = Modifier.padding(top = 4.dp),
+                    ) {
+                        Text(if (rawShown) "Fela tæknilegt svar" else "Tæknilegt svar")
+                    }
+                    if (rawShown) {
+                        Text(
+                            sent.raw,
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         }
 

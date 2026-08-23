@@ -1,8 +1,10 @@
 build/
 .gradle/
 local.properties
-# Copied from the repo root by the copyFacts / copyRelayRequest Gradle tasks.
-# The canonical files are the ones in data/; these are generated.
+# Copied from the repo root by the copyFacts / copyRelayRequest /
+# copyCategoryLabels / copyRelayOutcomes Gradle tasks. The canonical files are
+# the ones in data/; these are generated.
 app/src/main/assets/reykjavik-form.json
 app/src/main/assets/relay-request.json
 app/src/main/assets/category-labels.json
+app/src/main/assets/relay-outcomes.json

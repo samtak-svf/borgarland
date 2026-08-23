@@ -13,6 +13,23 @@ enum Screen {
     case summary
 }
 
+/// What the person is told about a relay answer, and the answer itself.
+///
+/// Both, not either: the sentence is what the screen leads with, and the
+/// relay's own body stays reachable behind a control they open on purpose. The
+/// readout was right for a proof of concept driven by the people who wrote it;
+/// the defect was that it was the ONLY thing anyone was shown (#77).
+struct SendOutcome {
+    /// Our sentence, or nil when data/relay-outcomes.json is not in the bundle
+    /// to say it. The screen then shows the relay's own answer alone, which is
+    /// exactly what it did before this issue.
+    let outcome: RelayOutcome?
+    /// The relay's answer, verbatim, status line included.
+    let raw: String
+    let status: Int
+    let ok: Bool
+}
+
 /// A usable coordinate. The full words are our vocabulary
 /// (data/relay-request.json); the city's short field names are deliberately
 /// absent from the whole app (AGENTS.md).
@@ -50,11 +67,11 @@ struct ReportUiState {
     var description: String = ""
     var outOfBounds: Bool = false
     var sending: Bool = false
-    var sendResult: String? = nil
+    var sendOutcome: SendOutcome? = nil
     /// What is happening to THIS report when the relay has not answered: it is
     /// waiting for a network, or someone stopped the attempt. Separate from
-    /// `sendResult`, which is the relay's own words and only exists once the
-    /// relay has said something (#73).
+    /// `sendOutcome`, which is what the relay answered and only exists once the
+    /// relay has answered something (#73).
     var deliveryNote: String? = nil
     /// How many reports are on the phone waiting to be sent, this one
     /// included. The camera screen shows it, because after Byrja aftur that is
@@ -82,6 +99,10 @@ final class ReportModel: ObservableObject {
     // uses. Sending is impossible without it: RelayClient writes parts under
     // exactly the names this file carries.
     private var relayRequest: RelayRequestFile?
+
+    /// Our sentences for what the relay answered (#77). Nil when the file is
+    /// missing from the bundle, which costs the sentence and nothing else.
+    private var relayOutcomes: RelayOutcomesFile?
 
     /// When the current photo was captured — the start of the location step.
     /// The telemetry channel's `elapsedMs` for the location and category
@@ -141,6 +162,13 @@ final class ReportModel: ObservableObject {
         let labels = Bundle.main.url(forResource: "category-labels.json", withExtension: nil)
             .flatMap { try? Data(contentsOf: $0) }
             .flatMap { try? CategoryLabels.parse($0) }
+
+        // Our words for what the relay answered (#77). Optional for the same
+        // reason as the labels: without it the screen shows the relay's own
+        // body alone, which is a worse screen rather than a dead app.
+        relayOutcomes = Bundle.main.url(forResource: "relay-outcomes.json", withExtension: nil)
+            .flatMap { try? Data(contentsOf: $0) }
+            .flatMap { try? RelayOutcomes.parse($0) }
 
         if let parsed {
             facts = parsed
@@ -412,12 +440,12 @@ final class ReportModel: ObservableObject {
         guard let payload = payload() else { return }
         guard relayRequest != nil else {
             update { state in
-                state.sendResult = "relay-request.json vantar eða er ólæsilegt í assets. Ekki er hægt að senda."
+                state.deliveryNote = "relay-request.json vantar eða er ólæsilegt í assets. Ekki er hægt að senda."
             }
             return
         }
         update { state in
-            state.sendResult = nil
+            state.sendOutcome = nil
             state.deliveryNote = nil
         }
         do {
@@ -615,12 +643,23 @@ final class ReportModel: ObservableObject {
             case .sent, .refused:
                 state.currentReportIsQueued = false
                 state.deliveryNote = nil
-                state.sendResult = result.map { "HTTP \($0.status)\n\($0.body)" }
+                state.sendOutcome = result.map { result in
+                    SendOutcome(
+                        outcome: RelayOutcomes.sentence(
+                            status: result.status,
+                            body: result.body,
+                            in: relayOutcomes
+                        ),
+                        raw: "HTTP \(result.status)\n\(result.body)",
+                        status: result.status,
+                        ok: result.ok
+                    )
+                }
             case .waiting:
-                state.sendResult = nil
+                state.sendOutcome = nil
                 state.deliveryNote = "Ekki náðist samband við þjónustu Borgarlands. Ábendingin bíður í símanum og fer af stað um leið og netið kemur aftur."
             case .cancelled:
-                state.sendResult = nil
+                state.sendOutcome = nil
                 state.deliveryNote = "Hætt við sendingu. Ábendingin bíður í símanum og fer af stað þegar reynt er aftur."
             }
         }

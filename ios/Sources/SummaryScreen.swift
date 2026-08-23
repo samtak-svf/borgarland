@@ -129,14 +129,34 @@ struct SummaryScreen: View {
                     .padding(.top, 12)
                 }
 
-                if let result = state.sendResult {
+                if let sent = state.sendOutcome {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Svar frá relay")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        Text(result)
-                            .font(.system(.footnote, design: .monospaced))
-                            .textSelection(.enabled)
+                        // The sentence first, and in the person's language. A
+                        // tester read the raw refusal off this screen and asked
+                        // what it meant (#77).
+                        if let outcome = sent.outcome {
+                            Text(outcome.says)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            if let advice = outcome.advice {
+                                Text(advice)
+                                    .font(.footnote)
+                            }
+                        }
+
+                        // Still reachable, and still exactly what the relay
+                        // said: it is the fastest way to see what happened, and
+                        // losing it would trade one defect for another. Behind
+                        // a control the person opens on purpose, so the default
+                        // screen is a sentence rather than a diagnostic dump.
+                        DisclosureGroup("Tæknilegt svar") {
+                            Text(sent.raw)
+                                .font(.system(.footnote, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.top, 8)
+                        }
+                        .font(.footnote)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
