@@ -91,10 +91,13 @@ public final class ReportQueue {
 
     /// `newID` is injected so a test can produce a known, ordered id; the app
     /// takes the default.
+    /// The id is 32 lowercase hex, not a UUID: since #88 it travels with the
+    /// report and becomes the relay's own row id, and the relay's ids have that
+    /// shape. One id for one report, in one form, everywhere it is written down.
     public init(
         root: URL,
         fileManager: FileManager = .default,
-        newID: @escaping () -> String = { UUID().uuidString }
+        newID: @escaping () -> String = { RandomHex.id() }
     ) {
         self.root = root
         self.fileManager = fileManager
@@ -229,7 +232,11 @@ public final class ReportQueue {
             latitude: report.latitude,
             longitude: report.longitude,
             description: report.description,
-            photos: photos
+            photos: photos,
+            // The queue's id IS the report's id on the wire (#88). Without this
+            // line a retry of a report the relay already stored becomes a
+            // second row, which is the whole thing the id exists to prevent.
+            reportId: report.id
         )
     }
 

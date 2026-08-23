@@ -70,6 +70,12 @@ const RELAY = relayRequestJson as unknown as RelayRequestContract
 /** The part names a request may carry, from the contract. Anything else is a 400. */
 const KNOWN_FIELD_NAMES: ReadonlySet<string> = new Set(Object.keys(RELAY.fields))
 
+/**
+ * The app's own id for a report: 32 lowercase hex, the same shape the relay
+ * generates for a report that arrives without one.
+ */
+const REPORT_ID = /^[0-9a-f]{32}$/
+
 /** The description limit, from the contract (pinned to the city's by the contract check). */
 const maxDescriptionLength: number = RELAY.fields.description.maxLength
 
@@ -140,6 +146,32 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     for (const name of form.keys()) {
       if (!KNOWN_FIELD_NAMES.has(name)) {
         throw new HttpError(400, 'unknown-field', { field: name })
+      }
+    }
+
+    // Which report this IS, before anything else is looked at. A repeat is
+    // answered with the row we already have, and it is answered BEFORE the
+    // category, the coordinate and the jurisdiction are examined: a report the
+    // relay has already taken must not be refused on a second press because
+    // something else about the request changed (#88).
+    //
+    // The app cannot tell a double press from a retry and neither can we. What
+    // we can do is make the difference not matter.
+    const reportIdValue = form.get('reportId')
+    const suppliedReportId = typeof reportIdValue === 'string' ? reportIdValue.trim() : ''
+    if (suppliedReportId !== '' && !REPORT_ID.test(suppliedReportId)) {
+      throw new HttpError(400, 'invalid-report-id', {
+        reason: 'a report id is 32 lowercase hex characters',
+      })
+    }
+    if (suppliedReportId !== '') {
+      const existing = await getReport(db, suppliedReportId)
+      if (existing !== null) {
+        logEvent({ kind: 'report', outcome: 'already-stored', id: suppliedReportId })
+        // 200 rather than 201: nothing was created this time. The apps read any
+        // 2xx as delivered and say so from data/relay-outcomes.json, so the
+        // person is told the same true thing either way.
+        return json({ report: existing, duplicate: true }, 200)
       }
     }
 
@@ -232,7 +264,9 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
 
     const createdAt = now()
     const base: Omit<NewReport, 'dryRun' | 'sentAt' | 'cityStatus' | 'cityReference' | 'rejection'> = {
-      id: randomId(),
+      // The app's id when it sent one, so the row IS the report the app is
+      // talking about and a repeat finds it. Otherwise ours, as before.
+      id: suppliedReportId === '' ? randomId() : suppliedReportId,
       category,
       latitude,
       longitude,

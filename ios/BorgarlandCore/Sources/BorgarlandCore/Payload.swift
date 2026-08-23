@@ -23,6 +23,11 @@ public struct Photo {
 }
 
 public struct Payload {
+    /// Which report this IS, so sending it twice cannot file it twice (#88).
+    /// The relay stores it as the row's own id and answers a repeat with the
+    /// row it already has. Optional because the relay generates one when the
+    /// app sends none, which is what an older build does.
+    public let reportId: String?
     /// Category slug, one of the twelve in the facts file.
     public let categorySlug: String
     public let latitude: Double
@@ -35,8 +40,10 @@ public struct Payload {
         latitude: Double,
         longitude: Double,
         description: String,
-        photos: [Photo]
+        photos: [Photo],
+        reportId: String? = nil
     ) {
+        self.reportId = reportId
         self.categorySlug = categorySlug
         self.latitude = latitude
         self.longitude = longitude

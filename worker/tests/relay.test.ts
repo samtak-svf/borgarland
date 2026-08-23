@@ -611,3 +611,62 @@ describe('the relay files one real report, ever', () => {
     expect(liveRows(sqlite)).toBe(0)
   })
 })
+
+// #88 and #85. A tester filed the same ábending twice, 35 seconds apart, because
+// the screen never said the first one had worked. Neither the app nor the relay
+// could tell that from a retry, and the request carried nothing either could
+// have used to.
+describe('a report the relay has already stored', () => {
+  const ID = 'a1b2c3d4e5f60718293a4b5c6d7e8f90'
+
+  it('is answered with the row it already has, and does not become a second row', async () => {
+    const { app } = createTestApp()
+
+    const first = await postReport(app, reportForm({ reportId: ID }))
+    expect(first.status).toBe(201)
+    const firstReport = (await json(first)).report as Record<string, unknown>
+    expect(firstReport.id).toBe(ID)
+
+    const second = await postReport(app, reportForm({ reportId: ID }))
+    // 200, not 201: nothing was created this time.
+    expect(second.status).toBe(200)
+    const secondBody = await json(second)
+    expect(secondBody.duplicate).toBe(true)
+    const secondReport = secondBody.report as Record<string, unknown>
+    expect(secondReport.id).toBe(ID)
+    expect(secondReport.createdAt).toBe(firstReport.createdAt)
+  })
+
+  it('is answered even when the rest of the request would now be refused', async () => {
+    const { app } = createTestApp()
+    await postReport(app, reportForm({ reportId: ID }))
+
+    // A coordinate in Seattle, which a first-time report would be refused for.
+    // A repeat of something already stored must not be: the report is filed,
+    // and what the second press carries is beside the point.
+    const repeat = await postReport(
+      app,
+      reportForm({ reportId: ID, latitude: '47.64', longitude: '-122.4' }),
+    )
+    expect(repeat.status).toBe(200)
+    expect((await json(repeat)).report).toMatchObject({ id: ID })
+  })
+
+  it('refuses an id that is not the shape the relay stores', async () => {
+    const { app } = createTestApp()
+    const response = await postReport(app, reportForm({ reportId: 'not-a-report-id' }))
+    expect(response.status).toBe(400)
+    expect((await json(response)).error).toBe('invalid-report-id')
+  })
+
+  it('still generates one when the app sends none, so an older build keeps working', async () => {
+    const { app } = createTestApp()
+    const response = await postReport(app, reportForm())
+    expect(response.status).toBe(201)
+    // The id is the test app's stub rather than the relay's randomHex(16), so
+    // what this pins is that one exists at all and the request was stored.
+    const report = (await json(response)).report as Record<string, unknown>
+    expect(typeof report.id).toBe('string')
+    expect(report.id).not.toBe('')
+  })
+})

@@ -39,6 +39,10 @@
       "says": "Lýsinguna vantaði, eða hún var of löng.",
       "advice": "Borgin krefst lýsingar. Skrifaðu stutta lýsingu og reyndu aftur."
     },
+    "invalid-report-id": {
+      "says": "Appið sendi ógilt auðkenni með ábendingunni.",
+      "advice": "Þetta er villa í appinu og lagast ekki nema með uppfærslu."
+    },
     "invalid-photo": {
       "says": "Myndin var ekki samþykkt.",
       "advice": "Borgin tekur við JPEG, PNG og GIF. Taktu nýja mynd og reyndu aftur."

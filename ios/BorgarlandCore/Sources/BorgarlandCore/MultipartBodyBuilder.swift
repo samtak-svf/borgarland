@@ -46,7 +46,7 @@ public enum MultipartBodyBuilder {
             append("\r\n")
         }
 
-        // The contract's six roles, in the contract's order. The literal in
+        // The contract's roles, in the contract's order. The literal in
         // the binding is which role a contract field plays; the wire name
         // written is the contract's own key.
         for (name, spec) in contract.fieldsInContractOrder {
@@ -71,6 +71,7 @@ public enum MultipartBodyBuilder {
     /// reference.
     private static func value(for name: String, payload: Payload) -> String? {
         switch name {
+        case "reportId": return payload.reportId
         case "category": return payload.categorySlug
         case "latitude": return payload.latitudeText
         case "longitude": return payload.longitudeText

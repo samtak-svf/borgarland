@@ -19,7 +19,7 @@ const contractRaw = readFileSync('../data/relay-request.json', 'utf8')
 const eventsContract = JSON.parse(readFileSync('../data/relay-events.json', 'utf8'))
 const eventsRaw = readFileSync('../data/relay-events.json', 'utf8')
 
-const EXPECTED_FIELD_NAMES = ['category', 'latitude', 'longitude', 'description', 'email', 'photo']
+const EXPECTED_FIELD_NAMES = ['reportId', 'category', 'latitude', 'longitude', 'description', 'email', 'photo']
 // The field names the old app used; none of them may appear in the contract.
 const CITY_FIELD_NAMES = ['type', 'summary', 'lat', 'lng', 'files']
 
@@ -37,7 +37,7 @@ afterEach(() => {
 })
 
 describe('the relay request contract', () => {
-  it('names exactly the six documented fields, in order', () => {
+  it('names exactly the seven documented fields, in order', () => {
     expect(Object.keys(contract.fields)).toEqual(EXPECTED_FIELD_NAMES)
     expect(contract.endpoint).toMatchObject({
       path: '/api/reports',

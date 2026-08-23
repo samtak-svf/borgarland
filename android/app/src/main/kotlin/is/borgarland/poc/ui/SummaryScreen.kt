@@ -123,11 +123,25 @@ fun SummaryScreen(
             modifier = Modifier.padding(top = 12.dp),
         )
 
+        // Disabled once the relay has taken it. The button used to return to
+        // its unsent state after a 201, fully live, as though nothing had been
+        // sent — and a tester pressed it again and filed the same ábending
+        // twice (#85). The relay now refuses to store the repeat (#88); this is
+        // so nobody is invited to make one.
+        val alreadySent = state.sendOutcome?.ok == true
         Button(
             onClick = onSend,
-            enabled = !state.sending,
+            enabled = !state.sending && !alreadySent,
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        ) { Text(if (state.sending) "Sendi..." else "Senda á relay") }
+        ) {
+            Text(
+                when {
+                    state.sending -> "Sendi..."
+                    alreadySent -> "Sent"
+                    else -> "Senda á relay"
+                },
+            )
+        }
 
         Text(
             // The app cannot reach the city. It posts to our relay, which is

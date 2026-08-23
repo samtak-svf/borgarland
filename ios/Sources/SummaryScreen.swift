@@ -81,6 +81,13 @@ struct SummaryScreen: View {
                     .font(.caption)
                     .padding(.top, 12)
 
+                // Disabled once the relay has taken it. The button used to
+                // return to its unsent state after a 201, fully live, as though
+                // nothing had been sent — and a tester pressed it again and
+                // filed the same ábending twice (#85). The relay now refuses to
+                // store the repeat (#88); this is so nobody is invited to make
+                // one.
+                let alreadySent = state.sendOutcome?.ok == true
                 Button {
                     model.sendToRelay()
                 } label: {
@@ -90,13 +97,13 @@ struct SummaryScreen: View {
                         if state.sending {
                             ProgressView()
                         }
-                        Text(state.sending ? "Sendi..." : "Senda á relay")
+                        Text(state.sending ? "Sendi..." : (alreadySent ? "Sent" : "Senda á relay"))
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 16)
-                .disabled(state.sending)
+                .disabled(state.sending || alreadySent)
 
                 // The way out. Before #73 the send control was dead for
                 // eighty-four seconds and the only live thing beside it was

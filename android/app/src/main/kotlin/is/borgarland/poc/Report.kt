@@ -27,6 +27,13 @@ data class Payload(
     val longitude: Double,
     val description: String,
     val photos: List<Photo>,
+    /**
+     * Which report this IS, so sending it twice cannot file it twice (#88).
+     * The relay stores it as the row's own id and answers a repeat with the row
+     * it already has. Optional because the relay generates one when the app
+     * sends none, which is what an older build does.
+     */
+    val reportId: String? = null,
 ) {
     /** Formatted the way send-report.mjs formats them: shortest round-trip decimal. */
     val latitudeText: String get() = latitude.toString()
