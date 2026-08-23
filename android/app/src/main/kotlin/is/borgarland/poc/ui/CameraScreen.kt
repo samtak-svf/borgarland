@@ -153,7 +153,7 @@ private fun ColumnScope.CapturedPhoto(
     state: PocUiState,
     onRetakePhoto: () -> Unit,
     onRequestDeviceFix: () -> Unit,
-    locationPermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>,
+    locationPermissionLauncher: androidx.activity.result.ActivityResultLauncher<Array<String>>,
 ) {
     val context = LocalContext.current
     val bitmap = remember(photo.bytes, photo.rotationDegrees) { decodePhoto(photo.bytes, photo.rotationDegrees) }
