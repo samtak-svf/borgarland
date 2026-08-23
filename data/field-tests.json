@@ -35,157 +35,26 @@
       },
       "session": "35e54373",
       "timeline": [
-        {
-          "atMs": 1,
-          "name": "app-opened",
-          "fields": {}
-        },
-        {
-          "atMs": 117,
-          "name": "camera-permission",
-          "fields": {
-            "granted": true
-          }
-        },
-        {
-          "atMs": 28772,
-          "name": "photo-captured",
-          "fields": {
-            "elapsedMs": 653,
-            "bytes": 1958081,
-            "mime": "image/jpeg"
-          }
-        },
-        {
-          "atMs": 28773,
-          "name": "location-failed",
-          "fields": {
-            "elapsedMs": 1,
-            "reason": "no-exif"
-          }
-        },
-        {
-          "atMs": 29012,
-          "name": "location-permission",
-          "fields": {
-            "granted": true
-          }
-        },
-        {
-          "atMs": 29022,
-          "name": "location-resolved",
-          "fields": {
-            "elapsedMs": 250,
-            "source": "device",
-            "accuracyM": 14
-          }
-        },
-        {
-          "atMs": 29022,
-          "name": "screen-left",
-          "fields": {
-            "screen": "camera",
-            "completed": true
-          }
-        },
-        {
-          "atMs": 955703,
-          "name": "app-opened",
-          "fields": {}
-        },
-        {
-          "atMs": 955743,
-          "name": "camera-permission",
-          "fields": {
-            "granted": true
-          }
-        },
-        {
-          "atMs": 993529,
-          "name": "photo-captured",
-          "fields": {
-            "elapsedMs": 645,
-            "bytes": 2290923,
-            "mime": "image/jpeg"
-          }
-        },
-        {
-          "atMs": 993529,
-          "name": "location-failed",
-          "fields": {
-            "elapsedMs": 0,
-            "reason": "no-exif"
-          }
-        },
-        {
-          "atMs": 993761,
-          "name": "location-permission",
-          "fields": {
-            "granted": true
-          }
-        },
-        {
-          "atMs": 993767,
-          "name": "location-resolved",
-          "fields": {
-            "elapsedMs": 238,
-            "source": "device",
-            "accuracyM": 51
-          }
-        },
-        {
-          "atMs": 993767,
-          "name": "screen-left",
-          "fields": {
-            "screen": "camera",
-            "completed": true
-          }
-        },
-        {
-          "atMs": 994007,
-          "name": "category-chosen",
-          "fields": {
-            "elapsedMs": 478,
-            "slug": "umferdaroryggi"
-          }
-        },
-        {
-          "atMs": 996615,
-          "name": "category-chosen",
-          "fields": {
-            "elapsedMs": 3086,
-            "slug": "almenn-abending"
-          }
-        },
-        {
-          "atMs": 1007339,
-          "name": "description-length",
-          "fields": {
-            "length": 6
-          }
-        },
-        {
-          "atMs": 1009426,
-          "name": "screen-left",
-          "fields": {
-            "screen": "details",
-            "completed": true
-          }
-        },
-        {
-          "atMs": 1057175,
-          "name": "send-started",
-          "fields": {}
-        },
-        {
-          "atMs": 1058565,
-          "name": "send-result",
-          "fields": {
-            "elapsedMs": 1390,
-            "status": 201,
-            "ok": true
-          }
-        }
+        {"atMs": 1, "name": "app-opened", "fields": {}},
+        {"atMs": 117, "name": "camera-permission", "fields": {"granted": true}},
+        {"atMs": 28772, "name": "photo-captured", "fields": {"elapsedMs": 653, "bytes": 1958081, "mime": "image/jpeg"}},
+        {"atMs": 28773, "name": "location-failed", "fields": {"elapsedMs": 1, "reason": "no-exif"}},
+        {"atMs": 29012, "name": "location-permission", "fields": {"granted": true}},
+        {"atMs": 29022, "name": "location-resolved", "fields": {"elapsedMs": 250, "source": "device", "accuracyM": 14}},
+        {"atMs": 29022, "name": "screen-left", "fields": {"screen": "camera", "completed": true}},
+        {"atMs": 955703, "name": "app-opened", "fields": {}},
+        {"atMs": 955743, "name": "camera-permission", "fields": {"granted": true}},
+        {"atMs": 993529, "name": "photo-captured", "fields": {"elapsedMs": 645, "bytes": 2290923, "mime": "image/jpeg"}},
+        {"atMs": 993529, "name": "location-failed", "fields": {"elapsedMs": 0, "reason": "no-exif"}},
+        {"atMs": 993761, "name": "location-permission", "fields": {"granted": true}},
+        {"atMs": 993767, "name": "location-resolved", "fields": {"elapsedMs": 238, "source": "device", "accuracyM": 51}},
+        {"atMs": 993767, "name": "screen-left", "fields": {"screen": "camera", "completed": true}},
+        {"atMs": 994007, "name": "category-chosen", "fields": {"elapsedMs": 478, "slug": "umferdaroryggi"}},
+        {"atMs": 996615, "name": "category-chosen", "fields": {"elapsedMs": 3086, "slug": "almenn-abending"}},
+        {"atMs": 1007339, "name": "description-length", "fields": {"length": 6}},
+        {"atMs": 1009426, "name": "screen-left", "fields": {"screen": "details", "completed": true}},
+        {"atMs": 1057175, "name": "send-started", "fields": {}},
+        {"atMs": 1058565, "name": "send-result", "fields": {"elapsedMs": 1390, "status": 201, "ok": true}}
       ],
       "report": {
         "id": "da8c3c88c703bc4df35d8c6bf6bef356",
@@ -203,25 +72,9 @@
       },
       "server": {
         "requests": [
-          {
-            "at": "2026-08-23T01:34:57Z",
-            "method": "POST",
-            "path": "/api/events",
-            "outcome": "ok"
-          },
-          {
-            "at": "2026-08-23T01:36:40Z",
-            "method": "POST",
-            "path": "/api/reports",
-            "outcome": "ok",
-            "status": 201
-          },
-          {
-            "at": "2026-08-23T01:36:41Z",
-            "method": "POST",
-            "path": "/api/events",
-            "outcome": "ok"
-          }
+          {"at": "2026-08-23T01:34:57Z", "method": "POST", "path": "/api/events", "outcome": "ok"},
+          {"at": "2026-08-23T01:36:40Z", "method": "POST", "path": "/api/reports", "outcome": "ok", "status": 201},
+          {"at": "2026-08-23T01:36:41Z", "method": "POST", "path": "/api/events", "outcome": "ok"}
         ],
         "errors": 0,
         "note": "No exception, no warning, no rejection anywhere in Workers Logs for the window."
@@ -295,32 +148,10 @@
       "session": "41881d63",
       "method": "adb: force-stop for a fresh process, then launch, KEYCODE_BACK, launch, KEYCODE_BACK, launch, KEYCODE_HOME. Back finishes the Activity and clears the ViewModel while the process stays warm, which is what the first walk hit by hand. onStop flushes the buffer.",
       "timeline": [
-        {
-          "atMs": 4,
-          "name": "app-opened",
-          "fields": {}
-        },
-        {
-          "atMs": 235,
-          "name": "camera-permission",
-          "fields": {
-            "granted": true
-          }
-        },
-        {
-          "atMs": 5925,
-          "name": "camera-permission",
-          "fields": {
-            "granted": true
-          }
-        },
-        {
-          "atMs": 12039,
-          "name": "camera-permission",
-          "fields": {
-            "granted": true
-          }
-        }
+        {"atMs": 4, "name": "app-opened", "fields": {}},
+        {"atMs": 235, "name": "camera-permission", "fields": {"granted": true}},
+        {"atMs": 5925, "name": "camera-permission", "fields": {"granted": true}},
+        {"atMs": 12039, "name": "camera-permission", "fields": {"granted": true}}
       ],
       "confirmed": [
         {
