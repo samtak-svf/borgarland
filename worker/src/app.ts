@@ -30,7 +30,7 @@ import { checkJurisdiction } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
-import { getReport, insertClientEvents, insertReport, setOutcome } from './db'
+import { countLiveReports, getReport, insertClientEvents, insertReport, setOutcome } from './db'
 import { sniffImageFormat } from './image-format'
 import { RegistryNotLoadedError, readRegistryHealth } from './registry-loader'
 import { EVENTS_PATH, validateBatch } from './events'
@@ -267,6 +267,32 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
         },
         201,
       )
+    }
+
+    // ---------------------------------------------------------------------
+    // Decision 0006 says ONE real submission, ever, taken on purpose. This is
+    // that "one", enforced rather than remembered.
+    //
+    // The CITY_SEND_KEY secret arms every request for as long as it exists, so
+    // between putting it and deleting it a stray curl, a second tap on the send
+    // button or a tester opening the app at the wrong moment files a real
+    // ábending into a real work queue. Being careful is exactly the safeguard
+    // that failed on 2026-08-21 and put report 110474 in front of a crew
+    // (docs/incidents/2026-08-21-filed-a-real-report.md).
+    //
+    // Deliberately hard-coded, not a variable and not a configurable limit: a
+    // variable is one typo away from being raised, and lifting this gate should
+    // cost a code change and a review — which is precisely what going live for
+    // real will be (#6). Delete this block then, on purpose, in its own PR.
+    //
+    // The count is of rows in D1, because that is the only thing that survives
+    // a deploy, a fresh isolate and a re-set secret.
+    if ((await countLiveReports(db)) > 0) {
+      throw new HttpError(409, 'live-send-already-used', {
+        reason:
+          'this relay has already made its one deliberate real submission (decision 0006); ' +
+          'sending another is a code change, not a configuration change',
+      })
     }
 
     let outcome: CitySubmitOutcome
