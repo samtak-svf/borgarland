@@ -40,11 +40,49 @@ function sourceFiles(dir: string = SOURCE_DIR): string[] {
   })
 }
 
-const SOURCES = sourceFiles().map((path) => ({ path, text: readFileSync(path, 'utf8') }))
+/**
+ * Comments are stripped before scanning. The loose patterns below exist to
+ * catch a code this test cannot READ, and a comment is not code: without this a
+ * line explaining an error code, or quoting a response body, fails the build for
+ * being prose. The same reasoning as NoCityEndpointTest's own stripper.
+ */
+function stripComments(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((line) => {
+      const at = line.indexOf('//')
+      return at === -1 ? line : line.slice(0, at)
+    })
+    .join('\n')
+}
+
+const SOURCES = sourceFiles().map((path) => ({
+  path,
+  text: stripComments(readFileSync(path, 'utf8')),
+}))
 
 /** The two shapes a code can be answered in, as a literal. */
 const THROWN = /new HttpError\(\s*\d+\s*,\s*'([a-z0-9-]+)'/g
-const RETURNED = /error:\s*'([a-z0-9-]+)'/g
+
+/**
+ * Every `error` field of a `json(...)` answer, with what it is set to.
+ *
+ * Anchored on `json(` rather than on `error:` alone, because `error:` also
+ * spells a TypeScript parameter — `isDuplicateKey(error: unknown)` was read as
+ * an answered code and failed the build. And it looks anywhere INSIDE the call
+ * rather than only at its first key, because a body whose `error` is second
+ * would otherwise be invisible.
+ */
+function answeredErrorValues(text: string): string[] {
+  const out: string[] = []
+  for (const call of text.matchAll(/json\(\s*\{([^}]*)\}/g)) {
+    for (const field of call[1].matchAll(/\berror\s*:\s*([^,\n]+)/g)) {
+      out.push(field[1].trim())
+    }
+  }
+  return out
+}
 
 /**
  * The same two shapes, matched loosely, so a construction this scan cannot READ
@@ -53,14 +91,16 @@ const RETURNED = /error:\s*'([a-z0-9-]+)'/g
  * at its throw site.
  */
 const THROWN_LOOSE = /new HttpError\(/g
-const RETURNED_LOOSE = /\berror:\s*([^,}\n]+)/g
 
 /** Every code the Worker can answer with, wherever it lives. */
 function codesInSource(): Set<string> {
   const codes = new Set<string>()
   for (const { text } of SOURCES) {
     for (const match of text.matchAll(THROWN)) codes.add(match[1])
-    for (const match of text.matchAll(RETURNED)) codes.add(match[1])
+    for (const value of answeredErrorValues(text)) {
+      const literal = /^'([a-z0-9-]+)'$/.exec(value)
+      if (literal) codes.add(literal[1])
+    }
   }
   return codes
 }
@@ -115,8 +155,7 @@ describe('data/relay-outcomes.json', () => {
       if (allThrows > literalThrows) {
         unreadable.push(`${path}: ${allThrows - literalThrows} HttpError(s) whose code is not a plain literal`)
       }
-      for (const match of text.matchAll(RETURNED_LOOSE)) {
-        const value = match[1].trim()
+      for (const value of answeredErrorValues(text)) {
         // `error.code` re-answers an HttpError that was counted at its throw
         // site; a quoted literal is counted directly.
         if (value === 'error.code' || /^'[a-z0-9-]+'$/.test(value)) continue

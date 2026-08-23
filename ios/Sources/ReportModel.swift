@@ -569,6 +569,17 @@ final class ReportModel: ObservableObject {
                 // alone it would sit at the head of the queue and stop every
                 // report behind it.
                 queue.remove(report.id)
+                // And if it was the one on screen, the screen must stop saying
+                // it is waiting and stop offering to discard something that is
+                // already gone.
+                if report.id == currentReportID {
+                    currentReportID = nil
+                    update { state in
+                        state.currentReportIsQueued = false
+                        state.deliveryNote = "Myndin fannst ekki lengur í símanum, svo ekki var hægt að senda ábendinguna. Taktu nýja mynd."
+                    }
+                }
+                refreshQueuedCount()
                 continue
             }
 
@@ -588,7 +599,7 @@ final class ReportModel: ObservableObject {
     /// The old send path, still the only one when the report could not be
     /// written down. The token stands in for a queue id so a result arriving
     /// after Byrja aftur cannot land on the next report's screen.
-    private func sendUnqueued(_ payload: Payload) {
+    private func sendUnqueued(_ unidentified: Payload) {
         guard let contract = relayRequest else { return }
         guard delivery == nil else {
             // Another delivery is running and this report was never written
@@ -599,8 +610,20 @@ final class ReportModel: ObservableObject {
             }
             return
         }
-        let token = UUID().uuidString
+        // The token is the report's id on the wire as well as the screen's
+        // claim on the result. It was only ever the second, which left the one
+        // path where an ambiguous timeout is MOST likely — the disk was just
+        // failing — as the one path the relay could not deduplicate (#88).
+        let token = RandomHex.id()
         currentReportID = token
+        let payload = Payload(
+            categorySlug: unidentified.categorySlug,
+            latitude: unidentified.latitude,
+            longitude: unidentified.longitude,
+            description: unidentified.description,
+            photos: unidentified.photos,
+            reportId: token
+        )
         update { state in state.sending = true }
         delivery = Task { [weak self] in
             _ = await self?.attempt(payload: payload, contract: contract, reportID: token)

@@ -30,7 +30,14 @@ import { checkJurisdiction, MAX_NEAREST_ADDRESS_KM } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
-import { countLiveReports, getReport, insertClientEvents, insertReport, setOutcome } from './db'
+import {
+  countLiveReports,
+  getReport,
+  insertClientEvents,
+  insertReport,
+  isDuplicateKey,
+  setOutcome,
+} from './db'
 import { sniffImageFormat } from './image-format'
 import { RegistryNotLoadedError, readRegistryHealth } from './registry-loader'
 import { EVENTS_PATH, validateBatch } from './events'
@@ -280,14 +287,28 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     const payload = buildCityPayload(draft)
 
     if (dryRun) {
-      const record = await insertReport(db, {
-        ...base,
-        dryRun: true,
-        sentAt: null,
-        cityStatus: null,
-        cityReference: null,
-        rejection: null,
-      })
+      let record
+      try {
+        record = await insertReport(db, {
+          ...base,
+          dryRun: true,
+          sentAt: null,
+          cityStatus: null,
+          cityReference: null,
+          rejection: null,
+        })
+      } catch (error) {
+        // The other half of the duplicate check. The lookup above and this
+        // insert are separated by the whole validation pipeline, including a
+        // 139,360-row scan, so two requests carrying the same id can both find
+        // nothing and both arrive here. The primary key decides it; the loser
+        // is answered with the row that won rather than with a 500 for a report
+        // that is stored.
+        const stored = isDuplicateKey(error) ? await getReport(db, base.id) : null
+        if (stored === null) throw error
+        logEvent({ kind: 'report', outcome: 'already-stored', id: base.id, raced: true })
+        return json({ report: stored, duplicate: true }, 200)
+      }
       logEvent({
         kind: 'report',
         outcome: 'recorded',
