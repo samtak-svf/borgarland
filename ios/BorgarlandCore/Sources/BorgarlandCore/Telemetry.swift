@@ -77,13 +77,24 @@ public final class Telemetry {
     /// this and takes the function type directly.
     public struct BatchReceipt {
         private let report: (BatchOutcome) -> Void
+        /// Exactly-once is enforced rather than asked for. A transport that
+        /// reported twice would requeue the same batch twice and duplicate
+        /// every event in it; the second report is dropped instead. A class so
+        /// the box can remember, since the caller holds it by value.
+        private final class Once {
+            var used = false
+        }
+        private let once = Once()
 
         public init(_ report: @escaping (BatchOutcome) -> Void) {
             self.report = report
         }
 
-        /// Report what became of the batch. Exactly once.
+        /// Report what became of the batch. The first call counts; any later
+        /// one is ignored.
         public func callAsFunction(_ outcome: BatchOutcome) {
+            guard !once.used else { return }
+            once.used = true
             report(outcome)
         }
     }
@@ -92,8 +103,14 @@ public final class Telemetry {
     /// nil means the default fire-and-forget URLSession post.
     ///
     /// The closure must report exactly once. Reporting late is fine and is the
-    /// normal case; never reporting leaves the channel with no flush in flight
-    /// and a buffer that only drains at the cap.
+    /// normal case.
+    ///
+    /// Never reporting wedges the channel for the rest of the session: `finish`
+    /// is the only place `inFlight` is cleared, so every later flush returns at
+    /// once and the buffer never drains at all. `track` keeps shedding its
+    /// oldest event at the cap, so events are lost silently, which is the hole
+    /// #74 was about wearing a different hat. Failures here are swallowed by
+    /// design, so nothing would ever say so.
     public var send: ((Data, BatchReceipt) -> Void)?
 
     /// Flush when the buffer reaches this many events.
@@ -225,6 +242,12 @@ public final class Telemetry {
             // In front: these events are older than anything buffered while
             // the request was out. The cap then applies as it always does, and
             // it may well drop these — under pressure the oldest still go.
+            //
+            // The trim below holds the invariant that the buffer never exceeds
+            // the cap. It decides nothing about what is SENT: flush() trims
+            // identically before taking a batch, so no test can tell this line
+            // from its absence. It is here so the invariant is true between
+            // calls rather than only at one of them.
             buffer.insert(contentsOf: batch, at: 0)
             if buffer.count > maxBatch {
                 buffer.removeFirst(buffer.count - maxBatch)

@@ -362,7 +362,13 @@ private fun hasPermission(context: Context, permission: String): Boolean =
  * will still offer either, the dialog is worth showing.
  */
 private fun shouldShowLocationRationale(context: Context): Boolean {
-    val activity = context as? Activity ?: return false
+    // TRUE when the question cannot be asked. The caller reads a false answer
+    // as "denied for good" and sends the person to system settings, so an
+    // unanswerable question must fail towards the retry that might work rather
+    // than towards a screen telling somebody their own device is locked when it
+    // is not. Reliable today, because this screen is only ever composed from
+    // MainActivity, where LocalContext IS the Activity.
+    val activity = context as? Activity ?: return true
     return LOCATION_PERMISSIONS.any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
 }
 

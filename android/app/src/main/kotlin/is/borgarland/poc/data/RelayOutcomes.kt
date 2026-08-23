@@ -79,7 +79,14 @@ object RelayOutcomes {
     fun read(body: String): Answer {
         val root = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull()
             ?: return Answer(null, null)
-        val errorCode = runCatching { root["error"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+        // isString, because contentOrNull hands back the raw text of a number
+        // or a boolean too: {"error": 123} would read as the code "123" here
+        // while the Swift side's `as? String` reads nil. Same answer either way
+        // today, since neither is a key in the file, but the two clients must
+        // not disagree about what the relay said.
+        val errorCode = runCatching {
+            root["error"]?.jsonPrimitive?.takeIf { it.isString }?.contentOrNull
+        }.getOrNull()
         val dryRun = runCatching {
             (root["report"] as? JsonObject)?.get("dryRun")?.jsonPrimitive?.boolean
         }.getOrNull()

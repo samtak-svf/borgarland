@@ -68,9 +68,10 @@ public struct QueuedReport: Equatable, Codable {
 /// part and nothing that reads the queue's SHAPE should have to load it.
 ///
 /// Deliberately not addressed here, and worth knowing before this grows:
-/// **nothing prunes the queue.** A report only leaves when it is sent, when the
-/// relay refuses it, or when a person discards it, so a phone that never comes
-/// back online keeps every report ever filed on it. At one photograph each and
+/// **nothing prunes the queue.** A report leaves when it is sent, when the relay
+/// refuses it, when a person discards it, and when its photo bytes have gone
+/// missing and it can no longer be built. Nothing else removes one, so a phone
+/// that never comes back online keeps every report ever filed on it. At one photograph each and
 /// a handful of reports per walk that is the right trade; at a hundred it is
 /// not, and the fix then is a policy decision (oldest-first eviction loses
 /// someone's report, refusing new ones loses a different one) rather than a

@@ -448,6 +448,19 @@ final class ReportModel: ObservableObject {
             state.sendOutcome = nil
             state.deliveryNote = nil
         }
+
+        // Already written down, so this press is a RETRY of that report rather
+        // than a second one. Without this the same ábending is queued again
+        // every time somebody presses the button after a failed attempt, and
+        // every copy goes out when the network returns. The button is disabled
+        // only while a delivery is running, so the press is available the
+        // moment an attempt gives up (#85 is the same duplicate after a
+        // SUCCESS, and is a different hole).
+        if state.currentReportIsQueued {
+            deliverQueued()
+            return
+        }
+
         do {
             currentReportID = try queue.enqueue(payload).id
             update { state in state.currentReportIsQueued = true }
@@ -464,7 +477,11 @@ final class ReportModel: ObservableObject {
 
     /// Sends what is waiting, oldest first. Safe to call from anywhere and as
     /// often as anything likes: a delivery already in flight makes this a
-    /// no-op, which is what keeps a queued report from going twice.
+    /// no-op, so two deliveries never run at once.
+    ///
+    /// That is not on its own what stops a report going twice. Nothing here
+    /// prevents the SAME report being queued a second time; `sendToRelay`
+    /// refuses that, and #85 is the case neither of them covers.
     func deliverQueued() {
         guard delivery == nil, let contract = relayRequest else { return }
         guard !queue.pending().isEmpty else {
@@ -519,9 +536,13 @@ final class ReportModel: ObservableObject {
     }
 
     /// One report at a time, in the order they were filed, until one of them
-    /// has to wait. `handled` is not bookkeeping for its own sake: if a removal
-    /// ever failed, the same entry would be at the head of the queue on the
-    /// next turn of this loop and the loop would not end.
+    /// has to wait. `handled` is not bookkeeping for its own sake: a removal
+    /// that failed would leave the same entry at the head of the queue, and
+    /// without this the loop would take it again forever.
+    ///
+    /// It ends the loop; it does not fix the removal. An entry that survives
+    /// its own removal is re-read by the NEXT drain and sent a second time,
+    /// and the relay has no idempotency key to catch that.
     private func drainQueue(contract: RelayRequestFile) async {
         var handled: Set<String> = []
         while let report = queue.pending().first(where: { !handled.contains($0.id) }) {
@@ -657,10 +678,18 @@ final class ReportModel: ObservableObject {
                 }
             case .waiting:
                 state.sendOutcome = nil
-                state.deliveryNote = "Ekki náðist samband við þjónustu Borgarlands. Ábendingin bíður í símanum og fer af stað um leið og netið kemur aftur."
+                // Only the queued path may promise that it waits. On the
+                // fallback path the report was never written down, nothing
+                // retries it, and saying otherwise is the assurance that makes
+                // somebody leave the screen and lose it.
+                state.deliveryNote = state.currentReportIsQueued
+                    ? "Ekki náðist samband við þjónustu Borgarlands. Ábendingin bíður í símanum og fer af stað um leið og netið kemur aftur."
+                    : "Ekki náðist samband við þjónustu Borgarlands, og ekki tókst að geyma ábendinguna í símanum. Hún bíður ekki, svo ekki loka appinu: reyndu að senda aftur."
             case .cancelled:
                 state.sendOutcome = nil
-                state.deliveryNote = "Hætt við sendingu. Ábendingin bíður í símanum og fer af stað þegar reynt er aftur."
+                state.deliveryNote = state.currentReportIsQueued
+                    ? "Hætt við sendingu. Ábendingin bíður í símanum og fer af stað þegar reynt er aftur."
+                    : "Hætt við sendingu. Ábendingin er ekki geymd í símanum, svo hún bíður ekki: reyndu að senda aftur."
             }
         }
     }

@@ -126,8 +126,14 @@ class Telemetry {
      * Injectable so a unit test can capture the body without a network.
      *
      * The closure must invoke its completion exactly once. Invoking it late is
-     * fine and is the normal case; never invoking it leaves the channel with no
-     * flush in flight and a buffer that only drains at the cap.
+     * fine and is the normal case.
+     *
+     * Never invoking it wedges the channel for the rest of the session:
+     * [finish] is the only place `inFlight` is cleared, so every later flush
+     * returns at once and the buffer never drains at all. [track] keeps shedding
+     * its oldest event at the cap, so events are lost silently, which is the
+     * hole #74 was about wearing a different hat. Failures here are swallowed by
+     * design, so nothing would ever say so.
      */
     var send: ((String, (BatchOutcome) -> Unit) -> Unit)? = null
 
@@ -156,7 +162,7 @@ class Telemetry {
     /** Records an event. Never throws and never blocks on the network: the
      * buffer is capped, and the flush returns before its request does. */
     fun track(event: TelemetryEvent) {
-        val atMs = clampAtMs((System.currentTimeMillis() - sessionStartMs).toInt())
+        val atMs = clampAtMs(System.currentTimeMillis() - sessionStartMs)
         var shouldFlush = false
         synchronized(lock) {
             // description-length is emitted on every keystroke; coalesce
@@ -277,9 +283,16 @@ class Telemetry {
         }
     }
 
-    /** A day in milliseconds; an offset beyond that is a broken clock, not a
-     * session (the Worker's own bound). */
-    private fun clampAtMs(ms: Int): Int = ms.coerceIn(0, MAX_AT_MS)
+    /**
+     * A day in milliseconds; an offset beyond that is a broken clock, not a
+     * session (the Worker's own bound).
+     *
+     * Takes a Long and clamps before narrowing. Truncating first would wrap a
+     * session past about 24.8 days to a negative Int and clamp it to 0, which
+     * defeats the bound instead of enforcing it. Unreachable for a camera app,
+     * and free to get right.
+     */
+    private fun clampAtMs(ms: Long): Int = ms.coerceIn(0L, MAX_AT_MS.toLong()).toInt()
 }
 
 /**
