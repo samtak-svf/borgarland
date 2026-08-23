@@ -17,12 +17,17 @@ public struct QueuedReport: Equatable, Codable {
         public let name: String
         public let mime: String
         public let rotationDegrees: Int
+        /// How large the file is. Recorded so the queue can answer how much of
+        /// somebody's phone it is holding without opening every photograph to
+        /// find out (#82).
+        public let bytes: Int
 
-        public init(file: String, name: String, mime: String, rotationDegrees: Int) {
+        public init(file: String, name: String, mime: String, rotationDegrees: Int, bytes: Int) {
             self.file = file
             self.name = name
             self.mime = mime
             self.rotationDegrees = rotationDegrees
+            self.bytes = bytes
         }
     }
 
@@ -48,6 +53,13 @@ public struct QueuedReport: Equatable, Codable {
     public var queuedAt: Date {
         Date(timeIntervalSince1970: Double(queuedAtEpochMs) / 1000)
     }
+
+    /// What this report costs on the phone, near enough: the photographs are
+    /// all of it that matters, and the record beside them is a few hundred
+    /// bytes.
+    public var bytes: Int {
+        photos.reduce(0) { $0 + $1.bytes }
+    }
 }
 
 /// Reports that could not be sent, kept on the phone until they can be.
@@ -67,41 +79,81 @@ public struct QueuedReport: Equatable, Codable {
 /// Separate files rather than one base64 blob because the photo is the large
 /// part and nothing that reads the queue's SHAPE should have to load it.
 ///
-/// Deliberately not addressed here, and worth knowing before this grows:
-/// **nothing prunes the queue.** A report leaves when it is sent, when the relay
-/// refuses it, when a person discards it, and when its photo bytes have gone
-/// missing and it can no longer be built. Nothing else removes one, so a phone
-/// that never comes back online keeps every report ever filed on it. At one photograph each and
-/// a handful of reports per walk that is the right trade; at a hundred it is
-/// not, and the fix then is a policy decision (oldest-first eviction loses
-/// someone's report, refusing new ones loses a different one) rather than a
-/// line of code.
+/// **The queue is bounded, and it refuses rather than evicts (#82).**
+///
+/// A report leaves when it is sent, when the relay refuses it, when a person
+/// discards it, and when its photo bytes have gone missing and it can no longer
+/// be built. Nothing else removes one — and in particular nothing prunes it —
+/// so without a bound a phone that never comes back online would keep every
+/// report ever filed on it, at a photograph each.
+///
+/// Every policy that bounds it loses something somebody filed. Oldest-first
+/// eviction throws away the report that has waited longest, which is the one
+/// most likely to matter. An age limit discards a report from a walk somebody
+/// still remembers taking. Both do it silently, and a queue that quietly drops
+/// reports is worse than no queue, because it looks like one that works.
+///
+/// So this one REFUSES. `enqueue` throws `QueueError.full` and the report is
+/// not written down, which the caller turns into a sentence in front of the
+/// person standing right there, who can send what is waiting or throw
+/// something away on purpose. Nothing leaves the queue without somebody
+/// choosing it, which is the property worth keeping.
 public final class ReportQueue {
 
     public enum QueueError: Error, Equatable {
         /// The photo file named by the record is not there. The entry cannot be
         /// sent and the caller should drop it rather than retry it forever.
         case missingPhoto(String)
+        /// The queue is at its bound and this report was not written down. The
+        /// caller must say so: the person is standing there and can send what
+        /// is waiting or discard something, and neither happens by itself.
+        case full(reports: Int, bytes: Int)
     }
+
+    /// How many reports may wait at once.
+    ///
+    /// Twenty is a number about walks rather than about storage: a person fills
+    /// this only by filing report after report with no network at all, and by
+    /// the twentieth something is wrong that more disk will not fix. It is also
+    /// far past any real walk — the first field tests filed one and two.
+    public static let defaultMaxReports = 20
+
+    /// And how much of the phone they may hold, whichever bound is reached
+    /// first. A photograph off the capture path measured 0.24 to 2.29 MB across
+    /// the field tests, so this is roughly a hundred of them and about the size
+    /// of one large app.
+    public static let defaultMaxBytes = 200 * 1024 * 1024
 
     private let root: URL
     private let fileManager: FileManager
     private let newID: () -> String
     private let lock = NSLock()
 
+    /// How many reports may wait at once, and how much of the phone they may
+    /// hold. Instance properties rather than the constants directly, so a test
+    /// can reach the bound with two small photographs instead of two hundred
+    /// megabytes of real ones.
+    public let maxReports: Int
+    public let maxBytes: Int
+
     /// `newID` is injected so a test can produce a known, ordered id; the app
-    /// takes the default.
+    /// takes the default. So are the bounds, for the same reason.
+    ///
     /// The id is 32 lowercase hex, not a UUID: since #88 it travels with the
     /// report and becomes the relay's own row id, and the relay's ids have that
     /// shape. One id for one report, in one form, everywhere it is written down.
     public init(
         root: URL,
         fileManager: FileManager = .default,
-        newID: @escaping () -> String = { RandomHex.id() }
+        newID: @escaping () -> String = { RandomHex.id() },
+        maxReports: Int = ReportQueue.defaultMaxReports,
+        maxBytes: Int = ReportQueue.defaultMaxBytes
     ) {
         self.root = root
         self.fileManager = fileManager
         self.newID = newID
+        self.maxReports = maxReports
+        self.maxBytes = maxBytes
     }
 
     /// Where the app keeps it.
@@ -134,8 +186,18 @@ public final class ReportQueue {
     /// lost by the very thing we are guarding against.
     @discardableResult
     public func enqueue(_ payload: Payload, at date: Date = Date()) throws -> QueuedReport {
+        // Read before the lock: `pending` takes it too, and this lock is not
+        // recursive.
+        let waiting = pending()
+
         lock.lock()
         defer { lock.unlock() }
+
+        let incoming = payload.photos.reduce(0) { $0 + $1.bytes.count }
+        let held = waiting.reduce(0) { $0 + $1.bytes }
+        if waiting.count >= maxReports || held + incoming > maxBytes {
+            throw QueueError.full(reports: waiting.count, bytes: held)
+        }
 
         let id = newID()
         let directory = root.appendingPathComponent(id, isDirectory: true)
@@ -150,7 +212,8 @@ public final class ReportQueue {
                     file: file,
                     name: photo.name,
                     mime: photo.mime,
-                    rotationDegrees: photo.rotationDegrees
+                    rotationDegrees: photo.rotationDegrees,
+                    bytes: photo.bytes.count
                 )
             )
         }

@@ -466,6 +466,15 @@ final class ReportModel: ObservableObject {
             update { state in state.currentReportIsQueued = true }
             refreshQueuedCount()
             deliverQueued()
+        } catch ReportQueue.QueueError.full(let reports, _) {
+            // The queue is at its bound (#82). Not a failure to fix by trying
+            // again: something has to go out or be thrown away first, and the
+            // person is the only one who can decide which. So this says so and
+            // does NOT send, because a send that cannot be retried is how the
+            // report was lost in the first place.
+            update { state in
+                state.deliveryNote = "\(reports) ábendingar bíða sendingar og fleiri komast ekki fyrir. Sendu þær sem bíða, eða eyddu einhverri, og reyndu svo aftur."
+            }
         } catch {
             // The report could not be written down — a full disk, or a
             // container we cannot reach. Sending it anyway is worse than a
