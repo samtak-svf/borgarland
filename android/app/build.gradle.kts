@@ -53,6 +53,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    lint {
+        // The camera is the entry point, so requiring the hardware is the
+        // specification rather than an oversight. This check assumes the
+        // opposite and asks for required="false", which would be a false
+        // declaration: the app cannot do anything on a device with no camera.
+        // See the reasoning in AndroidManifest.xml beside the uses-feature tag.
+        disable += "PermissionImpliesUnsupportedChromeOsHardware"
+        // Everything else is a build failure. A warning nobody reads is the
+        // state this workflow exists to leave behind.
+        abortOnError = true
+    }
+
     buildFeatures {
         compose = true
         // Required for buildConfigField above; off by default since AGP 8.

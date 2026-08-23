@@ -18,6 +18,29 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <!--
+        Declared explicitly, and required. The camera is the entry point: the
+        app opens on it and there is no path that starts with a form
+        (AGENTS.md), so a device without one cannot use this at all and should
+        not be offered it.
+
+        Android lint's PermissionImpliesUnsupportedChromeOsHardware wants
+        required="false" here, on the assumption that excluding camera-less
+        Chrome OS devices is an accident. For this app it is the specification.
+        The check is disabled in build.gradle.kts with that reasoning rather
+        than satisfied with a declaration that would be false.
+
+        GPS is a different matter and is NOT required: testing indoors found
+        that the network provider is usually the one holding a usable fix, and
+        a device without GPS can still place a report (see DeviceFix).
+    -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+
+    <!--
         Both, and it has to be both. Since Android 12 the system dialog for a
         FINE request offers the user an "Approximate" button, and an app that
         declared only FINE is simply denied when they press it. Declaring COARSE
