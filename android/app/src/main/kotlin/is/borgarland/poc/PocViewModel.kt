@@ -16,6 +16,7 @@ import `is`.borgarland.poc.data.Facts
 import `is`.borgarland.poc.data.CategoryLabels
 import `is`.borgarland.poc.data.CategoryLabelsFile
 import `is`.borgarland.poc.data.FactsFile
+import `is`.borgarland.poc.data.LocationPermission
 import `is`.borgarland.poc.data.RelayOutcome
 import `is`.borgarland.poc.data.RelayOutcomes
 import `is`.borgarland.poc.data.RelayOutcomesFile
@@ -289,7 +290,13 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
      * them find a button (#76).
      */
     fun onLocationPermissionRechecked(granted: Boolean) {
-        if (!granted || !_state.value.locationDenied) return
+        // The decision lives in data/Decisions.kt, where it has tests (#89).
+        val stopped = if (_state.value.locationDenied) {
+            LocationPermission.DENIED_FOR_GOOD
+        } else {
+            LocationPermission.UNANSWERED
+        }
+        if (!LocationPermission.shouldResume(stopped, granted)) return
         Telemetry.shared.track(TelemetryEvent.LocationPermission(true))
         _state.update { it.copy(locationDenied = false, locationError = null) }
         requestDeviceFix()

@@ -307,7 +307,10 @@ final class ReportModel: ObservableObject {
     /// back. If they did, the walk carries on from where it stopped rather
     /// than making them find a button (#76).
     func recheckLocationPermission() {
-        guard state.locationDenied, DeviceFix.shared.isAuthorized else { return }
+        let stopped: LocationPermission = state.locationDenied ? .deniedForGood : .unanswered
+        guard LocationPermission.shouldResume(after: stopped, nowGranted: DeviceFix.shared.isAuthorized) else {
+            return
+        }
         Telemetry.shared.track(.locationPermission(granted: true))
         update { state in
             state.locationDenied = false
@@ -647,19 +650,16 @@ final class ReportModel: ObservableObject {
         return disposition
     }
 
-    /// What the queue should do about an answer. `ok` is the relay's own
-    /// judgement and is trusted; below it, the split is between an answer that
-    /// would be the same next time and no answer at all.
+    /// What the relay's answer means for a report that is waiting.
+    ///
+    /// The decision itself lives in BorgarlandCore, where it has tests (#89);
+    /// this only widens it by the one case the package cannot know about, a
+    /// person pressing cancel.
     private static func disposition(of result: RelayClient.Result) -> Disposition {
-        if result.ok { return .sent }
-        switch result.status {
-        case 0, 408, 429:
-            return .waiting
-        case 400..<500:
-            return .refused
-        default:
-            // A 5xx is the relay having a bad moment, not a bad report.
-            return .waiting
+        switch RelayDisposition.of(status: result.status, ok: result.ok) {
+        case .sent: return .sent
+        case .refused: return .refused
+        case .waiting: return .waiting
         }
     }
 
