@@ -1,0 +1,127 @@
+{
+  "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. The `docs/research/` write-up of a test cites the id here; a decision that a test caused cites it too.",
+  "verifiedAt": "2026-08-23",
+  "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
+  "notes": [
+    "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
+    "atMs is milliseconds since the telemetry session began, which is the app process starting. It is the only ordering that survives: the relay stamps received_at at flush time, so every event in one batch shares it and the batch boundaries are invisible in that column.",
+    "A session id is random per process, never persisted, and cannot follow anyone between sessions (data/relay-events.json). Recording it here links a timeline to its report and to nothing else.",
+    "dryRun records whether the relay was armed. A test against an unarmed relay proves the app and the relay and says nothing about the city."
+  ],
+  "tests": [
+    {
+      "id": "2026-08-23-android-first-walk",
+      "date": "2026-08-23",
+      "platform": "android",
+      "what": "First run of the Android app on real hardware against the live relay: the whole walk from camera to a recorded report, twice, by the developer indoors.",
+      "device": {
+        "model": "Samsung Galaxy SM-S918B",
+        "androidVersion": 16,
+        "note": "The developer's own phone, sideloaded over adb. Not a tester device."
+      },
+      "build": {
+        "variant": "release",
+        "appVersion": "0.1.0 (1)",
+        "signing": "debug keystore",
+        "signingNote": "Android has no release signing chain yet (#58); the parity manifest records signed-release as ios-only. A release VARIANT was required regardless, because the relay host is a buildConfigField and only the release variant carries the deployed one.",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the artifact, not the build log: the deployed host is present in classes.dex and no loopback literal is"
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed throughout. Nothing in this test could reach the city, which is why it was safe to run and why it says nothing about the city's behaviour."
+      },
+      "session": "35e54373",
+      "timeline": [
+        { "atMs": 1, "name": "app-opened", "fields": {} },
+        { "atMs": 117, "name": "camera-permission", "fields": { "granted": true } },
+        { "atMs": 28772, "name": "photo-captured", "fields": { "elapsedMs": 653, "bytes": 1958081, "mime": "image/jpeg" } },
+        { "atMs": 28773, "name": "location-failed", "fields": { "elapsedMs": 1, "reason": "no-exif" } },
+        { "atMs": 29012, "name": "location-permission", "fields": { "granted": true } },
+        { "atMs": 29022, "name": "location-resolved", "fields": { "elapsedMs": 250, "source": "device", "accuracyM": 14 } },
+        { "atMs": 29022, "name": "screen-left", "fields": { "screen": "camera", "completed": true } },
+        { "atMs": 955703, "name": "app-opened", "fields": {} },
+        { "atMs": 955743, "name": "camera-permission", "fields": { "granted": true } },
+        { "atMs": 993529, "name": "photo-captured", "fields": { "elapsedMs": 645, "bytes": 2290923, "mime": "image/jpeg" } },
+        { "atMs": 993529, "name": "location-failed", "fields": { "elapsedMs": 0, "reason": "no-exif" } },
+        { "atMs": 993761, "name": "location-permission", "fields": { "granted": true } },
+        { "atMs": 993767, "name": "location-resolved", "fields": { "elapsedMs": 238, "source": "device", "accuracyM": 51 } },
+        { "atMs": 993767, "name": "screen-left", "fields": { "screen": "camera", "completed": true } },
+        { "atMs": 994007, "name": "category-chosen", "fields": { "elapsedMs": 478, "slug": "umferdaroryggi" } },
+        { "atMs": 996615, "name": "category-chosen", "fields": { "elapsedMs": 3086, "slug": "almenn-abending" } },
+        { "atMs": 1007339, "name": "description-length", "fields": { "length": 6 } },
+        { "atMs": 1009426, "name": "screen-left", "fields": { "screen": "details", "completed": true } },
+        { "atMs": 1057175, "name": "send-started", "fields": {} },
+        { "atMs": 1058565, "name": "send-result", "fields": { "elapsedMs": 1390, "status": 201, "ok": true } }
+      ],
+      "report": {
+        "id": "da8c3c88c703bc4df35d8c6bf6bef356",
+        "categorySlug": "almenn-abending",
+        "photoCount": 1,
+        "photoBytes": 2290923,
+        "dryRun": true,
+        "createdAt": "2026-08-23T01:36:40.919Z",
+        "sentAt": null,
+        "cityStatus": null,
+        "cityReference": null,
+        "rejection": null,
+        "municipalityCheck": "passed; the coordinate reverse-looked to SVFNR 0000, Reykjavíkurborg",
+        "descriptionShape": "the typed text, then a blank line, then the relay's appended nearest registered address"
+      },
+      "server": {
+        "requests": [
+          { "at": "2026-08-23T01:34:57Z", "method": "POST", "path": "/api/events", "outcome": "ok" },
+          { "at": "2026-08-23T01:36:40Z", "method": "POST", "path": "/api/reports", "outcome": "ok", "status": 201 },
+          { "at": "2026-08-23T01:36:41Z", "method": "POST", "path": "/api/events", "outcome": "ok" }
+        ],
+        "errors": 0,
+        "note": "No exception, no warning, no rejection anywhere in Workers Logs for the window."
+      },
+      "confirmed": [
+        {
+          "claim": "A photo the app captures itself carries no EXIF GPS, so the device fix is the primary source on the capture path rather than the fallback.",
+          "evidence": "location-failed {reason: no-exif} preceded the device fix on both captures, at elapsedMs 1 and 0.",
+          "wherePredicted": "AGENTS.md, from CameraX's documented behaviour; docs/research/photos-exif-and-formats.md",
+          "note": "First observation of this on real Android hardware. It had been reasoned about, not measured."
+        },
+        {
+          "claim": "The whole chain works end to end from a phone: camera, coordinate, category, relay, D1.",
+          "evidence": "send-result 201 in 1390 ms, and a matching row in reports."
+        },
+        {
+          "claim": "A 2.29 MB JPEG passes the relay's size and magic-byte gates.",
+          "evidence": "photoBytes 2290923 recorded, no rejection. The city's stated limit is 8 MB.",
+          "wherePredicted": "#67"
+        }
+      ],
+      "findings": [
+        {
+          "issue": 70,
+          "severity": "defect",
+          "what": "app-opened fired twice in one session, 16 minutes apart, because it was emitted from PocViewModel's init and a ViewModel is Activity-scoped while the telemetry session is process-scoped.",
+          "evidence": "atMs 1 and atMs 955703, same session id, therefore the same process.",
+          "whyOnlyHere": "No unit test can observe an Activity being recreated, and CI cannot background an app. It needed a phone in a hand for sixteen minutes.",
+          "consequence": "app-opened is the denominator of every funnel this channel exists to support, so completion rates read lower than they are.",
+          "status": "fixed; emitted from BorgarlandApplication.onCreate, which runs once per process, guarded by AppOpenedOncePerProcessTest"
+        },
+        {
+          "issue": 31,
+          "severity": "design",
+          "what": "The device fix supplies the coordinate, its accuracy is measured, and nothing gates or stores it. DeviceFix.liveFix races every enabled provider and takes whichever answers first; usable() checks only that the numbers are finite.",
+          "evidence": "Two fixes in one session, 14 m and 51 m, both resolving in about 240 ms, which is a network or cached fix rather than GPS. The 51 m one is the coordinate on the submitted report.",
+          "consequence": "The reports table has no accuracy column, so nothing downstream can tell a good fix from a poor one. The relay then appends a specific house number derived from it, and the address sentence is more precise than the coordinate that produced it.",
+          "correctedInIssue": "#31's body claimed DeviceFix already reasons about accuracy on the device path. It does not.",
+          "status": "recorded on #31; no code change"
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. The relay was unarmed, so the adapter, the city's validator and the reference-number parse were all untouched by this test (#56).",
+        "Nothing about a poor network. Both sends ran on wifi indoors; a 1390 ms send says little about the same walk on mobile data at the edge of coverage.",
+        "Nothing about the gallery path, which does not exist on either platform (#28). Every EXIF question this project has is a gallery-path question, and this test could not reach it.",
+        "Nothing about a cold outdoor GPS fix. Both fixes came from indoors in seconds, which is the case where the provider race resolves coarse."
+      ]
+    }
+  ]
+}
