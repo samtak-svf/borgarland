@@ -1,5 +1,5 @@
 {
-  "$comment": "OUR WORDS for what the relay answered, one sentence per outcome, in the language the person filing the ábending is using. Sibling of category-labels.json and separate from it for the same reason it is separate from reykjavik-form.json: those files record what the CITY says, this one is what WE say to a person about what happened. The relay's own body stays exactly as it is and is still shown, behind a control the person opens on purpose (#77). Both apps read this file; worker/tests/outcomes.test.ts holds it to the relay's own source, so an error code the relay can return and this file does not name fails the build rather than falling through to raw JSON in front of somebody.",
+  "$comment": "OUR WORDS for what the relay answered, one sentence per outcome, in the language the person filing the ábending is using. Sibling of category-labels.json and separate from it for the same reason it is separate from reykjavik-form.json: those files record what the CITY says, this one is what WE say to a person about what happened. The relay's own body stays exactly as it is and is still shown, behind a control the person opens on purpose (#77). Both apps read this file; worker/tests/outcomes.test.ts holds it to the relay's own source, ALL of it rather than one file, so an error code the relay can return and this file does not name fails the build rather than falling through to a shrug in front of somebody. The first version of that test read app.ts alone and therefore missed invalid-coordinate and invalid-description, which are thrown from domain.ts on the way through the report endpoint; they are named here now and the test reads every source file.",
   "verifiedAt": "2026-08-23",
   "source": "The first iOS field test, where one tester read {\"error\":\"outside-reykjavik\",...} on his phone and asked what it meant, and the other got the whole stored row and asked whether the app was connected to anything.",
   "sent": {
@@ -30,6 +30,14 @@
     "unknown-category": {
       "says": "Flokkurinn sem var valinn er ekki til hjá borginni.",
       "advice": "Farðu til baka og veldu annan flokk."
+    },
+    "invalid-coordinate": {
+      "says": "Hnitin sem fylgdu ábendingunni voru ógild.",
+      "advice": "Taktu nýja mynd, svo staðsetningin fylgi henni."
+    },
+    "invalid-description": {
+      "says": "Lýsinguna vantaði, eða hún var of löng.",
+      "advice": "Borgin krefst lýsingar. Skrifaðu stutta lýsingu og reyndu aftur."
     },
     "invalid-photo": {
       "says": "Myndin var ekki samþykkt.",

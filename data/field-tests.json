@@ -7,7 +7,7 @@
     "atMs is milliseconds since the telemetry session began, which is the app process starting. It is the only ordering that survives, because the relay stamps received_at at flush time rather than at the moment of the event. That column is still worth reading: every event of one batch shares its value, so a batch boundary is legible, a flush is datable, and a batch that never arrived leaves a hole with a shape. Grouping one session by received_at is how #74 was found, and an earlier version of this note claimed the opposite.",
     "A session id is random per process, never persisted, and cannot follow anyone between sessions (data/relay-events.json). Recording it here links a timeline to its report and to nothing else.",
     "dryRun records whether the relay was armed. A test against an unarmed relay proves the app and the relay and says nothing about the city.",
-    "A screenshot is not in this repository and never will be. The five that came back from the first iOS field test are photographs of two volunteers' homes; the repository is public and MIT. Where a screenshot is the only source for a finding, the entry says so and the finding stands on that alone."
+    "A screenshot is not in this repository and never will be. The five that came back across the first iOS field test, from both testers together, are photographs of two volunteers' homes; the repository is public and MIT. Where a screenshot is the only source for a finding, the entry says so and the finding stands on that alone."
   ],
   "tests": [
     {
@@ -547,7 +547,7 @@
           "lastAtMs": 317942
         }
       ],
-      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column and a flush is datable. Solving for the session start from the second and third batches puts it at about 20:13:11Z, which makes the first batch a flush that happened roughly two and a half minutes after its last event: the app being backgrounded, not a threshold being reached.",
+      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column and a flush is datable. Solving for the session start from the second batch puts it at 20:13:10.7Z; the third gives 20:13:17.6Z, and the seven seconds between them are the flush latency the method cannot see past. Either way the first batch is a flush that happened more than two minutes after its last event, which is the app being backgrounded rather than a threshold being reached.",
       "storedRow": "none. outside-reykjavik is thrown by the jurisdiction check before insertReport, so a refused report leaves nothing behind at all, and the reports table holds no row for this session.",
       "confirmed": [
         {
@@ -624,7 +624,7 @@
         "note": "Unarmed throughout, and confirmed unarmed afterwards from /api/health. Nothing either tester did could reach the city, which is why it was safe to put the app in a stranger's hands at all, and why neither test says anything about the city's behaviour."
       },
       "session": "223ba25118303cf6594d68a2c85a3315",
-      "method": "Guided over Messenger by the developer, who could not see the screen. Five screenshots came back and are NOT in this repository: they are photographs of a volunteer's home. Every observation below that a screenshot is the only source for says so.",
+      "method": "Guided over Messenger by the developer, who could not see the screen. Screenshots came back and are NOT in this repository: they are photographs of a volunteer's home. Five came back across the whole test, from both testers together, and this entry claims no count of its own. Every observation below that a screenshot is the only source for says so.",
       "timeline": [
         {
           "atMs": 0,
@@ -962,7 +962,7 @@
           "cityReference": null,
           "rejection": null,
           "municipalityCheck": "passed",
-          "note": "The same report as the row above, filed a second time 35 seconds later. Same byte count, same category, one photo-captured event in the whole session (#85)."
+          "note": "The same report as the row above, filed a second time 35 seconds later. Same category, and a photo byte count matching the FIRST of the session's three photo-captured events, at atMs 27511; the other two, at 427065 and 631650, carry different counts and neither was ever sent (#85)."
         }
       ],
       "confirmed": [
@@ -1020,7 +1020,7 @@
           "issue": 85,
           "severity": "defect",
           "what": "After a report is accepted the send button returns to its unsent state, fully live, as though nothing had been sent.",
-          "evidence": "Two stored rows 35 seconds apart, same photo byte count, one photo-captured event in the session; send-started at 70570 and again at 105431, with no retry path in the app at the time.",
+          "evidence": "Two stored rows 35 seconds apart, both carrying the byte count of the same photograph, the one captured at atMs 27511; send-started at 70570 and again at 105431, with no retry path in the app at the time, so nothing but a person could have begun the second.",
           "whyOnlyHere": "Everyone who had used the app knew what a 201 meant, so nobody had ever pressed the button twice.",
           "consequence": "In dry run it costs a duplicate row. Once the relay is armed the same press files a second ábending into a real work queue.",
           "status": "open"
