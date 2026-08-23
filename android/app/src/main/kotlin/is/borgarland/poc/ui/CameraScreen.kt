@@ -85,9 +85,13 @@ fun CameraScreen(
         Telemetry.shared.track(TelemetryEvent.CameraPermission(granted))
     }
 
+    // Both permissions in one request, because on Android 12 and later the
+    // dialog lets the user answer a FINE request with "Approximate". Asking for
+    // only FINE means that press denies us outright; asking for both means it
+    // grants coarse, which is worse than a real fix and much better than none.
     val locationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted -> onLocationPermissionResult(granted) }
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results -> onLocationPermissionResult(results.values.any { it }) }
 
     // The observed camera permission state on entry, exactly as the iOS shell
     // tracks it: a person who has already denied still gets counted, which is
@@ -98,11 +102,11 @@ fun CameraScreen(
 
     LaunchedEffect(state.needsLocationPermission) {
         if (state.needsLocationPermission) {
-            if (hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            if (hasAnyLocationPermission(context)) {
                 Telemetry.shared.track(TelemetryEvent.LocationPermission(true))
                 onRequestDeviceFix()
             } else {
-                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
             }
         }
     }
@@ -185,10 +189,10 @@ private fun ColumnScope.CapturedPhoto(
                     Spacer(Modifier.height(8.dp))
                     Row {
                         Button(onClick = {
-                            if (hasPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
+                            if (hasAnyLocationPermission(context)) {
                                 onRequestDeviceFix()
                             } else {
-                                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
                             }
                         }) { Text("Reyna aftur") }
                         Spacer(Modifier.width(8.dp))
@@ -285,6 +289,24 @@ private fun CameraPreview(
         ) { Text("Taka mynd") }
     }
 }
+
+/**
+ * The two location permissions, always requested together. See the manifest for
+ * why: on Android 12 and later, asking for FINE alone lets the user press
+ * "Approximate" and get us nothing at all.
+ */
+private val LOCATION_PERMISSIONS = arrayOf(
+    Manifest.permission.ACCESS_FINE_LOCATION,
+    Manifest.permission.ACCESS_COARSE_LOCATION,
+)
+
+/**
+ * Whether the app can ask for a position at all. Either permission counts:
+ * coarse is not accurate enough to find a bin, and the report is still better
+ * placed than one with no coordinate, which the relay refuses outright.
+ */
+private fun hasAnyLocationPermission(context: Context): Boolean =
+    LOCATION_PERMISSIONS.any { hasPermission(context, it) }
 
 private fun hasPermission(context: Context, permission: String): Boolean =
     ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
