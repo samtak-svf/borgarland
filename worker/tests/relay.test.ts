@@ -224,14 +224,23 @@ describe('the coordinate guard', () => {
     expect(() => cityFetch).not.toThrow()
   })
 
-  it('a literal 0,0 does not slip through — it is outside Reykjavík', async () => {
+  it('a literal 0,0 does not slip through, and is refused for the right reason', async () => {
     const { app } = createTestApp()
     const response = await postReport(
       app,
       reportForm({ latitude: '0', longitude: '0' }),
     )
     expect(response.status).toBe(400)
-    expect((await json(response)).error).toBe('outside-reykjavik')
+    // It used to be refused as outside-reykjavik, which was true and told
+    // nobody anything: 0,0 is in the Gulf of Guinea and the SVFNR deciding it
+    // belonged to an address thousands of kilometres away (#75). The refusal
+    // now says what is actually wrong.
+    const body = await json(response)
+    expect(body.error).toBe('jurisdiction-unknown')
+    expect(body.nearestKm).toBeGreaterThan(1000)
+    // And the address itself is not offered, because at that distance it is
+    // not a place.
+    expect(body.nearestAddress).toBeUndefined()
   })
 })
 

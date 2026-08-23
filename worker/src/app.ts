@@ -26,7 +26,7 @@ import {
 } from './domain'
 import type { Registry } from './registry'
 import { describeAddress } from './registry'
-import { checkJurisdiction } from './jurisdiction'
+import { checkJurisdiction, MAX_NEAREST_ADDRESS_KM } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
@@ -211,7 +211,12 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
         })
       }
       throw new HttpError(400, 'jurisdiction-unknown', {
-        reason: 'no registered address near this coordinate',
+        reason: 'no registered address near enough to this coordinate to say which municipality it is in',
+        // How far the nearest one was, when there was one at all. The address
+        // itself is deliberately not offered: at this distance it is not a
+        // place, it is an artefact of the register covering one country (#75).
+        nearestKm: jurisdiction.km === null ? null : Math.round(jurisdiction.km),
+        maxKm: MAX_NEAREST_ADDRESS_KM,
       })
     }
 

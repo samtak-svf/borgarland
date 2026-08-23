@@ -13,7 +13,7 @@ import {
   submitCityPayload,
 } from '../../src/adapters/reykjavik'
 import { createRegistry } from '../../src/registry'
-import { checkJurisdiction } from '../../src/jurisdiction'
+import { checkJurisdiction, MAX_NEAREST_ADDRESS_KM } from '../../src/jurisdiction'
 import { describeAddress } from '../../src/registry'
 import { FIXTURE_ADDRESSES } from '../helpers/fixtures'
 
@@ -171,8 +171,42 @@ describe('jurisdiction reads SVFNR of the nearest registered address', () => {
     }
   })
 
-  it('fails closed when the registry holds nothing near the point', () => {
+  it('fails closed when the registry holds nothing at all', () => {
     const check = checkJurisdiction(createRegistry([]), 64.14, -21.93)
-    expect(check).toEqual({ ok: false, reason: 'unknown', nearest: null })
+    expect(check).toEqual({ ok: false, reason: 'unknown', nearest: null, km: null })
+  })
+
+  // #75. The register holds Icelandic addresses only, so the nearest-address
+  // scan answers for every point on Earth: a coordinate in Seattle resolved to
+  // a lighthouse in Suðureyri and the answer said nothing about the 5,630 km
+  // between them.
+  it('refuses a coordinate too far from any registered address, and offers no address for it', () => {
+    const check = checkJurisdiction(registry, 47.64, -122.4)
+    expect(check).toMatchObject({ ok: false, reason: 'unknown', nearest: null })
+    expect(check.km).toBeGreaterThan(1000)
+  })
+
+  it('keeps the bound generous enough for anywhere in Reykjavík', () => {
+    // Kjalarnes is the farthest point inside the municipality measured against
+    // the 139,360-row snapshot, at 3.31 km from a registered address, and the
+    // bound is 10.
+    expect(MAX_NEAREST_ADDRESS_KM).toBeGreaterThanOrEqual(10)
+  })
+
+  /**
+   * The limitation, pinned rather than hidden. A point register cannot answer a
+   * polygon question: a coordinate the wrong side of a boundary whose nearest
+   * registered address is still a Reykjavík one passes, and the distance bound
+   * does not change that. Only the boundaries themselves would.
+   */
+  it('passes a point outside Reykjavík whose nearest registered address is inside it', () => {
+    const justOutside = createRegistry([
+      { svfnr: 0, streetNf: 'Reykjavíkurgata', houseNumber: 1, houseLetter: null, postalCode: '101', lat: 64.14, lng: -21.93 },
+      { svfnr: 1000, streetNf: 'Kópavogsgata', houseNumber: 1, houseLetter: null, postalCode: '200', lat: 64.10, lng: -21.90 },
+    ])
+    // Nearer to the Reykjavík row than to the Kópavogur one, and the check
+    // says yes. This is a known limitation, not a passing test of correctness.
+    const check = checkJurisdiction(justOutside, 64.135, -21.925)
+    expect(check.ok).toBe(true)
   })
 })
