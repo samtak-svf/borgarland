@@ -14,6 +14,25 @@
 // session format as worker/src/events.ts. An event the relay would have
 // refused cannot have been observed, whatever the record says.
 //
+// WHAT ELSE IS CHECKED, and why the list is written down. This script used to
+// walk `timeline` and nothing else, while promising in this very comment to
+// catch hand-copying drift in general (#90). Three sections of an entry are
+// transcribed from D1 and all three were unread: `delivery`, `reports` and
+// `timelineHole`. So, in full, an entry is held to:
+//
+//   timeline      every event against the contract's allowlist, its required
+//                 fields, its enum values, its bounds, and a non-decreasing atMs
+//   delivery      the batches must account for exactly the events in the
+//                 timeline, in order, with bounds that are events
+//   reports       an id in the format D1 stores, a category the facts file
+//                 names, and a photo count that is not negative
+//   timelineHole  its own arithmetic, and a gap that is really in the timeline
+//   findings      an issue number
+//
+// What is NOT checked, and cannot be from here: whether any of it is TRUE.
+// D1 is the only thing that knows, and this script has no network. It checks
+// that a record is internally consistent and could have been observed.
+//
 // Run: node scripts/check-field-tests.mjs
 
 import { readFileSync } from 'node:fs'
@@ -59,6 +78,8 @@ if (!Array.isArray(facts.categories)) {
  * session (worker/src/events.ts). */
 const MAX_AT_MS = 86_400_000
 const SESSION_PATTERN = /^[0-9a-f]{32}$/
+/** The same shape the relay gives a report (worker/src/app.ts, randomHex(16)). */
+const REPORT_ID_PATTERN = /^[0-9a-f]{32}$/
 
 const slugs = new Set(facts.categories.map((c) => c.slug))
 const problems = []
@@ -178,6 +199,122 @@ for (const test of record.tests) {
     if (!Number.isInteger(finding?.issue)) {
       fail(id, `a finding has no issue number: ${finding?.what ?? '(no description)'}`)
     }
+  }
+
+  checkDelivery(id, test)
+  checkReports(id, test)
+  checkTimelineHole(id, test)
+}
+
+/**
+ * The batches must account for the timeline exactly: same number of events,
+ * in order, and each batch's bounds must be the atMs of its own first and last
+ * event. A batch boundary is how #74 was found, so a wrong one is not cosmetic.
+ */
+function checkDelivery(id, test) {
+  if (test.delivery === undefined) return
+  if (!Array.isArray(test.delivery)) {
+    fail(id, 'delivery must be an array')
+    return
+  }
+  const timeline = Array.isArray(test.timeline) ? test.timeline : []
+  let consumed = 0
+  let previousReceived = ''
+  for (const [index, batch] of test.delivery.entries()) {
+    if (!Number.isInteger(batch?.events) || batch.events <= 0) {
+      fail(id, `delivery[${index}] carries ${JSON.stringify(batch?.events)} events`)
+      continue
+    }
+    if (typeof batch.receivedAt !== 'string' || Number.isNaN(Date.parse(batch.receivedAt))) {
+      fail(id, `delivery[${index}].receivedAt is not a timestamp: ${JSON.stringify(batch.receivedAt)}`)
+    } else if (batch.receivedAt < previousReceived) {
+      // A batch cannot arrive before the one before it. Equal is fine: two
+      // batches can share a millisecond.
+      fail(id, `delivery[${index}] arrived at ${batch.receivedAt}, before ${previousReceived}`)
+    } else {
+      previousReceived = batch.receivedAt
+    }
+
+    const slice = timeline.slice(consumed, consumed + batch.events)
+    consumed += batch.events
+    if (slice.length !== batch.events) {
+      fail(id, `delivery[${index}] claims ${batch.events} events, and the timeline has ${slice.length} left`)
+      continue
+    }
+    if (batch.firstAtMs !== slice[0]?.atMs) {
+      fail(id, `delivery[${index}].firstAtMs is ${batch.firstAtMs}, and its first event is at ${slice[0]?.atMs}`)
+    }
+    if (batch.lastAtMs !== slice[slice.length - 1]?.atMs) {
+      fail(id, `delivery[${index}].lastAtMs is ${batch.lastAtMs}, and its last event is at ${slice[slice.length - 1]?.atMs}`)
+    }
+  }
+  if (test.delivery.length > 0 && consumed !== timeline.length) {
+    fail(id, `delivery accounts for ${consumed} events and the timeline has ${timeline.length}`)
+  }
+}
+
+/**
+ * A report id gets the same rule the session id gets, and for the same reason
+ * given there: a truncated or invented id is not the value D1 stores, so the
+ * record stops linking to the row it was transcribed from.
+ */
+function checkReports(id, test) {
+  const rows = test.reports ?? (test.report ? [test.report] : [])
+  if (!Array.isArray(rows)) {
+    fail(id, 'reports must be an array')
+    return
+  }
+  for (const row of rows) {
+    if (typeof row?.id !== 'string' || !REPORT_ID_PATTERN.test(row.id)) {
+      fail(id, `a report id must be the 32 lowercase hex characters D1 stores; got ${JSON.stringify(row?.id)}`)
+    }
+    if (row?.categorySlug !== undefined && !slugs.has(row.categorySlug)) {
+      fail(id, `report ${row?.id} carries category "${row.categorySlug}", which the facts file does not name`)
+    }
+    if (row?.photoCount !== undefined && (!Number.isInteger(row.photoCount) || row.photoCount < 0)) {
+      fail(id, `report ${row?.id} carries photoCount ${JSON.stringify(row.photoCount)}`)
+    }
+    if (row?.dryRun !== undefined && typeof row.dryRun !== 'boolean') {
+      fail(id, `report ${row?.id} carries dryRun ${JSON.stringify(row.dryRun)}, which says nothing about whether the city could be reached`)
+    }
+  }
+}
+
+/**
+ * A hole is the one part of a record that asserts something is ABSENT, so its
+ * own arithmetic is the only thing anyone can check it by.
+ */
+function checkTimelineHole(id, test) {
+  const hole = test.timelineHole
+  if (hole === undefined) return
+  const bounds = hole.betweenAtMs
+  if (!Array.isArray(bounds) || bounds.length !== 2 || !bounds.every(Number.isInteger)) {
+    fail(id, `timelineHole.betweenAtMs must be two integers; got ${JSON.stringify(bounds)}`)
+    return
+  }
+  const [from, to] = bounds
+  if (to <= from) {
+    fail(id, `timelineHole runs from ${from} to ${to}, which is not a gap`)
+    return
+  }
+  if (hole.seconds !== undefined) {
+    const expected = Math.round((to - from) / 1000)
+    if (Math.abs(hole.seconds - expected) > 1) {
+      fail(id, `timelineHole.seconds is ${hole.seconds}, and ${to} minus ${from} is ${expected}`)
+    }
+  }
+  // The gap has to be a gap: both ends must be events, and nothing may sit
+  // between them. A hole nobody can find in the timeline is a claim, not a
+  // transcription.
+  const timeline = Array.isArray(test.timeline) ? test.timeline : []
+  const atMs = timeline.map((event) => event?.atMs)
+  if (!atMs.includes(from) || !atMs.includes(to)) {
+    fail(id, `timelineHole runs between ${from} and ${to}, and one of those is not an event in the timeline`)
+    return
+  }
+  const inside = atMs.filter((value) => value > from && value < to)
+  if (inside.length > 0) {
+    fail(id, `timelineHole claims nothing between ${from} and ${to}, and the timeline has ${inside.length} event(s) there`)
   }
 }
 
