@@ -232,7 +232,7 @@ final class TelemetryTest: XCTestCase {
     func testOnlyOneBatchIsInFlightAtATime() throws {
         let start = Date()
         var bodies: [Data] = []
-        var pending: [(Telemetry.BatchOutcome) -> Void] = []
+        var pending: [Telemetry.BatchReceipt] = []
         let telemetry = Telemetry(sessionStart: start, now: { start })
         telemetry.send = { body, done in bodies.append(body); pending.append(done) }
 

@@ -65,16 +65,36 @@ public final class Telemetry {
         case undelivered
     }
 
+    /// How a transport reports an outcome: a callback in a box.
+    ///
+    /// The box is not decoration. Swift cannot spell `@escaping` inside a
+    /// function TYPE, and a closure parameter of function type is non-escaping
+    /// at the use site, so a transport handed a bare closure could not HOLD it
+    /// until its request answers — which is the only thing a transport ever
+    /// does with it. Wrapping it in a value moves the escaping promise to an
+    /// initialiser, where the attribute is legal. `callAsFunction` keeps every
+    /// call site reading `report(.delivered)`. The Kotlin side needs none of
+    /// this and takes the function type directly.
+    public struct BatchReceipt {
+        private let report: (BatchOutcome) -> Void
+
+        public init(_ report: @escaping (BatchOutcome) -> Void) {
+            self.report = report
+        }
+
+        /// Report what became of the batch. Exactly once.
+        public func callAsFunction(_ outcome: BatchOutcome) {
+            report(outcome)
+        }
+    }
+
     /// Injectable network send. A unit test replaces it to capture the body;
     /// nil means the default fire-and-forget URLSession post.
     ///
-    /// The closure must call its completion exactly once. Calling it late is
-    /// fine and is the normal case; never calling it leaves the channel with
-    /// no flush in flight and a buffer that only drains at the cap.
-    /// (No `@escaping` on the completion: inside a function TYPE a closure
-    /// parameter is escaping already, and the attribute is only legal on a
-    /// function declaration's own parameter, as on `httpSend` below.)
-    public var send: ((Data, (BatchOutcome) -> Void) -> Void)?
+    /// The closure must report exactly once. Reporting late is fine and is the
+    /// normal case; never reporting leaves the channel with no flush in flight
+    /// and a buffer that only drains at the cap.
+    public var send: ((Data, BatchReceipt) -> Void)?
 
     /// Flush when the buffer reaches this many events.
     public var flushThreshold = 20
@@ -190,9 +210,9 @@ public final class Telemetry {
             return
         }
         let transport = send ?? httpSend
-        transport(body) { [weak self] outcome in
+        transport(body, BatchReceipt { [weak self] outcome in
             self?.finish(batch, outcome)
-        }
+        })
     }
 
     /// Closes out a flush: the channel is free again, and an undelivered batch
@@ -253,9 +273,9 @@ public final class Telemetry {
     /// far as the caller is concerned: nobody is shown an error and nothing
     /// waits (data/relay-events.json, endpoint.notes). The answer is read only
     /// to decide whether the events are worth keeping.
-    private func httpSend(_ body: Data, _ completion: @escaping (BatchOutcome) -> Void) {
+    private func httpSend(_ body: Data, _ report: BatchReceipt) {
         guard let url = URL(string: baseURL + "/api/events") else {
-            completion(.rejected)
+            report(.rejected)
             return
         }
         var request = URLRequest(url: url)
@@ -265,10 +285,10 @@ public final class Telemetry {
         request.timeoutInterval = 15
         URLSession.shared.dataTask(with: request) { _, response, error in
             guard error == nil, let status = (response as? HTTPURLResponse)?.statusCode else {
-                completion(.undelivered)
+                report(.undelivered)
                 return
             }
-            completion(Telemetry.outcome(forStatus: status))
+            report(Telemetry.outcome(forStatus: status))
         }.resume()
     }
 
