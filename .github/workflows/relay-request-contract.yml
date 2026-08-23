@@ -45,11 +45,15 @@ jobs:
       - name: The contract file holds, and the Worker reads it
         run: node scripts/check-relay-contract.mjs
 
-      - name: Worker tests prove the wire enforces the contract
+      # `npm run check` rather than `npm test`: it typechecks first. The
+      # project has a typecheck script and nothing ran it, so a test file that
+      # imported a Node API the Workers type shim does not carry sat broken on
+      # main with every job green.
+      - name: Worker typechecks and its tests prove the wire enforces the contract
         working-directory: worker
         run: |
           npm ci
-          npm test
+          npm run check
 
       - uses: actions/setup-java@v5
         with:

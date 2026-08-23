@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { readdirSync, readFileSync } from 'node:fs'
 
 /**
  * #77: a tester read `{"error":"outside-reykjavik",...}` on his phone and asked
@@ -22,15 +21,22 @@ import { join } from 'node:path'
  * a code assembled at runtime is a code no scan can check, and the scan says so
  * instead of passing.
  */
-const SOURCE_DIR = join(__dirname, '../src')
-const FILE = JSON.parse(readFileSync(join(__dirname, '../../data/relay-outcomes.json'), 'utf8'))
+// Relative to the vitest root, which is worker/, exactly as the sibling
+// contract test reads its own files. No node:path and no __dirname: this
+// project's tsconfig has no @types/node, so both are type errors, and
+// `npm run typecheck` is now part of the build (this file used to break it).
+const SOURCE_DIR = 'src'
+const FILE = JSON.parse(readFileSync('../data/relay-outcomes.json', 'utf8'))
 
-/** Every .ts file under worker/src, at any depth. */
+/**
+ * Every .ts file under worker/src, at any depth. A name ending in .ts is a
+ * file and anything else is a directory to walk, which avoids statSync — not
+ * exported by the type shim this project builds against.
+ */
 function sourceFiles(dir: string = SOURCE_DIR): string[] {
   return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry)
-    if (statSync(path).isDirectory()) return sourceFiles(path)
-    return path.endsWith('.ts') ? [path] : []
+    const path = `${dir}/${entry}`
+    return entry.endsWith('.ts') ? [path] : sourceFiles(path)
   })
 }
 

@@ -39,6 +39,19 @@ export class Registry {
 
   /** The nearest registered address to a point, by great-circle distance. */
   nearest(lat: number, lng: number): AddressPoint | null {
+    return this.nearestWithDistance(lat, lng)?.row ?? null
+  }
+
+  /**
+   * The nearest registered address AND how far away it was.
+   *
+   * The distance is not decoration. The register holds Icelandic addresses
+   * only, so every point on Earth has a nearest one and this scan always
+   * answers: a coordinate in Seattle resolves to a lighthouse in Suðureyri
+   * 5,630 km away, and a caller reading only the row cannot tell that from a
+   * house across the street (#75).
+   */
+  nearestWithDistance(lat: number, lng: number): { row: AddressPoint; km: number } | null {
     let best: AddressPoint | null = null
     let bestKm = Infinity
     for (const row of this.rows) {
@@ -48,7 +61,7 @@ export class Registry {
         best = row
       }
     }
-    return best
+    return best === null ? null : { row: best, km: bestKm }
   }
 }
 
