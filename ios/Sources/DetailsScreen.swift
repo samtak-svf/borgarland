@@ -8,17 +8,36 @@ import BorgarlandCore
 struct DetailsScreen: View {
     @ObservedObject var model: ReportModel
 
+    /// Whether the description field holds the keyboard. Without a focus to
+    /// take away there was no way to put the keyboard down at all (#79): the
+    /// screen had no scroll-to-dismiss, no focus state and no keyboard toolbar,
+    /// so it went away only if the system happened to take it.
+    @FocusState private var descriptionFocused: Bool
+
+    /// The title, pinned above the scroll view rather than carried inside it.
+    ///
+    /// `safeAreaInset` does two things at once and both are the fix: it puts an
+    /// opaque strip between the status bar and the content, and it insets the
+    /// scroll view's own safe area so the content stops at the strip instead of
+    /// passing under it. In the field-test screenshot the clock sat on top of a
+    /// category name and both were unreadable (#78).
+    private func header(_ title: String) -> some View {
+        Text(title)
+            .font(.title2)
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+            .background(Color(.systemBackground))
+    }
+
     var body: some View {
         let state = model.state
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Skrá ábendingu")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
                 Text("Staðsetning: \(state.locationSource ?? "")")
                     .font(.footnote)
-                    .padding(.top, 4)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Tillaga úr myndinni")
@@ -91,6 +110,7 @@ struct DetailsScreen: View {
                     axis: .vertical
                 )
                 .lineLimit(4...10)
+                .focused($descriptionFocused)
                 .padding(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.systemGray4)))
                 .padding(.top, 8)
@@ -118,6 +138,16 @@ struct DetailsScreen: View {
                 }
             }
             .padding(16)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) { header("Skrá ábendingu") }
+        // Two ways down, because one is a gesture nobody is told about and the
+        // other is a control somebody can see (#79).
+        .scrollDismissesKeyboard(.interactively)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Loka lyklaborði") { descriptionFocused = false }
+            }
         }
     }
 

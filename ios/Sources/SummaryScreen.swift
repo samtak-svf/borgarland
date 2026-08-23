@@ -10,14 +10,28 @@ struct SummaryScreen: View {
     @ObservedObject var model: ReportModel
     let payload: Payload
 
+    /// The title, pinned above the scroll view rather than carried inside it.
+    ///
+    /// `safeAreaInset` does two things at once and both are the fix: it puts an
+    /// opaque strip between the status bar and the content, and it insets the
+    /// scroll view's own safe area so the content stops at the strip instead of
+    /// passing under it. In the field-test screenshot the clock sat on top of a
+    /// category name and both were unreadable (#78).
+    private func header(_ title: String) -> some View {
+        Text(title)
+            .font(.title2)
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+            .background(Color(.systemBackground))
+    }
+
     var body: some View {
         let state = model.state
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Það sem yrði sent")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
                 Text("Ekkert fer til borgarinnar. Þetta app sendir aðeins á okkar relay (ákvörðun 0002) og relay-ið er í þurrkeyrslu og framsendir ekkert. Hér fyrir neðan er nákvæmlega það sem færi yfir línuna.")
                     .font(.footnote)
                     .padding(12)
@@ -175,6 +189,9 @@ struct SummaryScreen: View {
             }
             .padding(16)
         }
+        // The same exposure as the details screen, never photographed doing it
+        // but identical in shape (#78).
+        .safeAreaInset(edge: .top, spacing: 0) { header("Það sem yrði sent") }
     }
 }
 

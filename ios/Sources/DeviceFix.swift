@@ -26,6 +26,7 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     private var liveContinuation: CheckedContinuation<CLLocation?, Never>?
     private var timeoutTask: Task<Void, Never>?
     private var authorizationContinuation: CheckedContinuation<Bool, Never>?
+    private var authorizationTimeoutTask: Task<Void, Never>?
 
     // Internal, not private: an override cannot be less accessible than the
     // inherited initializer, and the singleton above is the only instance
@@ -76,20 +77,39 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     /// reports the denial otherwise. A caller that shows something to a person
     /// on a false answer must ask `isDenied` too: the two refusals look the
     /// same here and are not the same situation.
-    func requestWhenInUseAuthorization() async -> Bool {
+    func requestWhenInUseAuthorization(timeout: TimeInterval = 60) async -> Bool {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             return true
         case .denied, .restricted:
             return false
         case .notDetermined:
-            return await withCheckedContinuation { continuation in
+            let granted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 authorizationContinuation = continuation
+                // A dialog somebody never answers must not hold the walk open
+                // for the life of the process. The bound is generous because
+                // reading a permission dialog is a slow, deliberate thing; what
+                // it protects against is a callback that never comes at all.
+                authorizationTimeoutTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                    self.resumeAuthorization(self.isAuthorized)
+                }
                 manager.requestWhenInUseAuthorization()
             }
+            authorizationTimeoutTask?.cancel()
+            authorizationTimeoutTask = nil
+            return granted
         @unknown default:
             return false
         }
+    }
+
+    /// Resumed exactly once, on the same pattern as `resumeFix`: whichever of
+    /// the delegate and the timeout arrives first leaves nothing for the other.
+    private func resumeAuthorization(_ granted: Bool) {
+        guard let continuation = authorizationContinuation else { return }
+        authorizationContinuation = nil
+        continuation.resume(returning: granted)
     }
 
     /// A fix, or nil after the timeout.
@@ -152,14 +172,16 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         MainActor.assumeIsolated {
-            guard let continuation = authorizationContinuation else { return }
-            authorizationContinuation = nil
-            switch manager.authorizationStatus {
-            case .authorizedWhenInUse, .authorizedAlways:
-                continuation.resume(returning: true)
-            default:
-                continuation.resume(returning: false)
-            }
+            // `notDetermined` is not an answer, and treating it as one is #86.
+            // This delegate is called when the location manager is CREATED as
+            // well as when authorization changes, and the instance is created
+            // lazily by the very call that then sets the continuation — so the
+            // creation callback can arrive after it, find it, and report a
+            // refusal nobody gave. Both field testers were told the permission
+            // was missing 37 and 118 ms after their photograph, while the
+            // dialog asking for it was still on their screen.
+            guard manager.authorizationStatus != .notDetermined else { return }
+            resumeAuthorization(isAuthorized)
         }
     }
 }
