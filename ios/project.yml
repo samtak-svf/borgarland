@@ -85,6 +85,8 @@ targets:
         buildPhase: resources
       - path: ../data/relay-request.json
         buildPhase: resources
+      - path: ../data/category-labels.json
+        buildPhase: resources
     dependencies:
       - package: BorgarlandCore
         product: BorgarlandCore

@@ -118,8 +118,8 @@
     },
     {
       "name": "lint-in-ci",
-      "intent": "neither-yet",
-      "reason": "#2 names ktlint and Android lint as an acceptance criterion and neither is configured; iOS has no SwiftLint either. Tracked in #58.",
+      "intent": "android-only",
+      "reason": "#2 named ktlint and Android lint as an acceptance criterion; both now run in .github/workflows/android-ci.yml. iOS has no SwiftLint and no decision has been taken on adding one, so this is one-sided on purpose rather than by neglect. Tracked in #58. The parity check caught this the moment ktlint landed, which is the tool doing its job on its first real change.",
       "detect": {
         "android": { "paths": ["android", ".github/workflows"], "pattern": "ktlint|detekt" },
         "ios": { "paths": ["ios", ".github/workflows"], "pattern": "swiftlint|SwiftLint" }

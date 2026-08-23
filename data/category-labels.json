@@ -1,0 +1,15 @@
+{
+  "$comment": "OUR words for the city's categories, where the city's own words are wrong for a person standing in front of the thing. This is the only place an app may override a label from data/reykjavik-form.json, and it is deliberately a separate file: that one holds the CITY's facts and must stay a faithful record of them (decision 0001), so our editorial voice cannot live in it. Both apps read this; scripts/check-relay-contract.mjs and the picker tests pin it. A slug absent from `labels` renders the city's own name unchanged, which is the default and should stay the common case.",
+  "verifiedAt": "2026-08-22",
+  "source": "AGENTS.md § What belongs in the app, which required this rewording in the present tense while no app implemented it (#40).",
+  "labels": {
+    "almenn-abending": {
+      "label": "Annað í almannarými",
+      "help": "Bekkur, girðing, tré eða annað sem á ekki heima í hinum flokkunum.",
+      "why": "The city calls this suggestions, praise and ideas, and presents it as a suggestion box. Here it is the net under a broken bench, a fallen tree, a collapsed fence: a walker's find with no category of its own. Sending someone to a suggestion box for a fallen tree is the wrong instruction, and the city's own name for the slug is never what we send anyway (the adapter derives that from the slug)."
+    }
+  },
+  "notes": {
+    "kind": "There is deliberately NO general/specific kind label in this file, because there is no longer one in the interface. Both pickers used to render the city's `type` field as a subtitle, which said 'Almenn ábending' beneath a category also called 'Almenn ábending' (#40). The subtitle was the city's internal taxonomy, it told a walker nothing they could act on, and removing it is what fixes the collision at the root rather than renaming one half of it."
+  }
+}

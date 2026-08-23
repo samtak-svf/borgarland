@@ -1,5 +1,6 @@
 package `is`.borgarland.poc.location
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
 import android.location.LocationListener
@@ -22,7 +23,18 @@ import kotlin.coroutines.resume
  *
  * Returns null only when no provider has anything, and the caller then
  * refuses to continue rather than sending a report nobody can act on.
+ *
+ * **On the `MissingPermission` suppression.** Every LocationManager call below
+ * is wrapped in `runCatching`, so a SecurityException from a permission the
+ * user revoked between the check and the call is caught and read as "this
+ * provider has nothing" — exactly how the class already treats a provider that
+ * cannot answer. Android lint cannot see that: it looks for an explicit
+ * permission check or a named SecurityException catch at the call site and
+ * finds neither. The suppression says the handling exists, not that the
+ * permission does not matter; PocViewModel asks for ACCESS_FINE_LOCATION before
+ * it ever constructs this, and refuses to continue without a coordinate.
  */
+@SuppressLint("MissingPermission")
 class DeviceFix(context: Context) {
 
     private val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager

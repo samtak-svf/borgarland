@@ -29,6 +29,10 @@ struct ReportUiState {
     // Module-qualified: the SDK carries a type of the same name, and an
     // unqualified `Category` is ambiguous at type position.
     var categories: [BorgarlandCore.Category] = []
+    /// What to SHOW for each slug, and the optional line under it. Resolved in
+    /// the model so the screen never has to know an override exists (#40).
+    var categoryDisplay: [String: String] = [:]
+    var categoryHelp: [String: String] = [:]
     var descriptionMaxLength: Int = 2500
     var photo: Photo? = nil
     var photoError: String? = nil
@@ -74,10 +78,29 @@ final class ReportModel: ObservableObject {
             .flatMap { try? Data(contentsOf: $0) }
             .flatMap { try? RelayRequest.parse($0) }
 
+        // Our own words for a category, where the city's are wrong for a walker
+        // (#40). Optional on purpose: a missing or unreadable file falls back to
+        // the city's names, which is a degraded picker rather than a dead app.
+        // The facts file is the one that stops everything, because without it
+        // there are no categories at all.
+        let labels = Bundle.main.url(forResource: "category-labels.json", withExtension: nil)
+            .flatMap { try? Data(contentsOf: $0) }
+            .flatMap { try? CategoryLabels.parse($0) }
+
         if let parsed {
             facts = parsed
+            var display: [String: String] = [:]
+            var help: [String: String] = [:]
+            for category in parsed.categories {
+                display[category.slug] = CategoryLabels.display(category, in: labels)
+                if let line = CategoryLabels.help(category, in: labels) {
+                    help[category.slug] = line
+                }
+            }
             state = ReportUiState(
                 categories: parsed.categories,
+                categoryDisplay: display,
+                categoryHelp: help,
                 descriptionMaxLength: parsed.fields.description.maxLength
             )
         } else {
@@ -270,8 +293,15 @@ final class ReportModel: ObservableObject {
         Telemetry.shared.track(.screenLeft(screen: .confirm, completed: false))
         photoCapturedAt = nil
         let categories = state.categories
+        let categoryDisplay = state.categoryDisplay
+        let categoryHelp = state.categoryHelp
         let descriptionMaxLength = state.descriptionMaxLength
-        state = ReportUiState(categories: categories, descriptionMaxLength: descriptionMaxLength)
+        state = ReportUiState(
+            categories: categories,
+            categoryDisplay: categoryDisplay,
+            categoryHelp: categoryHelp,
+            descriptionMaxLength: descriptionMaxLength
+        )
     }
 
     /// Sends to OUR relay, which is the only thing this app can reach. The

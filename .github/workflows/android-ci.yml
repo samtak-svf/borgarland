@@ -1,0 +1,77 @@
+# The Android app builds and lints. Separate from relay-request-contract.yml
+# on purpose: that workflow's Android job proves the CONTRACT holds — the app
+# builds exactly the parts data/relay-request.json names — and needs nothing
+# but a JVM. This one runs the app's own gates: ktlint, Android lint, the
+# debug build and the unit tests. Keeping them apart means a broken shell
+# never hides a broken contract, and a contract failure is never diagnosed as
+# a UI problem. It does NOT need a device, an emulator or a signing
+# certificate; signing belongs to a future release workflow, the same way iOS
+# keeps signing in ios-release.yml.
+#
+# `testDebugUnitTest` also runs in relay-request-contract.yml, deliberately:
+# that job gates the shared data files (a change to data/relay-request.json
+# must prove the app still honours it, and it regenerates the app's asset copy
+# which its script then byte-compares), while this job gates the app (a change
+# to android/ must prove the app still builds, lints clean and passes its own
+# tests). The duplicated run is a few minutes of free hosted time, and the two
+# jobs fail for different reasons.
+#
+# ubuntu-latest minutes are free because this repository is public.
+name: android-ci
+
+on:
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'data/**'
+      - '.github/workflows/android-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'android/**'
+      - 'data/**'
+      - '.github/workflows/android-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # The build targets JVM 17 (compileOptions and the Kotlin jvmTarget in
+      # app/build.gradle.kts), so the toolchain is pinned rather than left to
+      # whatever the runner image ships. Same distribution and version as the
+      # contract workflow's Android job.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Gradle dependency caching: the wrapper download, the dependency graph
+      # and the build cache are reused across runs. Without this, every run
+      # re-downloads Gradle 9.4.1 and resolves the whole graph from Maven
+      # Central again.
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Lint check (ktlint)
+        run: ./gradlew ktlintCheck
+
+      - name: Android lint
+        run: ./gradlew :app:lintDebug
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      # The contract workflow runs this same task. The header comment explains
+      # why the duplication is deliberate rather than an oversight.
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest

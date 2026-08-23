@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
 }
 
 // Where the relay lives, per build type (#29). The counterpart of
@@ -50,6 +51,18 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    lint {
+        // The camera is the entry point, so requiring the hardware is the
+        // specification rather than an oversight. This check assumes the
+        // opposite and asks for required="false", which would be a false
+        // declaration: the app cannot do anything on a device with no camera.
+        // See the reasoning in AndroidManifest.xml beside the uses-feature tag.
+        disable += "PermissionImpliesUnsupportedChromeOsHardware"
+        // Everything else is a build failure. A warning nobody reads is the
+        // state this workflow exists to leave behind.
+        abortOnError = true
     }
 
     buildFeatures {
@@ -104,4 +117,12 @@ val copyRelayRequest by tasks.registering(Copy::class) {
     into(layout.projectDirectory.dir("src/main/assets"))
 }
 
-tasks.named("preBuild") { dependsOn(copyFacts, copyRelayRequest) }
+// Our own words for the city's categories, where the city's are wrong for a
+// person standing in front of the thing (#40). Same single-home rule and same
+// build-time copy as the two files above; a copy in git is a copy that drifts.
+val copyCategoryLabels by tasks.registering(Copy::class) {
+    from(rootProject.file("../data/category-labels.json"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+
+tasks.named("preBuild") { dependsOn(copyFacts, copyRelayRequest, copyCategoryLabels) }

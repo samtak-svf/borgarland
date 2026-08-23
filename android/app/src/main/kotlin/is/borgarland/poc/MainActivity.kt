@@ -43,46 +43,46 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                  Box(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
-                state.factsError?.let { error ->
-                    Text(
-                        error,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                    return@Box
-                }
-
-                when (state.screen) {
-                    Screen.Camera -> CameraScreen(
-                        state = state,
-                        onPhotoCaptured = viewModel::onPhotoCaptured,
-                        onPhotoError = viewModel::onPhotoError,
-                        onRetakePhoto = viewModel::retakePhoto,
-                        onLocationPermissionResult = viewModel::onLocationPermissionResult,
-                        onRequestDeviceFix = viewModel::requestDeviceFix,
-                    )
-
-                    Screen.Details -> DetailsScreen(
-                        state = state,
-                        onSelectCategory = viewModel::selectCategory,
-                        onDescriptionChange = viewModel::onDescriptionChange,
-                        onContinue = viewModel::continueToSummary,
-                    )
-
-                    Screen.Summary -> {
-                        val payload = viewModel.payload()
-                        if (payload != null) {
-                            SummaryScreen(
-                                state = state,
-                                payload = payload,
-                                onStartOver = viewModel::startOver,
-                                onSend = viewModel::sendToRelay,
+                    Box(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+                        state.factsError?.let { error ->
+                            Text(
+                                error,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(16.dp),
                             )
+                            return@Box
+                        }
+
+                        when (state.screen) {
+                            Screen.Camera -> CameraScreen(
+                                state = state,
+                                onPhotoCaptured = viewModel::onPhotoCaptured,
+                                onPhotoError = viewModel::onPhotoError,
+                                onRetakePhoto = viewModel::retakePhoto,
+                                onLocationPermissionResult = viewModel::onLocationPermissionResult,
+                                onRequestDeviceFix = viewModel::requestDeviceFix,
+                            )
+
+                            Screen.Details -> DetailsScreen(
+                                state = state,
+                                onSelectCategory = viewModel::selectCategory,
+                                onDescriptionChange = viewModel::onDescriptionChange,
+                                onContinue = viewModel::continueToSummary,
+                            )
+
+                            Screen.Summary -> {
+                                val payload = viewModel.payload()
+                                if (payload != null) {
+                                    SummaryScreen(
+                                        state = state,
+                                        payload = payload,
+                                        onStartOver = viewModel::startOver,
+                                        onSend = viewModel::sendToRelay,
+                                    )
+                                }
+                            }
                         }
                     }
-                }
-                  }
                 }
             }
         }

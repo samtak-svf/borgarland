@@ -48,10 +48,28 @@ struct DetailsScreen: View {
                             Image(systemName: selected ? "largecircle.fill.circle" : "circle")
                                 .foregroundStyle(selected ? Color.accentColor : Color.secondary)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(category.category)
-                                Text(category.type == "general" ? "Almenn ábending" : "Sérstök ábending")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                // Our name where we have one, the city's
+                                // otherwise (data/category-labels.json). The
+                                // model resolves it, so this screen never
+                                // learns that an override exists.
+                                Text(state.categoryDisplay[category.slug] ?? category.category)
+                                // The line under it is a help string for a
+                                // category whose scope is not obvious, and most
+                                // have none.
+                                //
+                                // This used to render the city's
+                                // general/specific `type`, which put "Almenn
+                                // ábending" under a category also called
+                                // "Almenn ábending" (#40). That subtitle was
+                                // the city's own taxonomy and told a walker
+                                // nothing they could act on; removing it fixes
+                                // the collision at the root rather than
+                                // renaming one half of it.
+                                if let help = state.categoryHelp[category.slug] {
+                                    Text(help)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                             Spacer()
                         }

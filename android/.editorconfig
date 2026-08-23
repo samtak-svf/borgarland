@@ -1,0 +1,57 @@
+# ktlint configuration for the Android app.
+#
+# The root .editorconfig sets the shared properties (4-space indent, LF, UTF-8)
+# and the two ktlint adjustments every Kotlin file in this repo uses. This file
+# only relaxes ktlint's standard rules where the app's sources deviate from
+# them by design. Every disable below names the conflict it exists for; nothing
+# is disabled for convenience, and there are no file-scoped or temporary
+# disables at all.
+#
+# There were three, for a stray indentation block and two missing blank lines.
+# Those were real defects rather than style disagreements, so they were fixed
+# with `ktlint --format` and the disables deleted. A lint rule switched off for
+# a file "until the edit lands" is a rule switched off, and the note explaining
+# it goes stale the moment the line numbers move.
+
+[*.{kt,kts}]
+# ktlint's wrapping rules share one opinion: when a declaration or expression
+# does not fit on one line, each part must start on its own line — parameters
+# under their function, chained calls broken before the dot, multiline
+# expressions and conditions on their own line. The app's sources were written
+# against the opposite rule: the opening line keeps as much as fits and the
+# rest wraps at the natural point. Every file in the app carries violations of
+# several of these rules, which is the shape of a style conflict rather than a
+# typo, so the family is disabled as a unit rather than file by file.
+ktlint_standard_function-signature = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_chain-method-continuation = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_wrapping = disabled
+ktlint_standard_condition-wrapping = disabled
+# The trailing-comma rules are the same opinion applied to the end of a
+# wrapped list, and ktlint refuses to load them without the wrapping rule
+# (it throws in the rule engine), so they go with the family.
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+
+# The app's imports are hand-sorted in the order the authors read them, and the
+# package path is backtick-escaped throughout (`is`.borgarland.poc), which
+# disagrees with ktlint's lexicographic-with-java/kotlin-last model in every
+# file that mixes the two. Reformatting would settle it; this branch does not
+# touch src/.
+ktlint_standard_import-ordering = disabled
+
+# Every class in the app opens its body with a blank line. ktlint forbids that;
+# the habit wins.
+ktlint_standard_no-empty-first-line-in-class-body = disabled
+
+# ktlint's default ceiling of 140 — or any fixed ceiling — fights the app's
+# content: the user-facing error strings are full Icelandic sentences and
+# single logical units, one of them in PocViewModel.kt runs 206 characters,
+# and they are edited as sentences rather than wrapped. Splitting one to satisfy
+# a line-length rule would read worse than leaving it. The rule is disabled
+# rather than given a higher ceiling, because a ceiling only fails again on the
+# next Icelandic sentence.
+ktlint_standard_max-line-length = disabled

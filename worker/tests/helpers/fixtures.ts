@@ -65,6 +65,18 @@ export const KOPAVOGUR_POINT = { latitude: '64.1109', longitude: '-21.901' }
 /** A token that passes the live-send shape check (≥32 chars of [A-Za-z0-9_-]). */
 export const TEST_LIVE_KEY = 'test-live-key-0123456789abcdef0123456789'
 
+/**
+ * A genuine JPEG file (a 1x1 JFIF: SOI, APP0 with the JFIF marker, EOI).
+ * Every test that posts a report needs a photo whose bytes match its declared
+ * type, because the relay sniffs the bytes behind the MIME type and refuses a
+ * mismatch; a fake "jpeg" of arbitrary bytes would fail every other describe
+ * block for the wrong reason.
+ */
+export const JPEG_BYTES = new Uint8Array([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01,
+  0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+])
+
 export interface TestAppOptions {
   /** Give env a CITY_SEND_KEY so the relay attempts the live city POST. */
   live?: boolean
@@ -121,7 +133,7 @@ export function reportForm(overrides: Record<string, string> = {}): FormData {
     latitude: REYKJAVIK_POINT.latitude,
     longitude: REYKJAVIK_POINT.longitude,
     description: 'Full ruslafata við stíginn',
-    photo: new File([new Uint8Array([1, 2, 3])], 'bin.jpg', { type: 'image/jpeg' }),
+    photo: new File([JPEG_BYTES], 'bin.jpg', { type: 'image/jpeg' }),
   }
   for (const name of Object.keys(RELAY_FIELDS)) {
     const value = values[name]

@@ -317,6 +317,7 @@ sealed class TelemetryEvent(val name: String) {
     enum class Screen(val value: String) {
         CAMERA("camera"),
         DETAILS("details"),
+
         // `confirm`, not `summary`: the city has a payload field by that
         // name and the no-city-endpoint guards forbid spelling one here. The
         // screen is still SummaryScreen; only the wire word moved.

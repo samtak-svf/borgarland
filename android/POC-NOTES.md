@@ -53,8 +53,16 @@ What replaced "no network at all" is narrower and still checkable:
    because nothing here reads connectivity.
 
 Verified on the built artifact rather than the source: `aapt dump permissions`
-on the APK lists `CAMERA`, `ACCESS_FINE_LOCATION` and `INTERNET`, and no
-`ACCESS_NETWORK_STATE`.
+on the APK lists `CAMERA`, `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` and
+`INTERNET`, and no `ACCESS_NETWORK_STATE`.
+
+`ACCESS_COARSE_LOCATION` is there on purpose and was added late, after Android
+lint refused the build over it. Since Android 12 the permission dialog for a
+FINE request carries an "Approximate" button, and an app that declared only FINE
+is denied outright when the user presses it. Declaring both turns that press
+into a coarse grant. Coarse cannot find a bin, so the app still asks for FINE
+and the copy still says why; what this buys is a usable answer instead of a
+refusal when someone gives less than we asked for.
 
 `ACCESS_NETWORK_STATE` did appear in an intermediate build: CameraX 1.6.1
 pulls `androidx.media3` (video muxing) whose manifest declares it. This POC
