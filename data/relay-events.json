@@ -37,6 +37,7 @@
     "screen-left": { "fields": { "screen": ["camera", "details", "confirm"], "completed": "boolean" } }
   },
   "notes": {
+    "send-started": "one attempt, not one report. Since #73 a report that could not be sent waits on the phone and is tried again when the app returns to the foreground or the network comes back, so one report can produce several send-started events, and a retry after a relaunch carries a DIFFERENT session id — the session is per launch by design. A session whose first event is send-started is a retry of something filed earlier, not somebody who opened the app and sent nothing.",
     "description-length": "the LENGTH of what was typed, never the text. This is how we learn whether the city's mandatory description is friction without reading what anyone wrote.",
     "accuracyM": "the radius the platform reports in whole metres. Not the coordinate. A coordinate is what the report carries, deliberately and with the reporter's knowledge; instrumentation carries no location at all.",
     "screen": "the last screen is called `confirm` here and SummaryScreen in the app on purpose. `summary` is one of the city's own payload field names, and NoCityEndpointTest forbids the library from spelling any of those. The library has to spell every value in this file, so a value that collides with the city's vocabulary would force that guard to be weakened. Renaming ours was the cheaper of the two.",

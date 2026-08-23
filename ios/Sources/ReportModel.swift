@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import CoreLocation
+import Network
 import BorgarlandCore
 
 /// Which of the three screens the shell shows. The Kotlin reference models
@@ -46,6 +47,19 @@ struct ReportUiState {
     var outOfBounds: Bool = false
     var sending: Bool = false
     var sendResult: String? = nil
+    /// What is happening to THIS report when the relay has not answered: it is
+    /// waiting for a network, or someone stopped the attempt. Separate from
+    /// `sendResult`, which is the relay's own words and only exists once the
+    /// relay has said something (#73).
+    var deliveryNote: String? = nil
+    /// How many reports are on the phone waiting to be sent, this one
+    /// included. The camera screen shows it, because after Byrja aftur that is
+    /// the only place a waiting report is visible at all.
+    var queuedCount: Int = 0
+    /// Whether the report THIS screen is about is still waiting. Drives the
+    /// discard control: a report that has arrived, or has already been thrown
+    /// away, must not offer one.
+    var currentReportIsQueued: Bool = false
 }
 
 /// Camera first, coordinate guarded, category and description chosen by a
@@ -69,6 +83,43 @@ final class ReportModel: ObservableObject {
     /// The telemetry channel's `elapsedMs` for the location and category
     /// events measures from here (data/relay-events.json).
     private var photoCapturedAt: Date?
+
+    /// Reports that have not reached the relay yet, on disk (#73). Everything a
+    /// person files goes in here BEFORE it is sent, so losing the network
+    /// cannot lose the report.
+    private let queue = ReportQueue.applicationDefault()
+
+    /// The one delivery in flight, or nil. One at a time, always: it is what
+    /// keeps a queued report from being sent twice, and it is why the send
+    /// control can be cancelled by cancelling exactly one thing.
+    private var delivery: Task<Void, Never>?
+
+    /// The report the screen is currently about. Also the screen's claim on a
+    /// result: a delivery only writes to the UI when its id still matches, so a
+    /// report from an earlier walk finishing in the background cannot land on
+    /// the screen of the one in front of the person.
+    private var currentReportID: String?
+
+    /// Watches for a network coming back, which is the second of the two
+    /// retry triggers (the other is the app returning to the foreground). The
+    /// handler also fires once when the monitor starts, which is how a report
+    /// queued in a previous launch goes out without anyone doing anything.
+    private let network = NWPathMonitor()
+
+    /// What became of one attempt, from the queue's point of view rather than
+    /// the person's.
+    private enum Disposition {
+        /// The relay took it. Nothing more is owed.
+        case sent
+        /// The relay read it and refused it. The same bytes would be refused
+        /// again, so it stops waiting; the screen still holds it.
+        case refused
+        /// Nobody answered. Keep it and try later.
+        case waiting
+        /// Someone pressed cancel. Keep it, and say nothing to the instrument:
+        /// nothing failed.
+        case cancelled
+    }
 
     init() {
         let factsData = Bundle.main.url(forResource: "reykjavik-form.json", withExtension: nil)
@@ -115,6 +166,13 @@ final class ReportModel: ObservableObject {
         // and the app-opened event belongs to that moment.
         Telemetry.shared.appVersion = Self.currentAppVersion
         Telemetry.shared.track(.appOpened)
+
+        refreshQueuedCount()
+        network.pathUpdateHandler = { [weak self] path in
+            guard path.status == .satisfied else { return }
+            Task { @MainActor in self?.deliverQueued() }
+        }
+        network.start(queue: DispatchQueue(label: "is.borgarland.connectivity"))
     }
 
     /// The envelope's app version in "0.1.0 (3)" form — the marketing
@@ -289,18 +347,27 @@ final class ReportModel: ObservableObject {
         }
     }
 
+    /// Starts a new report. Deliberately does NOT cancel or discard a delivery
+    /// in flight: before #73 this was the only live control on a stuck send
+    /// screen, and pressing it abandoned the report. It now leaves the screen
+    /// and leaves the report to the queue.
     func startOver() {
         Telemetry.shared.track(.screenLeft(screen: .confirm, completed: false))
         photoCapturedAt = nil
+        currentReportID = nil
         let categories = state.categories
         let categoryDisplay = state.categoryDisplay
         let categoryHelp = state.categoryHelp
         let descriptionMaxLength = state.descriptionMaxLength
+        let queuedCount = state.queuedCount
+        let sending = state.sending
         state = ReportUiState(
             categories: categories,
             categoryDisplay: categoryDisplay,
             categoryHelp: categoryHelp,
-            descriptionMaxLength: descriptionMaxLength
+            descriptionMaxLength: descriptionMaxLength,
+            sending: sending,
+            queuedCount: queuedCount
         )
     }
 
@@ -308,48 +375,225 @@ final class ReportModel: ObservableObject {
     /// relay decides whether anything reaches the city, and it is in dry run
     /// by default. Decision 0002 put that decision on the server precisely so
     /// it is one deploy away from being changed rather than an app release.
+    ///
+    /// Written down first, then sent. The order is the whole fix for #73: the
+    /// failure this guards against arrives AFTER the decision to send, so a
+    /// report that exists only in memory at that moment is exactly the one
+    /// that gets lost.
     func sendToRelay() {
         guard let payload = payload() else { return }
-        guard let contract = relayRequest else {
+        guard relayRequest != nil else {
             update { state in
                 state.sendResult = "relay-request.json vantar eða er ólæsilegt í assets. Ekki er hægt að senda."
             }
             return
         }
         update { state in
-            state.sending = true
             state.sendResult = nil
+            state.deliveryNote = nil
         }
+        do {
+            currentReportID = try queue.enqueue(payload).id
+            update { state in state.currentReportIsQueued = true }
+            refreshQueuedCount()
+            deliverQueued()
+        } catch {
+            // The report could not be written down — a full disk, or a
+            // container we cannot reach. Sending it anyway is worse than a
+            // queue and better than refusing, and it is exactly the behaviour
+            // the app had before this issue.
+            sendUnqueued(payload)
+        }
+    }
+
+    /// Sends what is waiting, oldest first. Safe to call from anywhere and as
+    /// often as anything likes: a delivery already in flight makes this a
+    /// no-op, which is what keeps a queued report from going twice.
+    func deliverQueued() {
+        guard delivery == nil, let contract = relayRequest else { return }
+        guard !queue.pending().isEmpty else {
+            refreshQueuedCount()
+            return
+        }
+        update { state in state.sending = true }
+        delivery = Task { [weak self] in
+            await self?.drainQueue(contract: contract)
+            guard let self else { return }
+            self.delivery = nil
+            self.update { state in state.sending = false }
+            self.refreshQueuedCount()
+        }
+    }
+
+    /// Stops the attempt in flight. The report stays queued: this is a way out
+    /// of the wait, not a way to throw the report away. Before #73 the only
+    /// control on this screen did the opposite.
+    func cancelSend() {
+        delivery?.cancel()
+    }
+
+    /// Throws away the report the screen is about. The one deliberate way a
+    /// report leaves the queue without ever reaching the relay, so it is
+    /// spelled out in the interface rather than implied by leaving a screen.
+    func discardCurrentReport() {
+        guard let id = currentReportID else { return }
+        queue.remove(id)
+        currentReportID = nil
+        refreshQueuedCount()
+        update { state in
+            state.currentReportIsQueued = false
+            state.deliveryNote = "Ábendingunni var eytt úr símanum og hún verður ekki send."
+        }
+    }
+
+    /// Throws away everything waiting. Reached from the camera screen, where
+    /// the count is the only thing visible, so the control there says how many
+    /// it is about.
+    func discardAllQueued() {
+        for report in queue.pending() {
+            queue.remove(report.id)
+        }
+        currentReportID = nil
+        refreshQueuedCount()
+    }
+
+    private func refreshQueuedCount() {
+        let count = queue.pending().count
+        update { state in state.queuedCount = count }
+    }
+
+    /// One report at a time, in the order they were filed, until one of them
+    /// has to wait. `handled` is not bookkeeping for its own sake: if a removal
+    /// ever failed, the same entry would be at the head of the queue on the
+    /// next turn of this loop and the loop would not end.
+    private func drainQueue(contract: RelayRequestFile) async {
+        var handled: Set<String> = []
+        while let report = queue.pending().first(where: { !handled.contains($0.id) }) {
+            if Task.isCancelled { return }
+            handled.insert(report.id)
+
+            let payload: Payload
+            do {
+                payload = try queue.payload(for: report)
+            } catch {
+                // The bytes are gone, so this entry can never be built. Left
+                // alone it would sit at the head of the queue and stop every
+                // report behind it.
+                queue.remove(report.id)
+                continue
+            }
+
+            queue.recordAttempt(report.id)
+            switch await attempt(payload: payload, contract: contract, reportID: report.id) {
+            case .sent, .refused:
+                queue.remove(report.id)
+                refreshQueuedCount()
+            case .waiting, .cancelled:
+                // It stays, and nothing behind it goes first: the order they
+                // were filed in is the order they are owed.
+                return
+            }
+        }
+    }
+
+    /// The old send path, still the only one when the report could not be
+    /// written down. The token stands in for a queue id so a result arriving
+    /// after Byrja aftur cannot land on the next report's screen.
+    private func sendUnqueued(_ payload: Payload) {
+        guard let contract = relayRequest else { return }
+        guard delivery == nil else {
+            // Another delivery is running and this report was never written
+            // down, so there is nothing to hand it. Say so rather than
+            // swallowing the press.
+            update { state in
+                state.deliveryNote = "Önnur ábending er í sendingu. Reyndu aftur eftir augnablik."
+            }
+            return
+        }
+        let token = UUID().uuidString
+        currentReportID = token
+        update { state in state.sending = true }
+        delivery = Task { [weak self] in
+            _ = await self?.attempt(payload: payload, contract: contract, reportID: token)
+            guard let self else { return }
+            self.delivery = nil
+            self.update { state in state.sending = false }
+        }
+    }
+
+    /// One attempt, with the telemetry around it and the answer rendered.
+    private func attempt(
+        payload: Payload,
+        contract: RelayRequestFile,
+        reportID: String
+    ) async -> Disposition {
         Telemetry.shared.track(.sendStarted)
         let startedAt = Date()
-        Task {
-            let result = await RelayClient.send(payload: payload, contract: contract)
-            let elapsedMs = max(0, Int(Date().timeIntervalSince(startedAt) * 1000))
-            if result.status != 0 {
-                // The relay answered, whatever the status: the send completed.
-                Telemetry.shared.track(.sendResult(elapsedMs: elapsedMs, status: result.status, ok: result.ok))
-            } else {
-                let reason: TelemetryEvent.SendFailure
-                switch result.failure {
-                case .connection: reason = .connection
-                case .timeout: reason = .timeout
-                case .encoding: reason = .encoding
-                case .other: reason = .other
-                case nil: reason = .other
-                }
-                Telemetry.shared.track(.sendFailed(elapsedMs: elapsedMs, reason: reason))
+        let result = await RelayClient.send(payload: payload, contract: contract)
+        let elapsedMs = max(0, Int(Date().timeIntervalSince(startedAt) * 1000))
+
+        if Task.isCancelled {
+            // Someone pressed cancel. Nothing failed — not the network, not the
+            // relay, not the report — and the telemetry contract has no word
+            // for this, so it gets none.
+            show(nil, disposition: .cancelled, for: reportID)
+            return .cancelled
+        }
+
+        if result.status != 0 {
+            // The relay answered, whatever the status: the send completed.
+            Telemetry.shared.track(.sendResult(elapsedMs: elapsedMs, status: result.status, ok: result.ok))
+        } else {
+            let reason: TelemetryEvent.SendFailure
+            switch result.failure {
+            case .connection: reason = .connection
+            case .timeout: reason = .timeout
+            case .encoding: reason = .encoding
+            case .cancelled, .other, nil: reason = .other
             }
-            // A natural end point: the events around the report send go now.
-            Telemetry.shared.flush()
-            update { state in
-                state.sending = false
-                state.sendResult = if result.ok {
-                    "HTTP \(result.status)\n\(result.body)"
-                } else if result.status == 0 {
-                    "Náði ekki sambandi við þjónustu Borgarlands (\(RelayClient.baseURL)): \(result.body)"
-                } else {
-                    "HTTP \(result.status)\n\(result.body)"
-                }
+            Telemetry.shared.track(.sendFailed(elapsedMs: elapsedMs, reason: reason))
+        }
+        // A natural end point: the events around the report send go now.
+        Telemetry.shared.flush()
+
+        let disposition = Self.disposition(of: result)
+        show(result, disposition: disposition, for: reportID)
+        return disposition
+    }
+
+    /// What the queue should do about an answer. `ok` is the relay's own
+    /// judgement and is trusted; below it, the split is between an answer that
+    /// would be the same next time and no answer at all.
+    private static func disposition(of result: RelayClient.Result) -> Disposition {
+        if result.ok { return .sent }
+        switch result.status {
+        case 0, 408, 429:
+            return .waiting
+        case 400..<500:
+            return .refused
+        default:
+            // A 5xx is the relay having a bad moment, not a bad report.
+            return .waiting
+        }
+    }
+
+    /// Writes an outcome to the screen, but only for the report the screen is
+    /// about. A queued report from an earlier walk finishing while someone is
+    /// looking at a new one must not answer for it (#73).
+    private func show(_ result: RelayClient.Result?, disposition: Disposition, for reportID: String) {
+        guard reportID == currentReportID else { return }
+        update { state in
+            switch disposition {
+            case .sent, .refused:
+                state.currentReportIsQueued = false
+                state.deliveryNote = nil
+                state.sendResult = result.map { "HTTP \($0.status)\n\($0.body)" }
+            case .waiting:
+                state.sendResult = nil
+                state.deliveryNote = "Ekki náðist samband við þjónustu Borgarlands. Ábendingin bíður í símanum og fer af stað um leið og netið kemur aftur."
+            case .cancelled:
+                state.sendResult = nil
+                state.deliveryNote = "Hætt við sendingu. Ábendingin bíður í símanum og fer af stað þegar reynt er aftur."
             }
         }
     }

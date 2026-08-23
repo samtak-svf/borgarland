@@ -136,11 +136,12 @@
     },
     {
       "name": "offline-queue",
-      "intent": "neither-yet",
-      "reason": "#2 — a report taken out of coverage should send when the phone is back. This is a walking app, so it matters, and neither platform has it.",
+      "intent": "ios-only",
+      "what": "A report that cannot be sent is written to the phone before the attempt and retried when the app returns to the foreground or the network comes back, until it sends or a person discards it. Deliberately NOT a background upload: nothing here runs while the app is dead, which is why the detect pattern names our own type rather than BGTaskScheduler or a background URLSession. Those would be a different capability and a separate decision.",
+      "reason": "#73 — iOS is the platform in testers' hands, and the first field test lost a report to airplane mode. Android has not been observed failing this way and has no delivery pipeline at all (#58), so building it there now would be untested code on a platform nobody installs. The gap is #2's offline-queue criterion and stays open.",
       "detect": {
-        "android": { "paths": ["android/app"], "pattern": "WorkManager|androidx.work" },
-        "ios": { "paths": ["ios"], "pattern": "BGTaskScheduler|URLSessionConfiguration.background" }
+        "android": { "paths": ["android/app"], "pattern": "WorkManager|androidx.work|ReportQueue" },
+        "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "ReportQueue" }
       }
     },
     {

@@ -61,6 +61,13 @@ struct BorgarlandApp: App {
                 if phase == .background {
                     Telemetry.shared.flush()
                 }
+                if phase == .active {
+                    // The second retry trigger for a queued report (#73). The
+                    // first is the path monitor in the model, and it only
+                    // notices a NETWORK coming back — a relay that was down
+                    // while the phone had signal gives it nothing to see.
+                    model.deliverQueued()
+                }
             }
         }
     }

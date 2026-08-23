@@ -70,12 +70,34 @@ struct SummaryScreen: View {
                 Button {
                     model.sendToRelay()
                 } label: {
-                    Text(state.sending ? "Sendi..." : "Senda á relay")
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 8) {
+                        // Something moving, so the wait is legible as a wait
+                        // rather than as a dead screen (#73).
+                        if state.sending {
+                            ProgressView()
+                        }
+                        Text(state.sending ? "Sendi..." : "Senda á relay")
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 16)
                 .disabled(state.sending)
+
+                // The way out. Before #73 the send control was dead for
+                // eighty-four seconds and the only live thing beside it was
+                // Byrja aftur, which abandoned the report instead of stopping
+                // the request. This stops the request; the report waits.
+                if state.sending {
+                    Button {
+                        model.cancelSend()
+                    } label: {
+                        Text("Hætta við")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.top, 8)
+                }
 
                 // Where the report goes, in words rather than a hostname. A URL tells
                 // a reader nothing they can act on, and the loopback one told them
@@ -83,6 +105,29 @@ struct SummaryScreen: View {
                 Text("Sendist á þjónustu Borgarlands, ekki beint til borgarinnar. Þjónustan er í þurrkeyrslu og framsendir ekkert.")
                     .font(.caption)
                     .padding(.top, 8)
+
+                if let note = state.deliveryNote {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(note)
+                            .font(.footnote)
+                        // The one deliberate way a report leaves the phone
+                        // without reaching the relay. Spelled out, because
+                        // leaving a screen must not be how a report is thrown
+                        // away.
+                        if state.currentReportIsQueued {
+                            Button(role: .destructive) {
+                                model.discardCurrentReport()
+                            } label: {
+                                Text("Eyða ábendingunni")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.top, 12)
+                }
 
                 if let result = state.sendResult {
                     VStack(alignment: .leading, spacing: 8) {
