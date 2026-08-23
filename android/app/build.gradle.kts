@@ -125,4 +125,14 @@ val copyCategoryLabels by tasks.registering(Copy::class) {
     into(layout.projectDirectory.dir("src/main/assets"))
 }
 
-tasks.named("preBuild") { dependsOn(copyFacts, copyRelayRequest, copyCategoryLabels) }
+// Our words for what the relay answered, where its own JSON is not something
+// to put in front of a person (#77). Same single-home rule and same build-time
+// copy as the three files above.
+val copyRelayOutcomes by tasks.registering(Copy::class) {
+    from(rootProject.file("../data/relay-outcomes.json"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyFacts, copyRelayRequest, copyCategoryLabels, copyRelayOutcomes)
+}

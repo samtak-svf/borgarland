@@ -16,6 +16,9 @@ import `is`.borgarland.poc.data.Facts
 import `is`.borgarland.poc.data.CategoryLabels
 import `is`.borgarland.poc.data.CategoryLabelsFile
 import `is`.borgarland.poc.data.FactsFile
+import `is`.borgarland.poc.data.RelayOutcome
+import `is`.borgarland.poc.data.RelayOutcomes
+import `is`.borgarland.poc.data.RelayOutcomesFile
 import `is`.borgarland.poc.data.RelayRequest
 import `is`.borgarland.poc.data.RelayRequestFile
 import `is`.borgarland.poc.exif.ExifGps
@@ -35,6 +38,27 @@ sealed interface Screen {
 }
 
 data class Coordinate(val lat: Double, val lng: Double)
+
+/**
+ * What the person is told about a relay answer, and the answer itself.
+ *
+ * Both, not either: the sentence is what the screen leads with, and the relay's
+ * own body stays reachable behind a control they open on purpose. The readout
+ * was right for a proof of concept driven by the people who wrote it; the
+ * defect was that it was the ONLY thing anyone was shown (#77).
+ */
+data class SendOutcome(
+    /**
+     * Our sentence, or null when data/relay-outcomes.json is not in the assets
+     * to say it. The screen then shows the relay's own answer alone, which is
+     * exactly what it did before this issue.
+     */
+    val outcome: RelayOutcome?,
+    /** The relay's answer, verbatim, status line included. */
+    val raw: String,
+    val status: Int,
+    val ok: Boolean,
+)
 
 data class PocUiState(
     val screen: Screen = Screen.Camera,
@@ -65,7 +89,7 @@ data class PocUiState(
     val description: String = "",
     val outOfBounds: Boolean = false,
     val sending: Boolean = false,
-    val sendResult: String? = null,
+    val sendOutcome: SendOutcome? = null,
 )
 
 /**
@@ -93,6 +117,10 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     // exactly the names this file carries.
     private var relayRequest: RelayRequestFile? = null
 
+    // Our sentences for what the relay answered (#77). Null when the file is
+    // missing from the assets, which costs the sentence and nothing else.
+    private var relayOutcomes: RelayOutcomesFile? = null
+
     /**
      * When the current photo was captured — the start of the location step.
      * The telemetry channel's `elapsedMs` for the location and category
@@ -116,6 +144,11 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 .bufferedReader().use { it.readText() }
         }.getOrNull()
         categoryLabels = labelsText?.let { runCatching { CategoryLabels.parse(it) }.getOrNull() }
+        val outcomesText = runCatching {
+            getApplication<Application>().assets.open("relay-outcomes.json")
+                .bufferedReader().use { it.readText() }
+        }.getOrNull()
+        relayOutcomes = outcomesText?.let { runCatching { RelayOutcomes.parse(it) }.getOrNull() }
         if (parsed == null) {
             _state.update {
                 it.copy(factsError = "reykjavik-form.json vantar eða er ólæsilegt í assets. Ekki er hægt að halda áfram.")
@@ -360,12 +393,19 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         if (contract == null) {
             _state.update {
                 it.copy(
-                    sendResult = "relay-request.json vantar eða er ólæsilegt í assets. Ekki er hægt að senda.",
+                    sendOutcome = SendOutcome(
+                        outcome = RelayOutcome(
+                            "relay-request.json vantar eða er ólæsilegt í assets. Ekki er hægt að senda.",
+                        ),
+                        raw = "",
+                        status = 0,
+                        ok = false,
+                    ),
                 )
             }
             return
         }
-        _state.update { it.copy(sending = true, sendResult = null) }
+        _state.update { it.copy(sending = true, sendOutcome = null) }
         Telemetry.shared.track(TelemetryEvent.SendStarted)
         val startedAt = System.currentTimeMillis()
         viewModelScope.launch {
@@ -390,13 +430,19 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             _state.update {
                 it.copy(
                     sending = false,
-                    sendResult = if (result.ok) {
-                        "HTTP ${result.status}\n${result.body}"
-                    } else if (result.status == 0) {
-                        "Náði ekki sambandi við þjónustu Borgarlands (${RelayClient.BASE_URL}): ${result.body}"
-                    } else {
-                        "HTTP ${result.status}\n${result.body}"
-                    },
+                    sendOutcome = SendOutcome(
+                        // The sentence the screen leads with, in the person's
+                        // language. The relay's own body stays in `raw` and is
+                        // still reachable, one control away (#77).
+                        outcome = RelayOutcomes.sentence(result.status, result.body, relayOutcomes),
+                        raw = if (result.status == 0) {
+                            "${RelayClient.BASE_URL}: ${result.body}"
+                        } else {
+                            "HTTP ${result.status}\n${result.body}"
+                        },
+                        status = result.status,
+                        ok = result.ok,
+                    ),
                 )
             }
         }

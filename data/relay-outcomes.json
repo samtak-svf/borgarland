@@ -1,0 +1,80 @@
+{
+  "$comment": "OUR WORDS for what the relay answered, one sentence per outcome, in the language the person filing the ábending is using. Sibling of category-labels.json and separate from it for the same reason it is separate from reykjavik-form.json: those files record what the CITY says, this one is what WE say to a person about what happened. The relay's own body stays exactly as it is and is still shown, behind a control the person opens on purpose (#77). Both apps read this file; worker/tests/outcomes.test.ts holds it to the relay's own source, so an error code the relay can return and this file does not name fails the build rather than falling through to raw JSON in front of somebody.",
+  "verifiedAt": "2026-08-23",
+  "source": "The first iOS field test, where one tester read {\"error\":\"outside-reykjavik\",...} on his phone and asked what it meant, and the other got the whole stored row and asked whether the app was connected to anything.",
+  "sent": {
+    "says": "Ábendingin komst til skila.",
+    "advice": null
+  },
+  "dryRun": {
+    "says": "Þjónustan tók við ábendingunni en sendi hana ekki áfram.",
+    "advice": "Hún er í þurrkeyrslu, svo ekkert fór til borgarinnar. Þetta var æfing."
+  },
+  "noAnswer": {
+    "says": "Ekki náðist samband við þjónustu Borgarlands.",
+    "advice": "Athugaðu netsambandið og reyndu aftur."
+  },
+  "unknown": {
+    "says": "Þjónustan svaraði einhverju sem appið kannast ekki við.",
+    "advice": "Tæknilega svarið er hér fyrir neðan."
+  },
+  "outcomes": {
+    "invalid-multipart": {
+      "says": "Þjónustan gat ekki lesið sendinguna.",
+      "advice": "Reyndu aftur. Gerist þetta aftur er það villa í appinu en ekki hjá þér."
+    },
+    "unknown-field": {
+      "says": "Appið sendi reit sem þjónustan þekkir ekki.",
+      "advice": "Þetta er villa í appinu og lagast ekki nema með uppfærslu."
+    },
+    "unknown-category": {
+      "says": "Flokkurinn sem var valinn er ekki til hjá borginni.",
+      "advice": "Farðu til baka og veldu annan flokk."
+    },
+    "invalid-photo": {
+      "says": "Myndin var ekki samþykkt.",
+      "advice": "Borgin tekur við JPEG, PNG og GIF. Taktu nýja mynd og reyndu aftur."
+    },
+    "outside-reykjavik": {
+      "says": "Hnitin eru utan Reykjavíkur.",
+      "advice": "Þessi þjónusta sendir aðeins til Reykjavíkur. Sveitarfélagið sem á staðinn tekur sjálft við ábendingum um hann."
+    },
+    "jurisdiction-unknown": {
+      "says": "Ekki tókst að sjá í hvaða sveitarfélagi hnitin eru.",
+      "advice": "Færðu þig nær götu eða húsi og taktu nýja mynd."
+    },
+    "live-send-already-used": {
+      "says": "Þjónustan hefur þegar sent sína einu raunverulegu ábendingu og sendir ekki fleiri.",
+      "advice": "Þetta er ákvörðun en ekki bilun. Að opna fyrir fleiri sendingar er breyting á forritinu sjálfu."
+    },
+    "city-unreachable": {
+      "says": "Þjónustan náði ekki sambandi við borgina.",
+      "advice": "Ábendingin er skráð hjá þjónustunni en komst ekki lengra."
+    },
+    "city-rejected": {
+      "says": "Borgin hafnaði ábendingunni.",
+      "advice": "Svarið er geymt hjá þjónustunni. Prófaðu að lýsa málinu betur eða velja annan flokk."
+    },
+    "registry-not-loaded": {
+      "says": "Þjónustan gat ekki flett upp staðsetningunni.",
+      "advice": "Þetta er tímabundið hjá okkur. Reyndu aftur eftir smá stund."
+    },
+    "internal": {
+      "says": "Eitthvað brást hjá þjónustunni.",
+      "advice": "Reyndu aftur. Haldi þetta áfram er það okkar að laga."
+    },
+    "method-not-allowed": {
+      "says": "Appið bað um eitthvað sem þjónustan kannast ekki við.",
+      "advice": "Þetta er villa í appinu og lagast ekki nema með uppfærslu."
+    },
+    "not-found": {
+      "says": "Þjónustan fann ekki það sem appið bað um.",
+      "advice": "Þetta er villa í appinu og lagast ekki nema með uppfærslu."
+    }
+  },
+  "notShownToAnyone": {
+    "$comment": "Codes the relay can return on endpoints no person is looking at, so a sentence for them would be written for nobody. Listed rather than omitted: the coverage test holds every code in the relay's source against this file, so a NEW code lands here or in outcomes by a decision instead of by silence.",
+    "invalid-outcome": "PATCH /api/reports/:id/outcome, the follow-through endpoint (#57). Machine to machine; it has no caller at all yet.",
+    "invalid-event-batch": "POST /api/events, the telemetry channel. Fire and forget by contract (data/relay-events.json): the app must never show a person anything about it."
+  }
+}

@@ -162,7 +162,7 @@ describe('the city 400 ambiguity is resolved by the body, not the status', () =>
     const response = await postReport(app, reportForm())
     expect(response.status).toBe(502)
     const body = await json(response)
-    expect(body.error).toBe('city rejected the report')
+    expect(body.error).toBe('city-rejected')
     const report = body.report as Record<string, unknown>
     expect(report.rejection).toBe('validation')
     expect(report.cityStatus).toBe(400)
