@@ -55,9 +55,27 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     /// every call rather than remembering one.
     private static let staleAfter: TimeInterval = 120
 
+    /// Denied or restricted: the system will not prompt for this again, and
+    /// the only place the decision can be undone is the Settings app.
+    ///
+    /// Deliberately not the same question as `!isAuthorized`, which is also
+    /// true before anyone has been asked. Confusing the two is what put a
+    /// Reyna aftur button in front of a permission that could never say yes
+    /// to it (#76).
+    var isDenied: Bool {
+        switch manager.authorizationStatus {
+        case .denied, .restricted:
+            return true
+        default:
+            return false
+        }
+    }
+
     /// The permission dance the Android launcher performs. Returns true when
     /// already authorized, prompts for whenInUse when undetermined, and
-    /// reports the denial otherwise.
+    /// reports the denial otherwise. A caller that shows something to a person
+    /// on a false answer must ask `isDenied` too: the two refusals look the
+    /// same here and are not the same situation.
     func requestWhenInUseAuthorization() async -> Bool {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:

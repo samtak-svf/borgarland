@@ -109,7 +109,7 @@ struct CameraScreen: View {
             // same callback the Android launcher uses.
             guard model.state.needsLocationPermission else { return }
             let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
-            model.onLocationPermissionResult(granted)
+            model.onLocationPermissionResult(granted, permanentlyDenied: !granted && DeviceFix.shared.isDenied)
         }
         .onChange(of: model.state.photo != nil) { _, hasPhoto in
             // The Kotlin unbinds the camera when the preview leaves
@@ -182,8 +182,18 @@ struct CameraScreen: View {
                     Text(locationError)
                         .foregroundStyle(.red)
                     HStack(spacing: 8) {
-                        Button("Reyna aftur") { requestDeviceFixOrPermission() }
-                            .buttonStyle(.borderedProminent)
+                        if state.locationDenied {
+                            // The system does not prompt twice, so Reyna aftur
+                            // would return the same refusal forever — the field
+                            // test pressed it and got exactly that (#76). The
+                            // only place the decision can be undone is Settings,
+                            // so that is the button.
+                            Button("Opna stillingar") { openSystemSettings() }
+                                .buttonStyle(.borderedProminent)
+                        } else {
+                            Button("Reyna aftur") { requestDeviceFixOrPermission() }
+                                .buttonStyle(.borderedProminent)
+                        }
                         Button("Taka nýja mynd") { model.retakePhoto() }
                             .buttonStyle(.bordered)
                     }
@@ -214,6 +224,11 @@ struct CameraScreen: View {
         }
     }
 
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
     private func requestDeviceFixOrPermission() {
         // Kotlin: if fine location is already granted, go straight to the
         // fix; otherwise run the permission launcher. DeviceFix owns the
@@ -224,7 +239,7 @@ struct CameraScreen: View {
         } else {
             Task {
                 let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
-                model.onLocationPermissionResult(granted)
+                model.onLocationPermissionResult(granted, permanentlyDenied: !granted && DeviceFix.shared.isDenied)
             }
         }
     }

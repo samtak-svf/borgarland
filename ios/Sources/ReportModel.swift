@@ -41,6 +41,10 @@ struct ReportUiState {
     var locationSource: String? = nil
     var locating: Bool = false
     var needsLocationPermission: Bool = false
+    /// The permission is denied or restricted, not merely unanswered. The
+    /// difference decides which way out the screen offers, because the system
+    /// does not prompt twice and only Settings can undo it (#76).
+    var locationDenied: Bool = false
     var locationError: String? = nil
     var selectedSlug: String? = nil
     var description: String = ""
@@ -208,6 +212,7 @@ final class ReportModel: ObservableObject {
             state.locationSource = nil
             state.locating = false
             state.needsLocationPermission = false
+            state.locationDenied = false
             state.locationError = nil
         }
         photoCapturedAt = Date()
@@ -248,7 +253,12 @@ final class ReportModel: ObservableObject {
         update { state in state.photoError = message }
     }
 
-    func onLocationPermissionResult(_ granted: Bool) {
+    /// `permanentlyDenied` is the caller's answer to a question this model
+    /// cannot ask the platform: whether the refusal can still change its mind.
+    /// A screen that treats the two the same offers a button that can only
+    /// ever return the same refusal, which is what the first field test walked
+    /// into (#76).
+    func onLocationPermissionResult(_ granted: Bool, permanentlyDenied: Bool = false) {
         Telemetry.shared.track(.locationPermission(granted: granted))
         if granted {
             requestDeviceFix()
@@ -257,15 +267,32 @@ final class ReportModel: ObservableObject {
             update { state in
                 state.needsLocationPermission = false
                 state.locating = false
-                state.locationError = "Staðsetningarleyfi vantar. Borgin samþykkir skýrslu án hnitanna, en þá getur enginn brugðist við henni."
+                state.locationDenied = permanentlyDenied
+                state.locationError = permanentlyDenied
+                    ? "Staðsetningarleyfi er lokað fyrir Borgarland í stillingum símans. Ábending þarf hnit, annars getur enginn brugðist við henni, og leyfið verður ekki opnað nema í stillingunum."
+                    : "Staðsetningarleyfi vantar. Borgin samþykkir ábendingu án hnitanna, en þá getur enginn brugðist við henni."
             }
         }
+    }
+
+    /// Someone may have opened the permission in system settings and come
+    /// back. If they did, the walk carries on from where it stopped rather
+    /// than making them find a button (#76).
+    func recheckLocationPermission() {
+        guard state.locationDenied, DeviceFix.shared.isAuthorized else { return }
+        Telemetry.shared.track(.locationPermission(granted: true))
+        update { state in
+            state.locationDenied = false
+            state.locationError = nil
+        }
+        requestDeviceFix()
     }
 
     func requestDeviceFix() {
         update { state in
             state.locating = true
             state.locationError = nil
+            state.locationDenied = false
             state.needsLocationPermission = false
         }
         Task {
@@ -291,7 +318,7 @@ final class ReportModel: ObservableObject {
                         CLLocationManager.locationServicesEnabled() ? .timeout : .unavailable
                     Telemetry.shared.track(.locationFailed(elapsedMs: elapsedSincePhoto(), reason: reason))
                     state.locating = false
-                    state.locationError = "Myndin ber enga GPS staðsetningu og tækið fékk enga staðsetningu. Ekki er hægt að halda áfram án hnitanna, enda getur enginn brugðist við skýrslu án staðsetningar."
+                    state.locationError = "Myndin ber enga GPS staðsetningu og tækið fékk enga staðsetningu. Ekki er hægt að halda áfram án hnitanna, enda getur enginn brugðist við ábendingu án staðsetningar."
                 }
             }
         }
@@ -306,6 +333,7 @@ final class ReportModel: ObservableObject {
             state.locationSource = nil
             state.locating = false
             state.needsLocationPermission = false
+            state.locationDenied = false
             state.locationError = nil
         }
     }

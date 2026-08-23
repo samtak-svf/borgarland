@@ -67,6 +67,9 @@ struct BorgarlandApp: App {
                     // notices a NETWORK coming back — a relay that was down
                     // while the phone had signal gives it nothing to see.
                     model.deliverQueued()
+                    // And the way back from the Settings app, which is the only
+                    // place a denied location permission can be opened (#76).
+                    model.recheckLocationPermission()
                 }
             }
         }

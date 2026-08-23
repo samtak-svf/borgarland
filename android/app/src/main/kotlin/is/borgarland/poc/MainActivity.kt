@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity() {
                                 onPhotoError = viewModel::onPhotoError,
                                 onRetakePhoto = viewModel::retakePhoto,
                                 onLocationPermissionResult = viewModel::onLocationPermissionResult,
+                                onLocationPermissionRechecked = viewModel::onLocationPermissionRechecked,
                                 onRequestDeviceFix = viewModel::requestDeviceFix,
                             )
 
