@@ -51,6 +51,24 @@ What is allowed instead:
 - **One real submission, once, deliberately**, at the end of a build, with a real
   problem at a real location. A decision taken on purpose, never a step in a test.
 
+## What enforces this now
+
+Written as a rule, this held for one day. On 2026-08-21 a report was filed by
+accident anyway — 110474, withdrawn by email that evening
+([the write-up](../docs/incidents/2026-08-21-filed-a-real-report.md)) — because a
+rule about care is only as good as the care.
+
+Since 2026-08-23 the "one" is a property of the relay rather than of anyone's
+attention. The live branch counts rows in D1 and answers
+`409 live-send-already-used` when one exists, so a second submission cannot
+happen even with the secret still set, even from a different client, and even
+after a redeploy. Rows rather than a flag, because the database is the only thing
+that survives a new isolate and a re-set secret.
+
+Hard-coded on purpose: a variable is one typo from being raised. Lifting this
+should cost a code change and a review, which is exactly what going live for real
+will be (#6) — delete that block then, deliberately, in its own PR.
+
 ## Consequences
 
 - A safety mechanism you have not seen fire is not a safety mechanism. If the

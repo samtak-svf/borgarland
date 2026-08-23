@@ -173,7 +173,22 @@ All bodies are JSON except `POST /api/reports`, which is multipart (photos).
   would have been sent (photo bytes summarized as name/type/size).
 - `GET /api/reports/:id` — `200 { report }` or `404`.
 - `POST /api/reports/:id/outcome` — JSON `{ "outcome": "fixed" | "not-fixed" }`.
-  `200 { report }`, `400`, or `404`.
+  `200 { report }`, `400`, or `404`. **Nothing calls this yet**, which is the
+  whole of issue #57: the instrument that measures the city's follow-through is
+  built and attached to nothing.
+- `GET /api/health` — operational readout, not part of the app contract.
+  `{ status, dryRun, registry: { rows, snapshotAt, ageDays, seededRows } }`.
+  `200` when the registry is loaded, **`503`** when it is empty, for the same
+  reason a report gets 503 then: the relay refuses every submission in that
+  state, so it is not healthy. `rows` is the live `COUNT(*)` and `seededRows` is
+  what the seed claimed; a disagreement means a partially applied seed, which
+  would otherwise look like a working registry.
+- `POST /api/events` — the client event stream (`data/relay-events.json`).
+  JSON `{ session, platform, appVersion, events[] }`, returns `202 { stored }`.
+  Instrumentation: it must never delay or fail a report. Every event name and
+  field is refused unless the contract names it, and the contract names no
+  free-text field, so this channel cannot carry a description, a coordinate or a
+  photo even if an app tried.
 
 `report` fields: `id`, `category`, `latitude`, `longitude`, `description`,
 `email`, `photoCount`, `photoBytes`, `dryRun`, `createdAt`, `sentAt` (null in
@@ -186,9 +201,24 @@ Error responses carry `{ "error": "<code>", ... }`:
 `invalid-multipart` (400), `unknown-category` (400), `invalid-coordinate`
 (400), `invalid-description` (400), `invalid-photo` (400),
 `outside-reykjavik` (400, with `nearestAddress` and `svfnr`),
-`jurisdiction-unknown` (400), `registry-not-loaded` (503), `city rejected the
-report` / `city-unreachable` (502, with the recorded `report` embedded),
-`not-found` (404), `method-not-allowed` (405), `internal` (500).
+`jurisdiction-unknown` (400), `invalid-event-batch` (400, with the offending
+event and field named), `registry-not-loaded` (503), `city rejected the report` /
+`city-unreachable` (502, with the recorded `report` embedded),
+`live-send-already-used` (409), `not-found` (404), `method-not-allowed` (405),
+`internal` (500).
+
+Two of those are worth knowing about before they surprise someone:
+
+**`invalid-photo` now also fires on a declared type that disagrees with the
+bytes.** The accept list only says what the client *claimed* the file is, and an
+iPhone shoots HEIC. A HEIC labelled `image/jpeg` used to pass our gate and fail
+the city's, after the report had been recorded as sent. The response names both:
+`{ declared, actual }`, with `actual: null` for anything unrecognisable.
+
+**`live-send-already-used` (409) is decision 0006 enforced in code.** The relay
+files exactly one real report, ever, and counts rows in D1 to decide. Not a
+variable and not a configurable limit: lifting it costs a code change and a
+review, which is precisely what going live for real will be (#6).
 
 ## Places the repo did not say and I had to choose
 
