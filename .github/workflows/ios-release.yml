@@ -72,7 +72,7 @@ jobs:
         run: xcodegen generate
 
       - name: Import the signing certificate
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ secrets.IOS_SIGNING_P12_BASE64 }}
           p12-password: ${{ secrets.IOS_SIGNING_P12_PASSWORD }}
@@ -83,7 +83,7 @@ jobs:
       # names no agreement. If it fails here, read ios/signing/README.md before
       # suspecting the key.
       - name: Download the provisioning profile
-        uses: apple-actions/download-provisioning-profiles@v3
+        uses: apple-actions/download-provisioning-profiles@v6
         with:
           bundle-id: is.borgarland
           profile-type: IOS_APP_STORE
@@ -146,7 +146,7 @@ jobs:
       # look: Apple's error strings run past 400 characters and grepping the
       # logs truncates them, which once produced a confident and false "fixed".
       - name: Keep the .ipa
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Borgarland-${{ github.ref_name }}.ipa
           path: ios/build/ipa/Borgarland.ipa
@@ -154,7 +154,7 @@ jobs:
 
       - name: Upload to TestFlight
         if: github.event_name == 'push' || inputs.upload_to_testflight == 'true'
-        uses: apple-actions/upload-testflight-build@v3
+        uses: apple-actions/upload-testflight-build@v5
         with:
           app-path: ios/build/ipa/Borgarland.ipa
           issuer-id: ${{ secrets.ASC_API_ISSUER_ID }}
