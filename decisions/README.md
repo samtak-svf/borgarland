@@ -4,15 +4,20 @@ Numbered, dated records of choices this project has made and why, in the MADR
 shape. A record is written **after** the discovery that justified it, never
 instead of one.
 
-Three kinds of thing are recorded separately and should not be confused, across
-four files and directories:
+Three kinds of thing are recorded separately and should not be confused:
 
 | Where | What it holds |
 |---|---|
-| [`../data/reykjavik-form.json`](../data/reykjavik-form.json) | **Facts** about the city's form, machine-readable, with how and when each was established. Read by `scripts/send-report.mjs` and CI. |
-| [`../data/relay-request.json`](../data/relay-request.json) | **Facts** about the request the apps send to our own relay, in our vocabulary only. Read by the Worker and by both apps. |
+| [`../data/`](../data/) | **Facts**, machine-readable, each carrying how and when it was established: the city's form, the request and the event stream our own apps send to our own relay, our words for a category, the platform parity manifest, and the field-test records. Scripts and CI read them. |
 | [`../docs/research/`](../docs/research/) and [`../docs/incidents/`](../docs/incidents/) | **Reasoning** and write-ups. Prose, for humans. |
 | `decisions/` (here) | **Choices**, with the options that lost. |
+
+Which fact belongs in which file is spelled out once, in
+[AGENTS.md](../AGENTS.md#where-things-are-written-down), and deliberately not
+repeated here. This file used to carry its own copy naming two of the six, and
+by the time anyone noticed it was four files out of date while claiming to be
+the map. A second copy of that table is the drift the split exists to prevent,
+so this one points at it instead of competing with it.
 
 A superseded decision stays, marked superseded, with a pointer to what replaced
 it. Deleting it would hide that the question was once answered differently, which
