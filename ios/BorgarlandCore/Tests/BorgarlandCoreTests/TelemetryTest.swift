@@ -1,5 +1,5 @@
 import XCTest
-import BorgarlandCore
+@testable import BorgarlandCore
 
 /// The client half of the telemetry channel, pinned to data/relay-events.json.
 /// The contract is the privacy boundary, so these tests are about what can
@@ -19,7 +19,7 @@ final class TelemetryTest: XCTestCase {
             now: { start.addingTimeInterval(1.5) }
         )
         telemetry.appVersion = "0.1.0 (3)"
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
 
         telemetry.track(.appOpened)
         telemetry.track(.sendStarted)
@@ -44,7 +44,7 @@ final class TelemetryTest: XCTestCase {
         let start = Date()
         var bodies: [Data] = []
         let telemetry = Telemetry(sessionStart: start, now: { start })
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
 
         telemetry.track(.locationResolved(elapsedMs: 5, source: .device, accuracyM: 7))
         telemetry.flush()
@@ -62,7 +62,7 @@ final class TelemetryTest: XCTestCase {
         let start = Date(timeIntervalSince1970: 0)
         var bodies: [Data] = []
         let telemetry = Telemetry(sessionStart: start, now: { start.addingTimeInterval(2 * 86_400) })
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
 
         telemetry.track(.appOpened)
         telemetry.flush()
@@ -94,7 +94,7 @@ final class TelemetryTest: XCTestCase {
         let start = Date()
         var bodies: [Data] = []
         let telemetry = Telemetry(sessionStart: start, now: { start })
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
 
         for _ in 0..<19 {
             telemetry.track(.appOpened)
@@ -108,7 +108,7 @@ final class TelemetryTest: XCTestCase {
         let start = Date()
         var bodies: [Data] = []
         let telemetry = Telemetry(sessionStart: start, now: { start.addingTimeInterval(0.001) })
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
         telemetry.flushThreshold = .max
 
         // Distinct byte counts identify the order of the buffered events.
@@ -129,7 +129,7 @@ final class TelemetryTest: XCTestCase {
         let start = Date()
         var bodies: [Data] = []
         let telemetry = Telemetry(sessionStart: start, now: { start })
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
 
         // One event per keystroke would spam the relay; the buffer keeps the
         // latest length only.
@@ -145,6 +145,149 @@ final class TelemetryTest: XCTestCase {
         XCTAssertEqual(events[0]["length"] as? Int, 9)
     }
 
+    // MARK: - A batch the relay did not take
+
+    /// #74, and the reason this section exists: the airplane-mode walk of the
+    /// first iOS field test is missing from D1 entirely. The buffer was emptied
+    /// before the request, the request failed, and a two-minute hole in the
+    /// timeline is indistinguishable from a tester standing still.
+    func testAnUndeliveredBatchIsKeptAndSentAgain() throws {
+        let start = Date()
+        var bodies: [Data] = []
+        var outcome = Telemetry.BatchOutcome.undelivered
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { body, done in bodies.append(body); done(outcome) }
+
+        telemetry.track(.categoryChosen(elapsedMs: 1, slug: "ruslafotur"))
+        telemetry.track(.sendStarted)
+        telemetry.flush()
+        XCTAssertEqual(bodies.count, 1, "the first attempt is made")
+
+        // The network came back, and nothing else happened in between.
+        outcome = .delivered
+        telemetry.flush()
+
+        XCTAssertEqual(bodies.count, 2, "the failed batch is tried again")
+        XCTAssertEqual(
+            try names(in: bodies[1]),
+            ["category-chosen", "send-started"],
+            "and it carries the events the failed attempt held"
+        )
+    }
+
+    func testARequeuedBatchStaysAheadOfWhatCameAfterIt() throws {
+        let start = Date()
+        var bodies: [Data] = []
+        var outcome = Telemetry.BatchOutcome.undelivered
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { body, done in bodies.append(body); done(outcome) }
+
+        telemetry.track(.sendStarted)
+        telemetry.flush()
+
+        // Buffered while the failed request was still out, so newer.
+        telemetry.track(.screenLeft(screen: .confirm, completed: false))
+        outcome = .delivered
+        telemetry.flush()
+
+        XCTAssertEqual(
+            try names(in: bodies[1]),
+            ["send-started", "screen-left"],
+            "a batch put back is older than what arrived while it was in flight"
+        )
+    }
+
+    /// The other half of the fix. A relay that refuses this body will refuse it
+    /// again — the `noExif` bug 400'd every batch that contained one — so a
+    /// rejected batch must be dropped or it blocks the buffer for the session.
+    func testARejectedBatchIsDroppedRatherThanTriedForever() throws {
+        let start = Date()
+        var bodies: [Data] = []
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { body, done in bodies.append(body); done(.rejected) }
+
+        telemetry.track(.appOpened)
+        telemetry.flush()
+        telemetry.flush()
+
+        XCTAssertEqual(bodies.count, 1, "nothing was left to send")
+    }
+
+    func testStatusIsReadAsKeepOrDrop() {
+        // The relay took it.
+        XCTAssertEqual(Telemetry.outcome(forStatus: 200), .delivered)
+        XCTAssertEqual(Telemetry.outcome(forStatus: 204), .delivered)
+        // The relay refused this body and would refuse it again.
+        XCTAssertEqual(Telemetry.outcome(forStatus: 400), .rejected)
+        XCTAssertEqual(Telemetry.outcome(forStatus: 413), .rejected)
+        // Try later: a timeout, a rate limit, or the relay being down.
+        XCTAssertEqual(Telemetry.outcome(forStatus: 408), .undelivered)
+        XCTAssertEqual(Telemetry.outcome(forStatus: 429), .undelivered)
+        XCTAssertEqual(Telemetry.outcome(forStatus: 500), .undelivered)
+        XCTAssertEqual(Telemetry.outcome(forStatus: 0), .undelivered)
+    }
+
+    /// Without this, every event past the threshold starts another post while
+    /// offline, and a batch requeued underneath a later one duplicates it.
+    func testOnlyOneBatchIsInFlightAtATime() throws {
+        let start = Date()
+        var bodies: [Data] = []
+        var pending: [Telemetry.BatchReceipt] = []
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { body, done in bodies.append(body); pending.append(done) }
+
+        telemetry.track(.appOpened)
+        telemetry.flush()
+        XCTAssertEqual(bodies.count, 1)
+
+        telemetry.track(.sendStarted)
+        telemetry.flush()
+        XCTAssertEqual(bodies.count, 1, "the second flush waits for the first to answer")
+
+        pending[0](.delivered)
+        telemetry.flush()
+        XCTAssertEqual(try names(in: bodies[1]), ["send-started"])
+    }
+
+    /// Dropping under the cap stays correct: the requeued batch is not
+    /// privileged, and the oldest events still go when there are too many.
+    func testTheCapStillAppliesToARequeuedBatch() throws {
+        let start = Date()
+        var bodies: [Data] = []
+        var outcome = Telemetry.BatchOutcome.undelivered
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { body, done in bodies.append(body); done(outcome) }
+        telemetry.flushThreshold = .max
+
+        // Distinct byte counts identify the order of the buffered events.
+        for i in 0..<100 {
+            telemetry.track(.photoCaptured(elapsedMs: i, bytes: i, mime: "image/jpeg"))
+        }
+        telemetry.flush()
+        for i in 100..<150 {
+            telemetry.track(.photoCaptured(elapsedMs: i, bytes: i, mime: "image/jpeg"))
+        }
+        outcome = .delivered
+        telemetry.flush()
+
+        let events = try decodedEvents(in: bodies[1])
+        XCTAssertEqual(events.count, 100)
+        XCTAssertEqual(events.first?["bytes"] as? Int, 50, "the oldest 50 went, requeued or not")
+        XCTAssertEqual(events.last?["bytes"] as? Int, 149)
+    }
+
+    // MARK: - Reading a body back
+
+    private func decodedEvents(in body: Data) throws -> [[String: Any]] {
+        try XCTUnwrap(
+            (JSONSerialization.jsonObject(with: body) as? [String: Any])?["events"] as? [[String: Any]]
+        )
+    }
+
+    private func names(in body: Data) throws -> [String] {
+        try decodedEvents(in: body).map { $0["name"] as? String ?? "" }
+    }
+
     // MARK: - The privacy test
 
     func testDescriptionTextNeverAppearsInTheBody() throws {
@@ -152,7 +295,7 @@ final class TelemetryTest: XCTestCase {
         let start = Date()
         var bodies: [Data] = []
         let telemetry = Telemetry(sessionStart: start, now: { start })
-        telemetry.send = { bodies.append($0) }
+        telemetry.send = { body, done in bodies.append(body); done(.delivered) }
 
         // The closest the app ever brings a description to this channel:
         // only its length is passed, never the text.

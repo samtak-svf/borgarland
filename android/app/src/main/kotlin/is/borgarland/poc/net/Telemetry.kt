@@ -37,6 +37,11 @@ import kotlinx.serialization.json.put
  *   4. Batched, not spammed: the buffer flushes at ~20 events, at the
  *      natural end points (the report send result, app background), and
  *      never exceeds 100 per batch (the relay refuses a longer one).
+ *   5. A batch the relay did not take goes back in the buffer (#74). The
+ *      flush points include app background, which is the moment someone
+ *      reaches the airplane-mode toggle, so the flush most likely to fail is
+ *      the one carrying the outage we are trying to measure. Dropping under
+ *      the cap is still correct; dropping on a failed request is not.
  *
  * Testable by injection: [send] is a closure a test replaces to capture the
  * body without a network.
@@ -70,6 +75,18 @@ class Telemetry {
 
         /** A day in milliseconds; beyond that is a broken clock, not a session. */
         private const val MAX_AT_MS = 86_400_000
+
+        /**
+         * A status the relay answered with, read as keep-or-drop. 4xx is the
+         * relay saying this body is wrong, and it will say it again to the same
+         * bytes; 408 and 429 are the two that mean try later instead.
+         */
+        fun outcomeForStatus(status: Int): BatchOutcome = when (status) {
+            in 200..299 -> BatchOutcome.DELIVERED
+            408, 429 -> BatchOutcome.UNDELIVERED
+            in 400..499 -> BatchOutcome.REJECTED
+            else -> BatchOutcome.UNDELIVERED
+        }
     }
 
     /** Fresh per launch, 32 lowercase hex characters, never persisted. */
@@ -86,8 +103,33 @@ class Telemetry {
     /** The envelope's app version in "0.1.0 (3)" form, from BuildConfig. */
     private val appVersion: String = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
 
-    /** Injectable so a unit test can capture the body without a network. */
-    var send: ((String) -> Unit)? = null
+    /**
+     * What became of a batch handed to the transport. The distinction that
+     * matters is between a relay that refused this body and always will, and
+     * one that simply did not answer: the first must be dropped or it poisons
+     * the buffer forever, the second must be kept or the outage erases its own
+     * evidence. The Swift side's `noExif` bug is the first case — an unknown
+     * enum value made the relay 400 every batch that contained one.
+     */
+    enum class BatchOutcome {
+        /** The relay took it. */
+        DELIVERED,
+
+        /** The relay refused it and would refuse it again. Dropping is correct. */
+        REJECTED,
+
+        /** Nobody answered, or the relay may take it later. Keep the events. */
+        UNDELIVERED,
+    }
+
+    /**
+     * Injectable so a unit test can capture the body without a network.
+     *
+     * The closure must invoke its completion exactly once. Invoking it late is
+     * fine and is the normal case; never invoking it leaves the channel with no
+     * flush in flight and a buffer that only drains at the cap.
+     */
+    var send: ((String, (BatchOutcome) -> Unit) -> Unit)? = null
 
     /** Flush when the buffer reaches this many events. */
     var flushThreshold: Int = 20
@@ -98,6 +140,13 @@ class Telemetry {
     private val lock = Any()
     private val buffer = ArrayDeque<BufferedEvent>()
 
+    /**
+     * One batch in flight at a time. Without this, every event past the
+     * threshold starts another post while offline, and a batch that failed
+     * could be requeued underneath a later one that carried the same events.
+     */
+    private var inFlight = false
+
     /** The fire-and-forget transport; its dispatcher never touches the UI
      * thread. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -105,7 +154,7 @@ class Telemetry {
     private data class BufferedEvent(val event: TelemetryEvent, val atMs: Int)
 
     /** Records an event. Never throws and never blocks on the network: the
-     * buffer is capped, the flush is fire-and-forget. */
+     * buffer is capped, and the flush returns before its request does. */
     fun track(event: TelemetryEvent) {
         val atMs = clampAtMs((System.currentTimeMillis() - sessionStartMs).toInt())
         var shouldFlush = false
@@ -129,17 +178,47 @@ class Telemetry {
         if (shouldFlush) flush()
     }
 
-    /** Sends whatever is buffered, if anything. Safe to call from anywhere
-     * and any thread; the network send itself never blocks the caller. */
+    /**
+     * Sends whatever is buffered, if anything. Safe to call from anywhere and
+     * any thread; the network send itself never blocks the caller.
+     *
+     * A batch that fails to reach the relay is put back (see [finish]), so this
+     * is at-least-once rather than at-most-once: a batch the relay stored and
+     * then failed to acknowledge is sent again and lands twice. That trade is
+     * deliberate. A duplicated event is visible in the timeline and can be read
+     * around; a missing one is indistinguishable from someone standing still,
+     * which is exactly how #74 hid for a whole field test.
+     */
     fun flush() {
-        val batch: List<BufferedEvent>
-        synchronized(lock) {
+        val batch: List<BufferedEvent> = synchronized(lock) {
+            if (inFlight) return
             while (buffer.size > maxBatch) buffer.removeFirst()
-            batch = buffer.toList()
+            val taken = buffer.toList()
             buffer.clear()
+            inFlight = taken.isNotEmpty()
+            taken
         }
         if (batch.isEmpty()) return
-        (send ?: ::httpSend)(encode(batch))
+        val transport = send ?: ::httpSend
+        transport(encode(batch)) { outcome -> finish(batch, outcome) }
+    }
+
+    /**
+     * Closes out a flush: the channel is free again, and an undelivered batch
+     * goes back where it came from.
+     */
+    private fun finish(batch: List<BufferedEvent>, outcome: BatchOutcome) {
+        synchronized(lock) {
+            inFlight = false
+            if (outcome == BatchOutcome.UNDELIVERED) {
+                // In front: these events are older than anything buffered while
+                // the request was out. The cap then applies as it always does,
+                // and it may well drop these — under pressure the oldest still
+                // go.
+                for (event in batch.asReversed()) buffer.addFirst(event)
+                while (buffer.size > maxBatch) buffer.removeFirst()
+            }
+        }
     }
 
     /**
@@ -167,12 +246,14 @@ class Telemetry {
     }
 
     /**
-     * Fire and forget: a daemon-scoped coroutine posts the body and nobody
-     * looks at the answer. Errors are swallowed by design — if the relay is
-     * down the user must not notice (data/relay-events.json, endpoint.notes).
+     * Posts the body and reports what became of it. Still fire-and-forget as
+     * far as the caller is concerned: nobody is shown an error and nothing
+     * waits (data/relay-events.json, endpoint.notes). The answer is read only
+     * to decide whether the events are worth keeping.
      */
-    private fun httpSend(body: String) {
+    private fun httpSend(body: String, completion: (BatchOutcome) -> Unit) {
         scope.launch {
+            var outcome = BatchOutcome.UNDELIVERED
             try {
                 val url = URL("$baseUrl$ENDPOINT_PATH")
                 val conn = (url.openConnection() as HttpURLConnection).apply {
@@ -184,13 +265,15 @@ class Telemetry {
                 }
                 try {
                     conn.outputStream.use { out -> out.write(body.toByteArray(Charsets.UTF_8)) }
-                    conn.responseCode
+                    outcome = outcomeForStatus(conn.responseCode)
                 } finally {
                     conn.disconnect()
                 }
             } catch (_: Exception) {
-                // Swallowed on purpose: telemetry must never be noticed.
+                // Swallowed on purpose: telemetry must never be noticed. The
+                // events stay buffered rather than being shown to anyone.
             }
+            completion(outcome)
         }
     }
 

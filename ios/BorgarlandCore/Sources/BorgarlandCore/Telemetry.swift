@@ -23,6 +23,11 @@ import Security
 ///   4. Batched, not spammed: the buffer flushes at ~20 events, at the
 ///      natural end points (the report send result, app background), and
 ///      never exceeds 100 per batch (the relay refuses a longer one).
+///   5. A batch the relay did not take goes back in the buffer (#74). The
+///      flush points include app background, which is the moment someone
+///      reaches the airplane-mode toggle, so the flush most likely to fail
+///      is the one carrying the outage we are trying to measure. Dropping
+///      under the cap is still correct; dropping on a failed request is not.
 ///
 /// Testable by injection: `send` is a closure a test replaces to capture the
 /// body without a network, and `now`/`sessionStart`/`sessionID` are
@@ -45,9 +50,51 @@ public final class Telemetry {
     /// diagnosable at a glance.
     public var appVersion = "unset"
 
+    /// What became of a batch handed to the transport. The distinction that
+    /// matters is between a relay that refused this body and always will, and
+    /// one that simply did not answer: the first must be dropped or it poisons
+    /// the buffer forever, the second must be kept or the outage erases its own
+    /// evidence. The `noExif` bug in this file's history is the first case —
+    /// an unknown enum value made the relay 400 every batch containing it.
+    public enum BatchOutcome: Equatable {
+        /// The relay took it.
+        case delivered
+        /// The relay refused it and would refuse it again. Dropping is correct.
+        case rejected
+        /// Nobody answered, or the relay may take it later. Keep the events.
+        case undelivered
+    }
+
+    /// How a transport reports an outcome: a callback in a box.
+    ///
+    /// The box is not decoration. Swift cannot spell `@escaping` inside a
+    /// function TYPE, and a closure parameter of function type is non-escaping
+    /// at the use site, so a transport handed a bare closure could not HOLD it
+    /// until its request answers — which is the only thing a transport ever
+    /// does with it. Wrapping it in a value moves the escaping promise to an
+    /// initialiser, where the attribute is legal. `callAsFunction` keeps every
+    /// call site reading `report(.delivered)`. The Kotlin side needs none of
+    /// this and takes the function type directly.
+    public struct BatchReceipt {
+        private let report: (BatchOutcome) -> Void
+
+        public init(_ report: @escaping (BatchOutcome) -> Void) {
+            self.report = report
+        }
+
+        /// Report what became of the batch. Exactly once.
+        public func callAsFunction(_ outcome: BatchOutcome) {
+            report(outcome)
+        }
+    }
+
     /// Injectable network send. A unit test replaces it to capture the body;
     /// nil means the default fire-and-forget URLSession post.
-    public var send: ((Data) -> Void)?
+    ///
+    /// The closure must report exactly once. Reporting late is fine and is the
+    /// normal case; never reporting leaves the channel with no flush in flight
+    /// and a buffer that only drains at the cap.
+    public var send: ((Data, BatchReceipt) -> Void)?
 
     /// Flush when the buffer reaches this many events.
     public var flushThreshold = 20
@@ -68,6 +115,11 @@ public final class Telemetry {
 
     private var buffer: [BufferedEvent] = []
     private let lock = NSLock()
+
+    /// One batch in flight at a time. Without this, every event past the
+    /// threshold starts another post while offline, and a batch that failed
+    /// could be requeued underneath a later one that carried the same events.
+    private var inFlight = false
 
     private struct BufferedEvent {
         let event: TelemetryEvent
@@ -102,7 +154,7 @@ public final class Telemetry {
     }
 
     /// Records an event. Never throws and never blocks on the network: the
-    /// buffer is capped, the flush is fire-and-forget.
+    /// buffer is capped, and the flush returns before its request does.
     public func track(_ event: TelemetryEvent) {
         let atMs = clamp(Int(now().timeIntervalSince(sessionStart) * 1000))
         var shouldFlush = false
@@ -127,18 +179,58 @@ public final class Telemetry {
 
     /// Sends whatever is buffered, if anything. Safe to call from anywhere
     /// and any thread; the network send itself never blocks the caller.
+    ///
+    /// A batch that fails to reach the relay is put back (see `finish`), so
+    /// this is at-least-once rather than at-most-once: a batch the relay stored
+    /// and then failed to acknowledge is sent again and lands twice. That trade
+    /// is deliberate. A duplicated event is visible in the timeline and can be
+    /// read around; a missing one is indistinguishable from someone standing
+    /// still, which is exactly how #74 hid for a whole field test.
     public func flush() {
         let batch: [BufferedEvent]
         lock.lock()
+        if inFlight {
+            lock.unlock()
+            return
+        }
         if buffer.count > maxBatch {
             buffer.removeFirst(buffer.count - maxBatch)
         }
         batch = buffer
         buffer = []
+        inFlight = !batch.isEmpty
         lock.unlock()
 
-        guard !batch.isEmpty, let body = encode(batch) else { return }
-        (send ?? httpSend)(body)
+        guard !batch.isEmpty else { return }
+        guard let body = encode(batch) else {
+            // Unencodable, so no amount of network will help. Drop it and let
+            // the channel go again; this cannot happen with the contract's
+            // field types and would be a bug in this file if it did.
+            finish(batch, .rejected)
+            return
+        }
+        let transport = send ?? httpSend
+        transport(body, BatchReceipt { [weak self] outcome in
+            self?.finish(batch, outcome)
+        })
+    }
+
+    /// Closes out a flush: the channel is free again, and an undelivered batch
+    /// goes back where it came from. Idempotent by construction — the caller
+    /// holds the only reference to `batch` and calls this once.
+    private func finish(_ batch: [BufferedEvent], _ outcome: BatchOutcome) {
+        lock.lock()
+        inFlight = false
+        if case .undelivered = outcome {
+            // In front: these events are older than anything buffered while
+            // the request was out. The cap then applies as it always does, and
+            // it may well drop these — under pressure the oldest still go.
+            buffer.insert(contentsOf: batch, at: 0)
+            if buffer.count > maxBatch {
+                buffer.removeFirst(buffer.count - maxBatch)
+            }
+        }
+        lock.unlock()
     }
 
     // MARK: Encoding
@@ -177,17 +269,43 @@ public final class Telemetry {
         #endif
     }
 
-    /// Fire and forget: a dataTask posts the body and nobody looks at the
-    /// answer. Errors are swallowed by design — if the relay is down the user
-    /// must not notice (data/relay-events.json, endpoint.notes).
-    private func httpSend(_ body: Data) {
-        guard let url = URL(string: baseURL + "/api/events") else { return }
+    /// Posts the body and reports what became of it. Still fire-and-forget as
+    /// far as the caller is concerned: nobody is shown an error and nothing
+    /// waits (data/relay-events.json, endpoint.notes). The answer is read only
+    /// to decide whether the events are worth keeping.
+    private func httpSend(_ body: Data, _ report: BatchReceipt) {
+        guard let url = URL(string: baseURL + "/api/events") else {
+            report(.rejected)
+            return
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
         request.timeoutInterval = 15
-        URLSession.shared.dataTask(with: request) { _, _, _ in }.resume()
+        URLSession.shared.dataTask(with: request) { _, response, error in
+            guard error == nil, let status = (response as? HTTPURLResponse)?.statusCode else {
+                report(.undelivered)
+                return
+            }
+            report(Telemetry.outcome(forStatus: status))
+        }.resume()
+    }
+
+    /// A status the relay answered with, read as keep-or-drop. 4xx is the relay
+    /// saying this body is wrong, and it will say it again to the same bytes;
+    /// 408 and 429 are the two that mean try later instead.
+    static func outcome(forStatus status: Int) -> BatchOutcome {
+        switch status {
+        case 200..<300:
+            return .delivered
+        case 408, 429:
+            return .undelivered
+        case 400..<500:
+            return .rejected
+        default:
+            return .undelivered
+        }
     }
 
     /// A day in milliseconds; an offset beyond that is a broken clock, not a

@@ -1,6 +1,6 @@
 {
   "$comment": "Which capabilities each app has, what the INTENT is for each, and how to detect the truth from the source. Read by scripts/check-parity.mjs, which CI runs. The point is that this file does NOT assert what exists: `intent` is a human decision, `detect` is a pattern, and the script reports what the pattern actually finds. A capability that appears on one platform while `intent` says `parity` turns CI red until someone either builds it on the other side or writes down why not. Drift becomes a decision instead of an accident. Prior art: dashpay/platform's SDK parity manifest, which is the only CI-enforced parity system found in open source (2026-08-22) — theirs hand-audits the statuses, this one derives them.",
-  "verifiedAt": "2026-08-22",
+  "verifiedAt": "2026-08-23",
   "intents": {
     "parity": "Both platforms must have it. One-sided is a build failure.",
     "ios-only": "Deliberately iOS only. `reason` is required and must name an issue.",
@@ -78,6 +78,15 @@
       "detect": {
         "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "class Telemetry" },
         "ios": { "paths": ["ios/BorgarlandCore/Sources"], "pattern": "class Telemetry" }
+      }
+    },
+    {
+      "name": "telemetry-keeps-a-failed-batch",
+      "intent": "parity",
+      "what": "A batch the relay did not take goes back in the buffer instead of being discarded (#74). The instrument must not lose data exactly while the failure it exists to measure is happening.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "BatchOutcome" },
+        "ios": { "paths": ["ios/BorgarlandCore/Sources"], "pattern": "BatchOutcome" }
       }
     },
     {

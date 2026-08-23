@@ -6,7 +6,7 @@
     "path": "/api/events",
     "method": "POST",
     "contentType": "application/json",
-    "notes": "best effort and never blocking. The app must not delay, retry or fail a report because this endpoint did not answer; the report is the product and this is instrumentation."
+    "notes": "best effort and never blocking. The app must not delay, retry or fail a report because this endpoint did not answer; the report is the product and this is instrumentation. Delivery of a BATCH is at-least-once as of #74: a batch this endpoint did not acknowledge goes back in the client buffer and is sent again, because the flush points include app background and the batch most likely to fail is the one carrying the outage we are measuring. A reader of the stored events must expect an occasional duplicate — the relay stored it, then failed to say so — and must not read one as two separate moments. A batch this endpoint REJECTS with a 4xx is dropped instead, since it would be rejected again; 408 and 429 count as not answering."
   },
   "envelope": {
     "session": {
