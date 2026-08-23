@@ -22,8 +22,27 @@ import org.junit.Test
  */
 class TelemetryTest {
 
+    /** The common case: the relay takes every batch it is handed. */
     private fun telemetryWith(send: (String) -> Unit): Telemetry =
-        Telemetry().apply { this.send = send }
+        Telemetry().apply {
+            this.send = { body, done ->
+                send(body)
+                done(Telemetry.BatchOutcome.DELIVERED)
+            }
+        }
+
+    /** The offline case: the caller decides what the relay did with each batch. */
+    private fun telemetryWith(outcome: () -> Telemetry.BatchOutcome, send: (String) -> Unit): Telemetry =
+        Telemetry().apply {
+            this.send = { body, done ->
+                send(body)
+                done(outcome())
+            }
+        }
+
+    private fun namesIn(body: String): List<String> =
+        Json.parseToJsonElement(body).jsonObject.getValue("events").jsonArray
+            .map { it.jsonObject.getValue("name").jsonPrimitive.content }
 
     @Test
     fun `envelope carries the contract shape`() {
@@ -122,6 +141,146 @@ class TelemetryTest {
         val events = Json.parseToJsonElement(bodies.single()).jsonObject.getValue("events").jsonArray
         assertEquals(1, events.size)
         assertEquals(9, events.single().jsonObject.getValue("length").jsonPrimitive.content.toInt())
+    }
+
+    // A batch the relay did not take.
+
+    /**
+     * #74: the airplane-mode walk of the first iOS field test is missing from
+     * D1 entirely. The buffer was emptied before the request, the request
+     * failed, and a two-minute hole in the timeline is indistinguishable from
+     * a tester standing still. The Kotlin has the same shape and the same bug.
+     */
+    @Test
+    fun `an undelivered batch is kept and sent again`() {
+        val bodies = mutableListOf<String>()
+        var outcome = Telemetry.BatchOutcome.UNDELIVERED
+        val telemetry = telemetryWith({ outcome }) { bodies += it }
+
+        telemetry.track(TelemetryEvent.CategoryChosen(1, "ruslafotur"))
+        telemetry.track(TelemetryEvent.SendStarted)
+        telemetry.flush()
+        assertEquals("the first attempt is made", 1, bodies.size)
+
+        // The network came back, and nothing else happened in between.
+        outcome = Telemetry.BatchOutcome.DELIVERED
+        telemetry.flush()
+
+        assertEquals("the failed batch is tried again", 2, bodies.size)
+        assertEquals(
+            "and it carries the events the failed attempt held",
+            listOf("category-chosen", "send-started"),
+            namesIn(bodies[1]),
+        )
+    }
+
+    @Test
+    fun `a requeued batch stays ahead of what came after it`() {
+        val bodies = mutableListOf<String>()
+        var outcome = Telemetry.BatchOutcome.UNDELIVERED
+        val telemetry = telemetryWith({ outcome }) { bodies += it }
+
+        telemetry.track(TelemetryEvent.SendStarted)
+        telemetry.flush()
+
+        // Buffered while the failed request was still out, so newer.
+        telemetry.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
+        outcome = Telemetry.BatchOutcome.DELIVERED
+        telemetry.flush()
+
+        assertEquals(
+            "a batch put back is older than what arrived while it was in flight",
+            listOf("send-started", "screen-left"),
+            namesIn(bodies[1]),
+        )
+    }
+
+    /**
+     * The other half of the fix. A relay that refuses this body will refuse it
+     * again, so a rejected batch must be dropped or it blocks the buffer for
+     * the rest of the session.
+     */
+    @Test
+    fun `a rejected batch is dropped rather than tried forever`() {
+        val bodies = mutableListOf<String>()
+        val telemetry = telemetryWith({ Telemetry.BatchOutcome.REJECTED }) { bodies += it }
+
+        telemetry.track(TelemetryEvent.AppOpened)
+        telemetry.flush()
+        telemetry.flush()
+
+        assertEquals("nothing was left to send", 1, bodies.size)
+    }
+
+    @Test
+    fun `status is read as keep or drop`() {
+        // The relay took it.
+        assertEquals(Telemetry.BatchOutcome.DELIVERED, Telemetry.outcomeForStatus(200))
+        assertEquals(Telemetry.BatchOutcome.DELIVERED, Telemetry.outcomeForStatus(204))
+        // The relay refused this body and would refuse it again.
+        assertEquals(Telemetry.BatchOutcome.REJECTED, Telemetry.outcomeForStatus(400))
+        assertEquals(Telemetry.BatchOutcome.REJECTED, Telemetry.outcomeForStatus(413))
+        // Try later: a timeout, a rate limit, or the relay being down.
+        assertEquals(Telemetry.BatchOutcome.UNDELIVERED, Telemetry.outcomeForStatus(408))
+        assertEquals(Telemetry.BatchOutcome.UNDELIVERED, Telemetry.outcomeForStatus(429))
+        assertEquals(Telemetry.BatchOutcome.UNDELIVERED, Telemetry.outcomeForStatus(500))
+        assertEquals(Telemetry.BatchOutcome.UNDELIVERED, Telemetry.outcomeForStatus(0))
+    }
+
+    /**
+     * Without this, every event past the threshold starts another post while
+     * offline, and a batch requeued underneath a later one duplicates it.
+     */
+    @Test
+    fun `only one batch is in flight at a time`() {
+        val bodies = mutableListOf<String>()
+        val pending = mutableListOf<(Telemetry.BatchOutcome) -> Unit>()
+        val telemetry = Telemetry().apply {
+            this.send = { body, done ->
+                bodies += body
+                pending += done
+            }
+        }
+
+        telemetry.track(TelemetryEvent.AppOpened)
+        telemetry.flush()
+        assertEquals(1, bodies.size)
+
+        telemetry.track(TelemetryEvent.SendStarted)
+        telemetry.flush()
+        assertEquals("the second flush waits for the first to answer", 1, bodies.size)
+
+        pending[0](Telemetry.BatchOutcome.DELIVERED)
+        telemetry.flush()
+        assertEquals(listOf("send-started"), namesIn(bodies[1]))
+    }
+
+    /**
+     * Dropping under the cap stays correct: the requeued batch is not
+     * privileged, and the oldest events still go when there are too many.
+     */
+    @Test
+    fun `the cap still applies to a requeued batch`() {
+        val bodies = mutableListOf<String>()
+        var outcome = Telemetry.BatchOutcome.UNDELIVERED
+        val telemetry = telemetryWith({ outcome }) { bodies += it }
+        telemetry.flushThreshold = Int.MAX_VALUE
+
+        // Distinct byte counts identify the order of the buffered events.
+        for (i in 0 until 100) {
+            telemetry.track(TelemetryEvent.PhotoCaptured(i, i, "image/jpeg"))
+        }
+        telemetry.flush()
+        for (i in 100 until 150) {
+            telemetry.track(TelemetryEvent.PhotoCaptured(i, i, "image/jpeg"))
+        }
+        outcome = Telemetry.BatchOutcome.DELIVERED
+        telemetry.flush()
+
+        val events = Json.parseToJsonElement(bodies[1]).jsonObject.getValue("events").jsonArray
+        assertEquals(100, events.size)
+        assertEquals("the oldest 50 went, requeued or not", 50, events.first().jsonObject.getValue("bytes").jsonPrimitive.content.toInt())
+        assertEquals(149, events.last().jsonObject.getValue("bytes").jsonPrimitive.content.toInt())
     }
 
     @Test
