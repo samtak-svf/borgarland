@@ -38,8 +38,15 @@ relay (decision 0002 says the apps post to the relay and never to the city).
 What replaced "no network at all" is narrower and still checkable:
 
 1. **No city endpoint anywhere in the app.** No hostname, no category slug, no
-   path. `NoCityEndpointTest` asserts it on every build, and strips comments
-   before scanning so the rule can be documented in the file it governs.
+   path. `NoCityEndpointTest` asserts it on every build, scanning the source
+   through `KotlinSource.stripComments`. That stripper has two jobs, and only
+   one of them was obvious. It removes comments, so the rule can be documented
+   in the file it governs. It also has to know what a **string literal** is: it
+   used to cut each line at the first `//`, which turned
+   `"https://reykjavik.is/…"` into `"https:` before the scan and let a city
+   endpoint through the guard that exists to catch it — inside a string, which
+   is the most likely place for one to be. Fixed in #71, with
+   `KotlinSourceTest` covering both jobs.
 2. **One relay URL**, from `BuildConfig.RELAY_BASE_URL`, per build type: the
    loopback for debug, `https://borgarland.samtak.is` for release (#29).
    `build.gradle.kts` refuses at configuration time to build a release whose URL
