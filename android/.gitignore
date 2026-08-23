@@ -5,3 +5,4 @@ local.properties
 # The canonical files are the ones in data/; these are generated.
 app/src/main/assets/reykjavik-form.json
 app/src/main/assets/relay-request.json
+app/src/main/assets/category-labels.json

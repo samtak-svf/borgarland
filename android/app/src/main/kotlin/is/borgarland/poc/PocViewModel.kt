@@ -129,11 +129,12 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // The telemetry channel is fire-and-forget by contract
-        // (data/relay-events.json): it must never affect the report. One
-        // instance per launch, and the app-opened event belongs to that
-        // moment.
-        Telemetry.shared.track(TelemetryEvent.AppOpened)
+        // No app-opened here, deliberately (#70). This init runs once per
+        // ViewModel, and a ViewModel is cleared when its Activity finishes —
+        // Back, a swipe out of recents — while the process, and with it the
+        // telemetry session, carries on. Emitting here therefore emitted twice
+        // in one session. The event marks the start of a session, and a
+        // session is a process, so BorgarlandApplication.onCreate owns it.
     }
 
     /**

@@ -1,0 +1,41 @@
+# Fails when a field-test record disagrees with the contracts it transcribes.
+#
+# data/field-tests.json is written by hand, after the fact, from D1 and
+# Workers Logs. That is the only way to record what a build did in a hand on a
+# real device, and it is also the way transcription errors get in: an event
+# name given a plausible spelling it never had, a field the allowlist does not
+# permit, an issue number transposed.
+#
+# scripts/check-field-tests.mjs checks each timeline against
+# data/relay-events.json, which is the allowlist the Worker itself enforces.
+# An event that could not have crossed the wire cannot have been observed. It
+# also refuses a string where the contract has no free-text field, which is
+# where a description or a place name would land if one were ever pasted into
+# a record by mistake.
+name: field-tests
+
+on:
+  pull_request:
+    paths:
+      - 'data/field-tests.json'
+      - 'data/relay-events.json'
+      - 'data/reykjavik-form.json'
+      - 'scripts/check-field-tests.mjs'
+      - '.github/workflows/field-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  records:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Every recorded event is one the contract allows
+        run: node scripts/check-field-tests.mjs

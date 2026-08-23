@@ -123,7 +123,7 @@ entry. Get one right first.
 
 ## What CI checks
 
-Seven workflows, all on GitHub-hosted runners — this repo is public, so the
+Eight workflows, all on GitHub-hosted runners — this repo is public, so the
 minutes are free and there is no reason for a self-hosted runner.
 
 | Workflow | What it guards |
@@ -134,6 +134,7 @@ minutes are free and there is no reason for a self-hosted runner.
 | `android-ci.yml` | ktlint, Android lint, a debug build and the unit tests. |
 | `ios-ci.yml` | The SwiftUI shell builds for a simulator, unsigned. |
 | `ios-release.yml` | On an `ios-v*` tag: archive, sign, upload dSYMs to Crashlytics, ship to TestFlight — without a Mac. |
+| `field-tests.yml` | That a record in `data/field-tests.json` transcribes only events the relay's allowlist permits, so a hand-written transcript stays trustworthy. |
 | `ai-authorship.yml` | That no commit or PR body carries an AI authorship marker. |
 
 ## Contributing
