@@ -22,18 +22,24 @@ question is answered in
 [docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reporting-api.md);
 what is built on top of it is:
 
-- **The Worker relay** (`worker/`), with its tests and its D1 schema. Not
-  deployed, so nothing has a hostname yet.
+- **The Worker relay** (`worker/`), **deployed** at `borgarland.samtak.is` on
+  Cloudflare, with D1 (`--jurisdiction eu`) holding the national address
+  registry and our record of every report. In dry run.
 - **The Android app** (`android/`), which has run on a real phone: camera,
-  coordinate, category, description, and a POST to the relay.
+  coordinate, category, description, and a POST to the relay. It has no release
+  pipeline and ships to nobody ([#58](https://github.com/samtak-svf/borgarland/issues/58)).
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
-  request contract the Android and Worker tests pin. It has been built by CI
-  and never installed on a phone.
+  request contract the Android and Worker tests pin. Build `0.1.0 (4)` is in
+  TestFlight, signed without a Mac, and has not yet been installed by anyone.
 
-Nothing in this repository can reach the city. Every path ends at our own relay,
-which forwards nothing unless deliberately configured to
-([decision 0002](decisions/0002-relay-not-direct-post.md)).
+**Nothing in this repository has reached the city, and the relay cannot reach it
+by accident.** Forwarding requires the deliberate `CITY_SEND_KEY` secret, which
+does not exist; doing nothing leaves dry run
+([decision 0002](decisions/0002-relay-not-direct-post.md)). And when it is
+armed, the relay files exactly one report and refuses the second, because
+[decision 0006](decisions/0006-one-real-submission.md)'s "one" is enforced in
+code rather than remembered.
 
 The short version: Reykjavík publishes no API, and no Icelandic municipality
 implements Open311 — but the city's own form endpoint accepts an anonymous
@@ -62,7 +68,9 @@ Five decisions worth stating early.
 search exists only to move a map marker, and what gets submitted is always a
 coordinate. For a litter bin standing on a path that is exactly right, because
 it has no address — only the coordinate that came with the photo. So EXIF GPS
-first, the device fix as fallback, a map only for correcting it.
+first and the device fix as fallback, both of which exist, and a map only for
+correcting it, which does not exist on either platform yet
+([#2](https://github.com/samtak-svf/borgarland/issues/2)).
 
 **We validate the location, because the city does not.** `description` is the
 only field the city enforces. A report with no coordinate would be accepted and
@@ -112,6 +120,21 @@ Reykjavík only, to begin with. The capital area does not share one reporting
 system — Mosfellsbær runs MainManager behind ASP.NET `__VIEWSTATE`, Hafnarfjörður
 a Drupal module — so each additional municipality is real work, not a config
 entry. Get one right first.
+
+## What CI checks
+
+Seven workflows, all on GitHub-hosted runners — this repo is public, so the
+minutes are free and there is no reason for a self-hosted runner.
+
+| Workflow | What it guards |
+|---|---|
+| `contract.yml` | The daily probe against the city's endpoint, so a change there arrives as a red build rather than as a user's failed report. It posts a deliberately incomplete payload the validator must reject: it *cannot* succeed, which is the property that makes it safe. |
+| `relay-request-contract.yml` | That the Worker and both apps still agree with `data/relay-request.json`, plus the Swift and Kotlin unit tests. |
+| `platform-parity.yml` | That iOS and Android have not drifted apart without someone writing down why (`data/platform-parity.json`). |
+| `android-ci.yml` | ktlint, Android lint, a debug build and the unit tests. |
+| `ios-ci.yml` | The SwiftUI shell builds for a simulator, unsigned. |
+| `ios-release.yml` | On an `ios-v*` tag: archive, sign, upload dSYMs to Crashlytics, ship to TestFlight — without a Mac. |
+| `ai-authorship.yml` | That no commit or PR body carries an AI authorship marker. |
 
 ## Contributing
 
