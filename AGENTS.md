@@ -93,6 +93,23 @@ that sends a field an older relay has never heard of gets `unknown-field` on
 every send. Measured on 2026-08-23, against the live relay, by an app that had
 been built four minutes earlier.
 
+**The same rule covers `data/relay-events.json`, and there it fails quietly.**
+The Worker bundles the events allowlist at build time too (`worker/src/events.ts`
+imports it), so a build that sends an event name the live relay has never heard
+of is refused the same way. Two things make this the more dangerous half. The
+refusal is *batch-level*: `validateEvent` rejects the whole POST with
+`invalid-event-batch`, so one unknown name destroys every event that travelled
+with it, including the ones the relay does know. And the app never finds out,
+by design: `outcomeForStatus` treats 400-499 as REJECTED and drops the batch
+rather than retrying, while `/api/events` and the report path are separate
+handlers in `worker/src/app.ts` — so the report itself goes through, the person
+filing sees success, and only the measurement disappears.
+
+Measured on 2026-08-24, not assumed: a real walk lost its entire batch to one
+unknown name while its report row landed normally, and the walk left no trace to
+read afterwards, because the trace was the thing that was refused. Deploy first,
+then ship the build.
+
 ## What belongs in the app: a human walking with a phone
 
 The scope test is **can a person walking with a phone meet this thing and
