@@ -11,6 +11,42 @@ Read [docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reportin
 before touching anything that talks to the city. It is the whole factual basis
 for this project and it was established by black-box probing, not documentation.
 
+## Before you change app code: the skills outrank your memory
+
+**Android — Google's skills decide.** They publish 21 official ones
+([github.com/android/skills](https://github.com/android/skills), Apache-2.0),
+installed here as the `android-skills` plugin: edge-to-edge and IME insets,
+adaptive layout, theming, Navigation 3, CameraX, R8, testing setup, Play. On
+anything they cover, read the `SKILL.md` before writing the code rather than
+after. This is not deference for its own sake. #110 was fixed by
+`Modifier.imePadding()` placed **before** `verticalScroll()`, and a hand-written
+note in this machine's own skills directory had the order backwards — appending
+the modifier the obvious way would have shipped a quieter second bug on top of
+the one being fixed. Three corrections in one line, from the people who own the
+framework.
+
+**iOS — nobody's skills decide, because Apple publishes none.** Checked
+2026-08-24: `apple/skills` and every obvious variant is a 404, and no repository
+under `org:apple` matches. Their move was to put the Claude Agent SDK inside
+Xcode 26.3, which is no help here. What is installed is community work —
+`swiftui-pro` and `swift-testing-pro`, Paul Hudson, MIT — and it is **evidence,
+not law**. Two specific cautions: Hudson's own index says listing is not
+endorsement, and `swiftui-pro` assumes iOS 26 and Swift 6.2 while
+`ios/project.yml` targets **iOS 17.0 and Swift 5.9**, so its "use the modern
+API" advice is regularly unbuildable here. There is no Mac on this machine, so
+CI is the only compiler and a wrong suggestion costs a whole build to discover.
+
+**Then verify on the device.** `android-ux` is the local companion for that half
+and defers to Google for everything about the code. Its first rule is the one
+this project learned the expensive way: *the screenshot is the instrument, take
+it before you theorise.* #110 was in every screenshot already captured while an
+agent read accessibility trees and blamed its own taps.
+
+A `PreToolUse` hook (`~/.claude/scripts/mobile-skills-guard.mjs`) says this once
+per platform per session on the first touch of `.kt` or `.swift`, including
+edits made through the shell. If you are reading this instead, the hook did its
+job.
+
 ## The one rule that matters
 
 **`worker/src/adapters/reykjavik.ts` is the only file allowed to know the
