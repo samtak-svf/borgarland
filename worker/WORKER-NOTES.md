@@ -48,7 +48,7 @@ npx wrangler deploy --dry-run --outdir dist
 ```
 
 Last verified 2026-08-24: typecheck clean, 137 tests passing across 10 files,
-bundle 94.15 KiB total / 19.38 KiB gzipped.
+bundle 95.04 KiB total / 19.74 KiB gzipped.
 
 ## Deploy the relay BEFORE an app that sends something new
 
@@ -88,7 +88,7 @@ nothing on its own. Record the commit next to it every time, and check
 | `d31a0d99` | 2026-08-23 00:43 | — | the counted live gate (#68) |
 | `d8ca63ae` | 2026-08-24 02:24 | `ae76515` (#105) | the gate becomes the write (#98) |
 | `bdadab48` | 2026-08-24 03:24 | `21ba1f5` (#108) | drops a read-back nobody used |
-| `a18a4cd6` | 2026-08-24 19:58 | `2dbce93` (#136) | the events allowlist learns `location-permission-asked` |
+| `a18a4cd6` | 2026-08-24 20:00 | `2dbce93` (#136) | the events allowlist learns `location-permission-asked` |
 
 `npx wrangler deployments list` gives the live one. To prove the deployed
 bundle IS a given commit rather than assuming it, build that commit with
