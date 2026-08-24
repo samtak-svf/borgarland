@@ -1,6 +1,6 @@
 {
   "$comment": "Which capabilities each app has, what the INTENT is for each, and how to detect the truth from the source. Read by scripts/check-parity.mjs, which CI runs. The point is that this file does NOT assert what exists: `intent` is a human decision, `detect` is a pattern, and the script reports what the pattern actually finds. A capability that appears on one platform while `intent` says `parity` turns CI red until someone either builds it on the other side or writes down why not. Drift becomes a decision instead of an accident. Prior art: dashpay/platform's SDK parity manifest, which is the only CI-enforced parity system found in open source (2026-08-22) — theirs hand-audits the statuses, this one derives them.",
-  "verifiedAt": "2026-08-23",
+  "verifiedAt": "2026-08-24",
   "intents": {
     "parity": "Both platforms must have it. One-sided is a build failure.",
     "ios-only": "Deliberately iOS only. `reason` is required and must name an issue.",
@@ -188,6 +188,15 @@
       "detect": {
         "android": { "paths": ["android/app"], "pattern": "WorkManager|androidx.work|ReportQueue" },
         "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "ReportQueue" }
+      }
+    },
+    {
+      "name": "asked-only-when-a-dialog-is-shown",
+      "intent": "parity",
+      "what": "The location-permission-asked event fires only when a dialog is actually put in front of somebody (#139). Both platforms had a caller emitting it before the call that may return without prompting, which filled the asked-to-answered gap — the one measurement #134 exists to make possible — with values that were never waits. The two guards look nothing alike because the platforms differ: CoreLocation exposes `.notDetermined`, so iOS emits from inside the branch that prompts, while Android must reconstruct the same fact from a remembered ask, because shouldShowRequestPermissionRationale reads false both before the first ask and after the last.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "willPrompt" },
+        "ios": { "paths": ["ios/Sources/DeviceFix.swift"], "pattern": "locationPermissionAsked" }
       }
     },
     {

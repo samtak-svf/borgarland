@@ -65,6 +65,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import `is`.borgarland.PocUiState
+import `is`.borgarland.data.LocationAsks
 import `is`.borgarland.data.LocationPermission
 import `is`.borgarland.Photo
 import `is`.borgarland.net.Telemetry
@@ -143,8 +144,7 @@ fun CameraScreen(
                 Telemetry.shared.track(TelemetryEvent.LocationPermission(true))
                 onRequestDeviceFix()
             } else {
-                Telemetry.shared.track(TelemetryEvent.LocationPermissionAsked)
-                locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
+                askForLocation(context, locationPermissionLauncher)
             }
         }
     }
@@ -237,8 +237,7 @@ private fun ColumnScope.CapturedPhoto(
                                 if (hasAnyLocationPermission(context)) {
                                     onRequestDeviceFix()
                                 } else {
-                                    Telemetry.shared.track(TelemetryEvent.LocationPermissionAsked)
-                                    locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
+                                    askForLocation(context, locationPermissionLauncher)
                                 }
                             }) { Text("Reyna aftur") }
                         }
@@ -357,6 +356,37 @@ private fun hasAnyLocationPermission(context: Context): Boolean =
 
 private fun hasPermission(context: Context, permission: String): Boolean =
     ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+
+/**
+ * Fire the permission launcher, and count it as an ask only when one is
+ * actually going to be shown (#139).
+ *
+ * The launcher runs either way, because its callback is what tells the model
+ * where the permission stands and puts the Opna stillingar exit in front of
+ * somebody who needs it. What is conditional is the EVENT: on a phone that has
+ * refused for good the launcher answers immediately with no dialog, and
+ * `onPhotoCaptured` clears `locationDenied` on every photo, so an unguarded
+ * emit here re-counted an ask that never happened for every subsequent photo
+ * with no usable EXIF GPS.
+ *
+ * The order matters. [LocationAsks.remember] runs AFTER the decision is taken,
+ * because the decision is about the state before this ask.
+ */
+private fun askForLocation(
+    context: Context,
+    launcher: androidx.activity.result.ActivityResultLauncher<Array<String>>,
+) {
+    val willPrompt = LocationPermission.willPrompt(
+        granted = hasAnyLocationPermission(context),
+        canAskAgain = shouldShowLocationRationale(context),
+        askedBefore = LocationAsks.asked(context),
+    )
+    if (willPrompt) {
+        Telemetry.shared.track(TelemetryEvent.LocationPermissionAsked)
+    }
+    LocationAsks.remember(context)
+    launcher.launch(LOCATION_PERMISSIONS)
+}
 
 /**
  * Whether Android would still show the permission dialog. False after a

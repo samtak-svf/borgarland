@@ -96,5 +96,34 @@ enum class LocationPermission {
          */
         fun shouldResume(stopped: LocationPermission, nowGranted: Boolean): Boolean =
             stopped == DENIED_FOR_GOOD && nowGranted
+
+        /**
+         * Whether launching the request will actually put a dialog in front of
+         * somebody. Only true answers may be counted as an ask (#139): the
+         * event exists to measure the gap between being asked and answering,
+         * and a launcher that returns without showing anything fills that
+         * measurement with values that were never waits.
+         *
+         * [askedBefore] is the part the platform will not tell us.
+         * shouldShowRequestPermissionRationale reads false in two situations
+         * that could not be more different -- nobody has been asked yet, and
+         * the system has stopped asking for good -- so without a memory of our
+         * own the first photo on a fresh install and every photo on a
+         * permanently refused one look identical. That is the same
+         * `unanswered != refused` confusion as #76 and #86, one question
+         * further back.
+         *
+         * There is no iOS twin because CoreLocation needs none: it exposes
+         * `.notDetermined` directly, so DeviceFix can see the difference this
+         * function has to reconstruct.
+         */
+        fun willPrompt(granted: Boolean, canAskAgain: Boolean, askedBefore: Boolean): Boolean = when {
+            // Nothing to ask for.
+            granted -> false
+            // The system says it will ask again, so it will.
+            canAskAgain -> true
+            // No rationale and we have never asked: this is the first dialog.
+            else -> !askedBefore
+        }
     }
 }
