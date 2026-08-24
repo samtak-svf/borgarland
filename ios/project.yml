@@ -43,8 +43,15 @@ settings:
     # first iOS build that reads data/category-labels.json (#40), which build 4
     # predates, so it is the first iOS build that says "Annað í almannarými"
     # rather than the city's suggestion box.
+    # 6: the first build whose telemetry can be trusted about permissions, and
+    # the first that does not call itself a POC to the person it is asking for
+    # a location (#135). Build 5 told a tester she had refused a dialog she was
+    # still reading, after sixty seconds (#134); that bound is gone, and the
+    # event recording that somebody was asked now fires only when a dialog is
+    # actually put up (#139). Build 5 emitted neither, so the asked-to-answered
+    # gap is measurable from this build and from no earlier one.
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 5
+    CURRENT_PROJECT_VERSION: 6
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
