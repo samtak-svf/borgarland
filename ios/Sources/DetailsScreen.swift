@@ -43,7 +43,7 @@ struct DetailsScreen: View {
                     Text("Tillaga úr myndinni")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    Text("Engin tillaga í þessari POC. Þegar greining verður til birtist tillagan hér, seint eða aldrei. Hún kemur aldrei í veg fyrir áframhald.")
+                    Text("Engin tillaga enn. Þegar greining verður til birtist tillagan hér, seint eða aldrei. Hún kemur aldrei í veg fyrir áframhald.")
                         .font(.footnote)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

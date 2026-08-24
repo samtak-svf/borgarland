@@ -58,7 +58,7 @@
     <application
         android:name=".BorgarlandApplication"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:label="Borgarland POC"
+        android:label="Borgarland"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:name=".MainActivity"
