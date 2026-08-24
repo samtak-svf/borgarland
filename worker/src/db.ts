@@ -212,13 +212,6 @@ export type LiveReservation =
  * interleave. Read the next paragraph before relying on that: it is the
  * conclusion of an argument, not a documented guarantee.
  *
- * Three outcomes, distinguished after the fact because SQLite reports a refused
- * conditional insert as zero changes rather than as an error:
- *
- *   changes > 0            the gate was open and is now ours
- *   changes = 0, id found  a repeat of the report that holds it
- *   changes = 0, no id     a different report already spent it
- *
  * Safe on D1 for a reason worth writing down, since it is the whole fix.
  * Without read replication there is exactly one Durable Object per database, and
  * with it every WRITE is still forwarded to the primary; a plain
@@ -227,6 +220,13 @@ export type LiveReservation =
  * first's committed row. That much is Cloudflare's documented architecture; that
  * two conditional inserts therefore cannot both succeed is inference from it
  * plus SQLite's statement atomicity, not a sentence in their docs.
+ *
+ * Three outcomes, distinguished after the fact because SQLite reports a refused
+ * conditional insert as zero changes rather than as an error:
+ *
+ *   changes > 0            the gate was open and is now ours
+ *   changes = 0, id found  a repeat of the report that holds it
+ *   changes = 0, no id     a different report already spent it
  *
  * There is a window, and it is deliberate. Between this and
  * `completeLiveReport` the row reads `sentAt = null` and `accepted = null`, so a
