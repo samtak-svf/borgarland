@@ -85,8 +85,10 @@ protected, so "optional" is not read as "not needed".
   two concurrent requests with the same id can both find nothing. In dry run the
   primary key decides and the loser is answered with the row that won. **In live
   mode the city is posted to before either insert, so the same race defeats
-  [0006](0006-never-press-submit.md)'s one-submission gate** — open as #98, and
-  it must be closed before the relay is ever armed.
+  [0006](0006-never-press-submit.md)'s one-submission gate** — that was #98, and
+  it was closed on 2026-08-24 before the relay was ever armed. The gate is now
+  the write: one conditional INSERT that succeeds only while no live row exists,
+  performed before the city is asked. See [0006](0006-never-press-submit.md).
 - The id is client-chosen and unauthenticated, and holding one reads the stored
   row through the existing GET. It is 128 bits from a secure source on both
   platforms, so guessing is not a route; it is still a capability rather than a
