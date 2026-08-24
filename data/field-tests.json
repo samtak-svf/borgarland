@@ -2034,6 +2034,234 @@
         "Nothing about the offline queue under failure. The queue is visible here only as a delivery gap on a walk where every send succeeded; it was not tested against a dropped network.",
         "Nothing about whether a second tester round happened. One session is one session."
       ]
+    },
+    {
+      "id": "2026-08-24-android-first-play-install",
+      "date": "2026-08-24",
+      "platform": "android",
+      "what": "The first install of the Android app by somebody who did not build it, from Google Play internal testing, hours after the track existed at all. One complete walk in Kringlan, accepted by the relay. He also sent a screenshot of the summary screen, which is the first time anyone outside this machine has photographed what this app looks like.",
+      "device": {
+        "model": "not recorded",
+        "note": "The telemetry names no device (data/relay-events.json) and no adb session was attached. The screenshot shows a dark theme and a 4G connection and nothing that identifies a handset."
+      },
+      "build": {
+        "variant": "Google Play, internal testing track 4700074908779732142",
+        "appVersion": "0.1.0 (1)",
+        "signing": "upload key 35f297e4...18184c, then re-signed by Play with its own distribution key",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves. A release build carries one host and only one (#29).",
+        "note": "0.1.0 (1) is also what a sideloaded build here reports, so the version string alone does not prove the Play origin. What does: he was sent the opt-in link, said he had installed it, and no APK was ever sent to him."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed. /api/health answered dryRun true and reports with dry_run = 0 numbered 0 across the whole table. His screenshot shows the app telling him the same thing in his own language."
+      },
+      "session": "39b3420618ff336b86024084e1fcb976",
+      "method": "Transcribed from D1 by query. The screenshot is held outside this repository, in the gitignored private/ directory, per the note at the top of this file.",
+      "timeline": [
+        {
+          "atMs": 1,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 350,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 18315,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 26886,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 311,
+            "bytes": 4187461,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 26887,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 2,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 32368,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 47404,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 20519,
+            "reason": "timeout"
+          }
+        },
+        {
+          "atMs": 49706,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 22821,
+            "source": "device",
+            "accuracyM": 100
+          }
+        },
+        {
+          "atMs": 49706,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 57984,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 31099,
+            "slug": "almenn-abending"
+          }
+        },
+        {
+          "atMs": 71328,
+          "name": "description-length",
+          "fields": {
+            "length": 27
+          }
+        },
+        {
+          "atMs": 72382,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 45497,
+            "slug": "umferdaroryggi"
+          }
+        },
+        {
+          "atMs": 76529,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 49644,
+            "slug": "almenn-abending"
+          }
+        },
+        {
+          "atMs": 78688,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 83028,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 85642,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 2614,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 2,
+          "receivedAt": "2026-08-24T17:26:46.916Z",
+          "firstAtMs": 1,
+          "lastAtMs": 350
+        },
+        {
+          "events": 14,
+          "receivedAt": "2026-08-24T17:27:58.560Z",
+          "firstAtMs": 18315,
+          "lastAtMs": 85642
+        }
+      ],
+      "deliveryNote": "Two batches. The first is the app opening and the camera permission being refused; the second is everything after he granted it, flushed when the report was sent.",
+      "reports": [
+        {
+          "id": "06270ebc041cc87ba654c534d75b5093",
+          "categorySlug": "almenn-abending",
+          "photoCount": 1,
+          "photoBytes": 4187461,
+          "dryRun": true,
+          "createdAt": "2026-08-24T17:27:57.909Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; the coordinate reverse-looked to a Reykjavík address"
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "The whole walk completes on a phone nobody here owns, installed from a store rather than over a cable.",
+          "evidence": "16 events from app-opened at atMs 1 to send-result status 201 ok true at 85642, and row 06270ebc041cc87ba654c534d75b5093 in D1. 85.6 seconds from opening the app to the report being accepted.",
+          "wherePredicted": "#58 and decision 0012, which argued Android was undelivered rather than untested. This is the first evidence that the delivery half works."
+        },
+        {
+          "claim": "The outcome sentence and the disabled Sent button reach a third phone, and render correctly in a DARK theme.",
+          "evidence": "The screenshot shows the button greyed and reading 'Sent', above 'Þjónustan tók við ábendingunni en sendi hana ekki áfram. Hún er í þurrkeyrslu, svo ekkert fór til borgarinnar. Þetta var æfing.' -- the sentence from data/relay-outcomes.json -- and a panel below it headed 'Tæknilegt svar'.",
+          "wherePredicted": "#77 and #85, fixed in #84 and #95",
+          "note": "Dark mode is the new part. Every previous sighting of these two fixes was on a light screen here. Nothing in the screenshot is unreadable, which is the first evidence anyone has that the dark theme survives contact with a real device."
+        },
+        {
+          "claim": "The nearest registered address really is appended to the description before sending.",
+          "evidence": "description-length 27 in the telemetry against LENGTH(description) = 79 on the stored row. The 52 characters in between are the address the relay looked up. His own text, visible in the screenshot, is 'allt flott hér í kringlunni'.",
+          "wherePredicted": "AGENTS.md, which says to put the nearest registered address in the description so a crew can find a bin that has no address of its own. It had never been measured end to end."
+        },
+        {
+          "claim": "The summary screen prints the raw payload, field names and slug included, rather than the reworded label.",
+          "evidence": "The screenshot's summary is headed 'Það sem yrði sent' and lists category / latitude / longitude / description / photo, with almenn-abending as the category value.",
+          "note": "NOT a defect, said here before somebody files it as one. That screen exists to show exactly what would cross the wire, so the wire value is the correct thing to print. #40's rewording governs the PICKER, a different screen, which is not in this shot."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 122,
+          "severity": "defect",
+          "what": "The device fix timed out after 20.5 seconds and then answered 2.3 seconds later at 100 metres accuracy, the worst ever recorded and the longest wait.",
+          "evidence": "location-failed reason timeout elapsedMs 20519 at atMs 47404, then location-resolved source device accuracyM 100 elapsedMs 22821 at 49706.",
+          "whyOnlyHere": "Every earlier walk was outdoors, on a phone belonging to somebody who built the app. This one was inside a shopping centre, which is where a person actually is when they notice something on the way past.",
+          "consequence": "Twenty-three seconds of a screen that looks frozen, and then a coordinate that can be the wrong street. Nothing tells the person that either is happening.",
+          "status": "open in #122"
+        },
+        {
+          "issue": 115,
+          "severity": "observation",
+          "what": "He spent 31.1 seconds choosing a category, on ANDROID, within a second of the 32.2 seconds #115 recorded on iOS and tentatively attributed to the iOS picker.",
+          "evidence": "category-chosen elapsedMs 31099 slug almenn-abending at atMs 57984. He then changed it to umferdaroryggi at 72382 and back to almenn-abending at 76529, after already typing the description.",
+          "whyNotADefect": "It reframes #115 rather than confirming it. The two fast Android figures that issue compares against, 6.2 s and 3.4 s, are from the developer's own phone, by the person who wrote the category list. The discriminator looks like FAMILIARITY rather than platform: a first-time user takes about half a minute whichever phone they hold. That is evidence against the reading that the iOS picker is slow.",
+          "status": "open in #115, which should be updated with this rather than closed on it"
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. dryRun was true.",
+        "Nothing about the keyboard fix from #111. He was asked about it explicitly, but had finished the walk before the question arrived, so the answer is still outstanding.",
+        "Nothing about whether the reworded label showed in the picker. He chose almenn-abending, which is the category #40 rewords, but the picker is not in the screenshot and he was not asked until afterwards.",
+        "Nothing about the follow-up loop shipped the same day (#57). It asks after fourteen days, so the earliest this session can say anything is 2026-09-07.",
+        "Nothing about a second session at 17:30, which opened the app, refused the camera and did nothing else. Two events, in D1, not written up as a walk because it was not one."
+      ]
     }
   ]
 }
