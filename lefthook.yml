@@ -17,7 +17,17 @@ pre-commit:
 
     ai-authorship:
       glob: "*.{kt,kts,swift,ts,tsx,js,mjs,xml,md,toml,txt,yml,yaml}"
-      exclude: "^(\\.github/workflows/|\\.lefthook/|lefthook\\.yml)"
+      # Glob list, NOT a regex string. lefthook 2 reads `exclude` as globs, so
+      # the regex that stood here matched nothing and the exclusion silently did
+      # not exist. Nobody noticed for three days because lefthook.yml had been
+      # committed exactly once -- in the commit that created it -- so this file
+      # was unamendable from the moment the guard was written, and the first
+      # person to try was the first to find out. The file names the very
+      # patterns it greps for, which is why it must be excluded at all.
+      exclude:
+        - "lefthook.yml"
+        - ".github/workflows/*"
+        - ".lefthook/*"
       run: |
         for f in {staged_files}; do
           if grep -iE "Co-Authored-By.*(Claude|GPT|Copilot|Anthropic|OpenAI|Gemini)" "$f" 2>/dev/null; then
@@ -25,6 +35,15 @@ pre-commit:
             exit 1
           fi
         done
+
+    private-index:
+      # Runs only when a field test is being recorded, because that is the
+      # moment the screenshots are supposed to have been indexed. Nothing under
+      # private/ is ever staged -- it is gitignored -- so this reads the working
+      # tree rather than {staged_files}, and exits 0 on a machine that has no
+      # private/ at all.
+      glob: "data/field-tests.json"
+      run: node scripts/check-private-index.mjs
 
     secret-detection:
       run: |

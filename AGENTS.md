@@ -341,7 +341,7 @@ which is what a count in prose does the third time the list grows.
 | [`data/category-labels.json`](data/category-labels.json) | **Our words** for a category, where the city's are wrong for someone standing in front of the thing. The only place an app may override a label from the facts file, and separate from it on purpose: that one is a faithful record of what the city says, this is where we disagree. A slug absent here renders the city's own name, which should stay the common case. |
 | [`data/platform-parity.json`](data/platform-parity.json) | **Facts** about which capabilities each app has, and the INTENT for each: parity, one-sided with a written reason, or neither-yet. `scripts/check-parity.mjs` detects the truth from the source and fails CI when it disagrees. The file does not assert what exists; that is the point. |
 | [`data/field-tests.json`](data/field-tests.json) | **Observations** from a build in a hand, on a real device, against the live relay. Each entry keeps what was OBSERVED apart from what was CONCLUDED: the timeline and the report row are transcribed from D1 and must not be edited to fit a later understanding, while `findings` is interpretation and may be revised. `scripts/check-field-tests.mjs` validates every timeline against the event allowlist, because an event that could not cross the wire cannot have been observed. The defects that reach this file are the ones no test and no CI run can see. |
-| `private/testers.json` **(gitignored, not in this repo)** | **People.** Who has been asked to test, on which channel, what they were told and what happened, plus `howToInvite` — the invite-flow traps, each one written the day somebody hit it. It is gitignored because it holds real names, addresses and chat identifiers and this repository is public. It is listed here anyway, because a file a future session does not know about gets re-derived from chat scrollback, and that is how a person gets asked twice or forgotten. |
+| `private/testers.json` **(gitignored, not in this repo)** | **People.** Who has been asked to test, on which channel, what they were told and what happened, plus `howToInvite` — the invite-flow traps, each one written the day somebody hit it. It is gitignored because it holds real names, addresses and chat identifiers and this repository is public. It is listed here anyway, because a file a future session does not know about gets re-derived from chat scrollback, and that is how a person gets asked twice or forgotten. Its `screenshots` index is reconciled against `private/screenshots` by `scripts/check-private-index.mjs`, which is the one gate in this table that CANNOT run in CI and must not: the data is real names and real addresses. See **When new test data arrives**. |
 | [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
 | [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
 
@@ -361,6 +361,52 @@ with the track id and not the app id; and tapping that URL inside a chat app's
 own browser cannot complete the opt-in, which every tester invited over
 Messenger or Discord will do first. All three were found by watching one person
 try, on 2026-08-24.
+
+## When new test data arrives
+
+A walk produces two records that can falsify each other: the telemetry, which
+the phone wrote and nobody can edit, and the screenshots, which show what the
+person actually saw. Reading either alone is how a session ends up describing a
+walk that did not happen. Do all of this before writing anything down.
+
+**1. Ask the data which build it was, never the tester.** `app_version` in
+`client_events` reads `0.1.0 (6)`. A fix that is merged, deployed and installed
+is still untested if the walk came from the build before it, and that is the
+single most likely way to record a false confirmation.
+
+**2. Get the images onto disk before they scroll away.** They arrive in a chat
+thread and are not durable there. Dedupe by SHA-256 against
+`private/screenshots` — an end-to-end walk usually re-sends earlier shots, and
+four of seven were already held the first time this was done.
+
+**3. Cross-check the two records against each other, and say which pairs you
+checked.** The photo's byte count on the summary screen against
+`photo-captured`, the description's character count against
+`description-length`, the location label against `location-resolved.source`. If
+a pair disagrees, that is the finding — stop and chase it rather than writing
+the version that reads better.
+
+**4. Write the field-test entry** in `data/field-tests.json`, keeping the
+timeline and the report row as transcription and everything else as
+interpretation. `scripts/check-field-tests.mjs` will refuse an event the
+allowlist does not name, and refuse a finding with no issue number.
+
+**5. Say what the walk does NOT establish.** This is the step that gets skipped,
+and it is the one that stops the next session from inheriting a confirmation
+nobody earned. Build 6's first walk measured the asked-to-answered gap and did
+**not** test #139, because #139 was about the second report and she took one
+photograph. Unobserved is not disproved; write which one it is.
+
+**6. Index every screenshot** in `private/testers.json`, saying what is ON the
+screen and what it cross-checks. Run `node scripts/check-private-index.mjs`,
+which reconciles the directory against the index and rejects a description too
+short to be one. That gate exists because on 2026-08-24 the images were saved,
+the entry was written and merged, and nothing indexed them — five against eight,
+caught by a person asking. It cannot run in CI and must not: the data is real
+names and real addresses, and this repository is public.
+
+**7. Update the tester's roster entry** with state read from the API rather than
+from a screenshot, and log the contact with a date.
 
 ## Conventions
 
