@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import BorgarlandCore
 
 /// Fallback location source for a photo that carries no EXIF GPS. The
 /// CoreLocation counterpart of DeviceFix.kt.
@@ -25,7 +26,10 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var liveContinuation: CheckedContinuation<CLLocation?, Never>?
     private var timeoutTask: Task<Void, Never>?
-    private var authorizationContinuation: CheckedContinuation<Bool, Never>?
+    /// Every caller waiting on the same dialog. A single slot stranded the
+    /// earlier caller for the life of the process, and the poll that guarded
+    /// it answered the later one without waiting (#139).
+    private var authorizationWaiters: [CheckedContinuation<Bool, Never>] = []
 
     // Internal, not private: an override cannot be less accessible than the
     // inherited initializer, and the singleton above is the only instance
@@ -86,18 +90,23 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
         case .denied, .restricted:
             return false
         case .notDetermined:
-            // A second caller must not clobber the first: a single slot means
-            // the earlier continuation is never resumed and its task hangs for
-            // the life of the process. Reachable, because the retry control
-            // stays tappable while the dialog is up.
-            if authorizationContinuation != nil {
-                // Somebody is already asking. Wait for the same answer rather
-                // than prompting again or stranding them.
-                while authorizationContinuation != nil {
-                    try? await Task.sleep(nanoseconds: 100_000_000)
-                }
-                return isAuthorized
-            }
+            // A second caller joins the queue instead of prompting again or
+            // clobbering the first. What stood here before was a single slot
+            // guarded by a 10 Hz poll, and both halves were wrong. The slot
+            // stranded the earlier caller for the life of the process. The
+            // poll, once #134 removed the sixty-second bound below, could spin
+            // forever -- and when it did stop it returned `isAuthorized`, which
+            // is false while the dialog is still on the screen. That is #134
+            // exactly, one call further out: an unanswered permission reported
+            // as a refusal.
+            //
+            // The comment those lines carried said the second caller was
+            // reachable because the retry control stays tappable during the
+            // dialog. It is not: an iOS permission alert is modal, so nothing
+            // behind it can be tapped. The path is latent, and a queue costs
+            // nothing to make it correct rather than arguing about whether it
+            // can be entered.
+            let alreadyAsking = !authorizationWaiters.isEmpty
             // NO TIME BOUND, deliberately (#134). There used to be one: sixty
             // seconds, and on expiry it resumed with `isAuthorized`, which is
             // false for `.notDetermined` -- a dialog still on the screen. A
@@ -118,10 +127,25 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
             // resumes whenever the answer comes. Android has never had a bound
             // here either -- its launcher callback simply fires when the person
             // answers -- so removing it closes a divergence rather than opening
-            // one. If somebody never answers at all, one continuation stays
-            // suspended for the life of the process and nobody can observe it.
+            // one. If somebody never answers at all, every waiter stays
+            // suspended for the life of the process. That is a parked task and
+            // not a spinning one, which is the whole difference from the poll
+            // this branch used to run (#139).
             return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-                authorizationContinuation = continuation
+                authorizationWaiters.append(continuation)
+                guard !alreadyAsking else { return }
+                // Emitted HERE, in the one branch that puts a dialog up, and
+                // once per dialog rather than once per caller (#139). The
+                // caller cannot know: it sees `needsLocationPermission`, which
+                // is true for every photo carrying no usable EXIF GPS, while
+                // every settled status above returns without showing
+                // anything. Emitting there recorded an event that did not
+                // happen on every report after the first answered one, and the
+                // gap between being asked and answering -- the one measurement
+                // #134 exists to make possible -- filled with milliseconds that
+                // were never waits. data/relay-events.json already says "the
+                // dialog was put up"; this is the line that makes that true.
+                Telemetry.shared.track(.locationPermissionAsked)
                 manager.requestWhenInUseAuthorization()
             }
         @unknown default:
@@ -129,12 +153,19 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    /// Resumed exactly once, on the same pattern as `resumeFix`: whichever of
-    /// the delegate and the timeout arrives first leaves nothing for the other.
+    /// Each waiter is resumed exactly once, on the same pattern as `resumeFix`:
+    /// the queue is emptied before anything is resumed, so a re-entrant
+    /// delegate callback finds nothing left to resume twice.
+    ///
+    /// All of them get the same answer, because there was only ever one dialog
+    /// and one person answering it.
     private func resumeAuthorization(_ granted: Bool) {
-        guard let continuation = authorizationContinuation else { return }
-        authorizationContinuation = nil
-        continuation.resume(returning: granted)
+        guard !authorizationWaiters.isEmpty else { return }
+        let waiting = authorizationWaiters
+        authorizationWaiters = []
+        for continuation in waiting {
+            continuation.resume(returning: granted)
+        }
     }
 
     /// A fix, or nil after the timeout.

@@ -108,7 +108,11 @@ struct CameraScreen: View {
             // dance runs once, and the result lands in the model through the
             // same callback the Android launcher uses.
             guard model.state.needsLocationPermission else { return }
-            Telemetry.shared.track(.locationPermissionAsked)
+            // No `locationPermissionAsked` here. This flag is true for every
+            // photo with no usable EXIF GPS, which our own capture path never
+            // writes, so emitting from here recorded a dialog on every report
+            // after the first answered one (#139). DeviceFix emits it from the
+            // branch that actually prompts.
             let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
             let standing = LocationPermission.of(granted: granted, canAskAgain: !DeviceFix.shared.isDenied)
             model.onLocationPermissionResult(granted, permanentlyDenied: standing == .deniedForGood)
@@ -246,7 +250,11 @@ struct CameraScreen: View {
             model.requestDeviceFix()
         } else {
             Task {
-                Telemetry.shared.track(.locationPermissionAsked)
+                // Not emitted here either, and here it would have double
+                // counted as well: `isAuthorized` is false for `.denied` and
+                // `.restricted` too, so this branch is taken when no dialog can
+                // appear, and taken again alongside DeviceFix's own emit when
+                // one can (#139).
                 let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
                 let standing = LocationPermission.of(granted: granted, canAskAgain: !DeviceFix.shared.isDenied)
                 model.onLocationPermissionResult(granted, permanentlyDenied: standing == .deniedForGood)

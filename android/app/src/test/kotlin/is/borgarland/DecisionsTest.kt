@@ -73,4 +73,42 @@ class DecisionsTest {
         assertFalse(LocationPermission.shouldResume(LocationPermission.UNANSWERED, nowGranted = true))
         assertFalse(LocationPermission.shouldResume(LocationPermission.GRANTED, nowGranted = true))
     }
+
+    // #139: the event that records being asked exists to measure the gap
+    // between the dialog going up and somebody answering it. A launcher that
+    // returns without showing anything is not an ask, and counting it fills the
+    // measurement with values that were never waits.
+
+    @Test
+    fun `a granted permission prompts nothing`() {
+        assertFalse(LocationPermission.willPrompt(granted = true, canAskAgain = true, askedBefore = false))
+        assertFalse(LocationPermission.willPrompt(granted = true, canAskAgain = false, askedBefore = true))
+    }
+
+    @Test
+    fun `the first ask on a fresh install prompts`() {
+        // No rationale and no memory of asking: this is the first dialog, not a
+        // refusal. Reading it the other way is #76 one question further back.
+        assertTrue(LocationPermission.willPrompt(granted = false, canAskAgain = false, askedBefore = false))
+    }
+
+    @Test
+    fun `a soft refusal still prompts`() {
+        assertTrue(LocationPermission.willPrompt(granted = false, canAskAgain = true, askedBefore = true))
+    }
+
+    @Test
+    fun `a permanent refusal prompts nothing`() {
+        // The launcher answers immediately with no dialog. This is the case the
+        // unguarded emit re-counted on every photo carrying no usable EXIF GPS.
+        assertFalse(LocationPermission.willPrompt(granted = false, canAskAgain = false, askedBefore = true))
+    }
+
+    @Test
+    fun `the memory is the only thing separating the first ask from the last`() {
+        // Same platform answer, opposite meaning. Without askedBefore the two
+        // are indistinguishable, which is the whole reason LocationAsks exists.
+        assertTrue(LocationPermission.willPrompt(granted = false, canAskAgain = false, askedBefore = false))
+        assertFalse(LocationPermission.willPrompt(granted = false, canAskAgain = false, askedBefore = true))
+    }
 }

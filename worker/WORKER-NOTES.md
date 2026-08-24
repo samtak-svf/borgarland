@@ -68,10 +68,22 @@ It was measured with two curls against the live relay, minutes apart:
 {"stored":1}                             <- after
 ```
 
-A real walk on a phone lost all fourteen of its events that way. The report
-itself went through, because that is a different endpoint with a different
-contract, so the failure is invisible from the app: the person sees "Sent" and
-the telemetry simply is not there.
+A real walk on a phone lost its whole batch that way. **How many events that
+was is not recorded anywhere**, and an earlier draft of this note gave a number
+regardless. A refused batch stores no row by definition, and the log line the
+refusal does produce carries only `reason`: `safeExtra` filters `error.extra`
+against `LOGGABLE_EXTRA`, which has no batch size in it and does not even pass
+the offending event `name` through, though the response to the client does. So
+the only witness left is the phone, and nobody read it.
+
+The refusal is also logged as `kind: 'report'`, because the router-wide catch
+in `app.ts` hardcodes that field for every route. Anyone grepping the logs for
+what the events endpoint did will not find this, which is worth knowing before
+trusting a log search to tell you a batch was never refused.
+
+The report itself went through, because that is a different endpoint with a
+different contract, so the failure is invisible from the app: the person sees
+"Sent" and the telemetry simply is not there.
 
 AGENTS.md states this rule for `data/relay-request.json`. It holds identically
 for the events contract, and the order is the same: deploy, verify with a curl,
