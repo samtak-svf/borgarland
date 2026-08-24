@@ -29,3 +29,9 @@ ios/signing/.secrets/
 # Written by scripts/pull-release-keystore.sh; backed up in Secret Manager.
 android/app/*.p12
 android/app/keystore.properties
+
+# Who has been asked to test, on which channel, and what happened. Real names,
+# real email addresses and chat handles, so it never enters this repository --
+# which is public. The file is described in AGENTS.md so a future session knows
+# it exists and does not re-derive the roster from chat scrollback.
+private/

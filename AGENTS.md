@@ -314,10 +314,26 @@ which is what a count in prose does the third time the list grows.
 | [`data/category-labels.json`](data/category-labels.json) | **Our words** for a category, where the city's are wrong for someone standing in front of the thing. The only place an app may override a label from the facts file, and separate from it on purpose: that one is a faithful record of what the city says, this is where we disagree. A slug absent here renders the city's own name, which should stay the common case. |
 | [`data/platform-parity.json`](data/platform-parity.json) | **Facts** about which capabilities each app has, and the INTENT for each: parity, one-sided with a written reason, or neither-yet. `scripts/check-parity.mjs` detects the truth from the source and fails CI when it disagrees. The file does not assert what exists; that is the point. |
 | [`data/field-tests.json`](data/field-tests.json) | **Observations** from a build in a hand, on a real device, against the live relay. Each entry keeps what was OBSERVED apart from what was CONCLUDED: the timeline and the report row are transcribed from D1 and must not be edited to fit a later understanding, while `findings` is interpretation and may be revised. `scripts/check-field-tests.mjs` validates every timeline against the event allowlist, because an event that could not cross the wire cannot have been observed. The defects that reach this file are the ones no test and no CI run can see. |
+| `private/testers.json` **(gitignored, not in this repo)** | **People.** Who has been asked to test, on which channel, what they were told and what happened, plus `howToInvite` — the invite-flow traps, each one written the day somebody hit it. It is gitignored because it holds real names, addresses and chat identifiers and this repository is public. It is listed here anyway, because a file a future session does not know about gets re-derived from chat scrollback, and that is how a person gets asked twice or forgotten. |
 | [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
 | [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
 
 The reasoning behind this split is [decision 0001](decisions/0001-record-facts-reasoning-and-decisions-separately.md).
+
+**One of those files is not in the repository, on purpose.** `private/testers.json`
+holds the tester roster and the contact log, and `private/` is gitignored — the
+same convention `samtak-vefur` uses for anything carrying a name or an address.
+Everything in it is personal data about volunteers, so it must never be
+committed, quoted in an issue, or pasted into a PR body. What belongs in public
+is the *lesson*, not the person: when an invite goes wrong, the trap goes in
+`howToInvite` there and, if it is general, into the `play-console` skill.
+
+It earns its place because the invite flow has more traps than the app does.
+Play notifies a new internal tester of nothing at all; the opt-in URL works only
+with the track id and not the app id; and tapping that URL inside a chat app's
+own browser cannot complete the opt-in, which every tester invited over
+Messenger or Discord will do first. All three were found by watching one person
+try, on 2026-08-24.
 
 ## Conventions
 
