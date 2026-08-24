@@ -312,6 +312,20 @@ sealed class TelemetryEvent(val name: String) {
         override val fields: JsonObject = buildJsonObject { put("granted", granted) }
     }
 
+    /**
+     * The dialog was put up. Pairs with [LocationPermission], which is the
+     * answer: the gap between them is how long somebody took to read it.
+     *
+     * Android has never needed this to avoid the #134 defect -- its launcher
+     * callback fires only when the dialog is actually answered, so an
+     * unanswered dialog has always produced no event rather than a false one.
+     * It is emitted here anyway so both platforms write the same stream, and
+     * so the reading time is measurable on the platform that has the testers.
+     */
+    object LocationPermissionAsked : TelemetryEvent("location-permission-asked") {
+        override val fields: JsonObject = JsonObject(emptyMap())
+    }
+
     data class LocationPermission(val granted: Boolean) : TelemetryEvent("location-permission") {
         override val fields: JsonObject = buildJsonObject { put("granted", granted) }
     }
@@ -426,7 +440,8 @@ sealed class TelemetryEvent(val name: String) {
          * of data/relay-events.json, so a drift in either direction is a red
          * build. */
         val allNames: Set<String> = setOf(
-            "app-opened", "camera-permission", "location-permission", "photo-captured",
+            "app-opened", "camera-permission", "location-permission-asked",
+            "location-permission", "photo-captured",
             "location-resolved", "location-failed", "category-chosen", "description-length",
             "send-started", "send-result", "send-failed", "screen-left",
         )

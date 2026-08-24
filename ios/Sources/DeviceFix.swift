@@ -26,7 +26,6 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     private var liveContinuation: CheckedContinuation<CLLocation?, Never>?
     private var timeoutTask: Task<Void, Never>?
     private var authorizationContinuation: CheckedContinuation<Bool, Never>?
-    private var authorizationTimeoutTask: Task<Void, Never>?
 
     // Internal, not private: an override cannot be less accessible than the
     // inherited initializer, and the singleton above is the only instance
@@ -77,7 +76,10 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
     /// reports the denial otherwise. A caller that shows something to a person
     /// on a false answer must ask `isDenied` too: the two refusals look the
     /// same here and are not the same situation.
-    func requestWhenInUseAuthorization(timeout: TimeInterval = 60) async -> Bool {
+    ///
+    /// It waits for as long as the person takes. It used to give up after a
+    /// minute and call that a refusal (#134); see the note at the prompt.
+    func requestWhenInUseAuthorization() async -> Bool {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             return true
@@ -96,21 +98,32 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
                 }
                 return isAuthorized
             }
-            let granted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            // NO TIME BOUND, deliberately (#134). There used to be one: sixty
+            // seconds, and on expiry it resumed with `isAuthorized`, which is
+            // false for `.notDetermined` -- a dialog still on the screen. A
+            // tester spent about a hundred seconds reading it, was told the
+            // permission was missing, answered it thirty-eight seconds after
+            // the app had already decided she had refused, and then had to
+            // press Reyna aftur to get the coordinate she had just granted.
+            //
+            // The bound cannot be repaired by making it longer, because the
+            // failure is not the length: it is answering a question nobody has
+            // answered yet. This is the same `unanswered != refused` confusion
+            // as #76 and #86, and the guard forty lines below already gets it
+            // right for the delegate path.
+            //
+            // Nothing is lost by waiting. iOS shows this dialog once in the
+            // life of an install, so there is no second prompt to protect and
+            // nothing to give up on; `locationManagerDidChangeAuthorization`
+            // resumes whenever the answer comes. Android has never had a bound
+            // here either -- its launcher callback simply fires when the person
+            // answers -- so removing it closes a divergence rather than opening
+            // one. If somebody never answers at all, one continuation stays
+            // suspended for the life of the process and nobody can observe it.
+            return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 authorizationContinuation = continuation
-                // A dialog somebody never answers must not hold the walk open
-                // for the life of the process. The bound is generous because
-                // reading a permission dialog is a slow, deliberate thing; what
-                // it protects against is a callback that never comes at all.
-                authorizationTimeoutTask = Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                    self.resumeAuthorization(self.isAuthorized)
-                }
                 manager.requestWhenInUseAuthorization()
             }
-            authorizationTimeoutTask?.cancel()
-            authorizationTimeoutTask = nil
-            return granted
         @unknown default:
             return false
         }

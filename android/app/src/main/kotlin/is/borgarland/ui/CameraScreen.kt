@@ -143,6 +143,7 @@ fun CameraScreen(
                 Telemetry.shared.track(TelemetryEvent.LocationPermission(true))
                 onRequestDeviceFix()
             } else {
+                Telemetry.shared.track(TelemetryEvent.LocationPermissionAsked)
                 locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
             }
         }
@@ -236,6 +237,7 @@ private fun ColumnScope.CapturedPhoto(
                                 if (hasAnyLocationPermission(context)) {
                                     onRequestDeviceFix()
                                 } else {
+                                    Telemetry.shared.track(TelemetryEvent.LocationPermissionAsked)
                                     locationPermissionLauncher.launch(LOCATION_PERMISSIONS)
                                 }
                             }) { Text("Reyna aftur") }
