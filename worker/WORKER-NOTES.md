@@ -50,6 +50,33 @@ npx wrangler deploy --dry-run --outdir dist
 Last verified 2026-08-24: typecheck clean, 137 tests passing across 10 files,
 bundle 94.15 KiB total / 19.38 KiB gzipped.
 
+## Deploy the relay BEFORE an app that sends something new
+
+Demonstrated on 2026-08-24 rather than assumed, which is why it is here.
+
+The Worker bundles `data/relay-events.json` at build time, so the deployed relay
+knows the events the deployed relay was built with. An app carrying a name the
+live relay has never heard of does not lose that one event: **`validateEvent`
+refuses the whole batch**, and a 4xx batch is dropped rather than retried. Every
+event in it is gone.
+
+It was measured with two curls against the live relay, minutes apart:
+
+```
+{"error":"invalid-event-batch","reason":"unknown event name",
+ "name":"location-permission-asked"}     <- before the deploy
+{"stored":1}                             <- after
+```
+
+A real walk on a phone lost all fourteen of its events that way. The report
+itself went through, because that is a different endpoint with a different
+contract, so the failure is invisible from the app: the person sees "Sent" and
+the telemetry simply is not there.
+
+AGENTS.md states this rule for `data/relay-request.json`. It holds identically
+for the events contract, and the order is the same: deploy, verify with a curl,
+then ship the app.
+
 ## Which version is live, and which commit it is
 
 `wrangler deploy` uploads the WORKING TREE, not `HEAD`, so a version id means
@@ -61,6 +88,7 @@ nothing on its own. Record the commit next to it every time, and check
 | `d31a0d99` | 2026-08-23 00:43 | — | the counted live gate (#68) |
 | `d8ca63ae` | 2026-08-24 02:24 | `ae76515` (#105) | the gate becomes the write (#98) |
 | `bdadab48` | 2026-08-24 03:24 | `21ba1f5` (#108) | drops a read-back nobody used |
+| `a18a4cd6` | 2026-08-24 19:58 | `2dbce93` (#136) | the events allowlist learns `location-permission-asked` |
 
 `npx wrangler deployments list` gives the live one. To prove the deployed
 bundle IS a given commit rather than assuming it, build that commit with
