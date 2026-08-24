@@ -165,6 +165,13 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
+
+    // The real org.json, for unit tests only. Android ships a STUB of it on the
+    // JVM test classpath whose every method throws "not mocked", which is why
+    // FollowUps' round trip went untested until #129: the store serialises with
+    // JSONObject, so any test that touched it died before asserting anything.
+    // This does not reach the app -- the device uses the platform's own.
+    testImplementation(libs.json)
 }
 
 // The facts file has exactly one home: data/reykjavik-form.json at the repo

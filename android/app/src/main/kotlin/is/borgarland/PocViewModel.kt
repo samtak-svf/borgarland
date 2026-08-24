@@ -8,7 +8,9 @@ import `is`.borgarland.net.Telemetry
 import `is`.borgarland.net.TelemetryEvent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import `is`.borgarland.data.Category
@@ -145,6 +147,13 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
      */
     private var currentReportId: String? = null
 
+    /**
+     * Outlives the screen, unlike viewModelScope. Only the outcome delivery
+     * uses it, and only because losing an answer to a Back press is the exact
+     * failure #129 is about.
+     */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     init {
         val text = runCatching {
             getApplication<Application>().assets.open("reykjavik-form.json")
@@ -196,40 +205,89 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         // Is there a report old enough to ask about (#57)? Reading a small
         // local file, so it is safe here; a failure must never stop the app
         // from doing the thing it is for, which is filing a report.
-        runCatching {
-            FollowUps.due(getApplication<Application>(), System.currentTimeMillis())
-        }.getOrNull()?.let { pending ->
-            _state.update { it.copy(followUp = pending) }
-        }
+        refreshFollowUp()
+
+        // Anything the person answered that the relay never heard (#129).
+        deliverOutcomes()
     }
 
     /**
      * The answer to "was it fixed?", posted against a report id this phone
-     * generated itself (#57, decision 0013). Marked asked FIRST and locally,
-     * so a failed post cannot turn into the same question tomorrow: being
-     * nagged about a bin is how an app gets uninstalled, and the answer the
-     * person gave is worth more than the delivery of it.
+     * generated itself (#57, decision 0013).
+     *
+     * The answer is WRITTEN DOWN before it is sent, and kept until the relay
+     * confirms (#129). The first version marked the report asked and then fired
+     * the post into a coroutine whose result it discarded, on the reasoning
+     * that an answer is worth more than the delivery of it. That was wrong for
+     * this feature: the delivery IS the feature, because the relay exists to
+     * collect this one bit. Any failure at answer time -- outdoors, mobile
+     * data, or simply pressing Back before the request finished -- lost the
+     * answer with no retry and no trace on either side.
      */
     fun answerFollowUp(fixed: Boolean) {
         val pending = _state.value.followUp ?: return
         _state.update { it.copy(followUp = null) }
         val ctx = getApplication<Application>()
-        runCatching { FollowUps.markAsked(ctx, pending.id) }
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                runCatching { RelayClient.postOutcome(pending.id, fixed) }
+        runCatching { FollowUps.markAnswered(ctx, pending.id, fixed) }
+        deliverOutcomes()
+    }
+
+    /**
+     * Dismissed without answering. Still marked asked: somebody who ignores
+     * the question has answered it, and asking again is a nag. Nothing is
+     * queued, because there is nothing to tell the relay.
+     */
+    fun dismissFollowUp() {
+        val pending = _state.value.followUp ?: return
+        _state.update { it.copy(followUp = null) }
+        runCatching { FollowUps.markDismissed(getApplication<Application>(), pending.id) }
+    }
+
+    /**
+     * Send any answers the relay has not accepted yet, and stop retrying each
+     * one only when it does.
+     *
+     * Deliberately NOT tied to viewModelScope: that scope is cancelled when the
+     * Activity finishes, so answering and immediately pressing Back killed the
+     * in-flight post (#129). The work is short, idempotent on the relay side
+     * (setOutcome is an UPDATE keyed by id) and safe to repeat, so it runs on a
+     * scope that outlives the screen.
+     */
+    fun deliverOutcomes() {
+        val ctx = getApplication<Application>()
+        appScope.launch {
+            val queued = withContext(Dispatchers.IO) {
+                runCatching { FollowUps.unposted(ctx) }.getOrDefault(emptyList())
+            }
+            queued.forEach { pending ->
+                val result = withContext(Dispatchers.IO) {
+                    runCatching { RelayClient.postOutcome(pending.id, pending.fixed) }.getOrNull()
+                }
+                // 404 means the relay has no such row, so retrying forever
+                // cannot help; treat it as delivered rather than as a queue
+                // that never drains. Anything else is retried next launch.
+                if (result != null && (result.ok || result.status == 404)) {
+                    withContext(Dispatchers.IO) {
+                        runCatching { FollowUps.markPosted(ctx, pending.id) }
+                    }
+                }
             }
         }
     }
 
     /**
-     * Dismissed without answering. Still marked asked: somebody who ignores
-     * the question has answered it, and asking again is a nag.
+     * Re-read whether a report has become due. `init` alone was not enough
+     * (#129): a ViewModel is cleared when its Activity FINISHES, not when the
+     * app is backgrounded, so a phone kept in use could carry a ViewModel
+     * created before the fourteenth day for days afterwards and never ask.
+     * Called on every resume.
      */
-    fun dismissFollowUp() {
-        val pending = _state.value.followUp ?: return
-        _state.update { it.copy(followUp = null) }
-        runCatching { FollowUps.markAsked(getApplication<Application>(), pending.id) }
+    fun refreshFollowUp() {
+        if (_state.value.followUp != null) return
+        val pending = runCatching {
+            FollowUps.due(getApplication<Application>(), System.currentTimeMillis())
+        }.getOrNull() ?: return
+        _state.update { it.copy(followUp = pending) }
     }
 
     /**
