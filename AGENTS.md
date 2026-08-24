@@ -168,6 +168,17 @@ So the check is not "grep before you claim". It is **grep again after you change
 the record**, because the thing that most often falsifies a sentence here is
 your own last commit.
 
+**And grep for the CLAIM, not for the sentence you remember writing.** The
+correction above announced three carriers. There were five. `README.md` said the
+build "has not yet been installed by anyone" and `ReportQueue.swift` said it "is
+installed nowhere" — the same assertion twice, in the public front door and in a
+comment whose reasoning depended on it, and a search for `nobody has installed`
+matches neither. The commit that found two carriers by widening a pattern then
+stated a count from the pattern it had just been burned by. A prose claim has as
+many spellings as the people who wrote it, so search for the several ways it
+could be said, or state no number at all — which is what the paragraph two above
+already tells you to do.
+
 This paragraph twice said the opposite of the truth, in opposite directions. It
 first claimed the rewording existed when it did not; the correction then claimed
 it did not exist, and stayed after it was built. Both times the sentence
