@@ -2468,6 +2468,213 @@
         "Nothing about why the app sat open for 3.9 minutes before the photograph. The events record it and cannot explain it.",
         "Nothing about how many earlier granted false events were really timeouts. The two are indistinguishable in the record, which is half of what #134 is about."
       ]
+    },
+    {
+      "id": "2026-08-24-ios-build-6-the-asked-to-answered-gap-measured",
+      "date": "2026-08-24",
+      "platform": "ios",
+      "what": "The first walk of build 6, by the same iPhone tester whose build-5 walk three hours earlier produced #134. The same step that took her 100.3 seconds and ended in a refusal she never gave took 1.48 seconds and ended in a coordinate. It is also the first walk in this record where the gap between being shown the permission dialog and answering it is a measured number rather than an inference: 1455 ms.",
+      "device": {
+        "model": "iPhone 15, iOS 26.5.2",
+        "note": "Known from App Store Connect's tester list, NOT from the telemetry, which names no device. The same reason she can be named here at all."
+      },
+      "build": {
+        "variant": "TestFlight, internal group Prufuflug",
+        "appVersion": "0.1.0 (6)",
+        "signing": "Apple team B4724Z74TM",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves, which reached the deployed relay, and app_version in D1 reads 0.1.0 (6)"
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed. Her own screenshot shows the app telling her so, and the row has dry_run 1 with sent_at null."
+      },
+      "session": "71c0d091907547274f8dc8a9b81f2104",
+      "method": "Transcribed from D1 by query. Three screenshots pulled from the Messenger thread and held in the gitignored private/screenshots as 2026-08-24-yri-ios-build6-5..7.jpeg; the roster entry is in private/testers.json.",
+      "timeline": [
+        {
+          "atMs": 0,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 82,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 4044,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 362438,
+            "elapsedMs": 526,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 4050,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 6,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 4055,
+          "name": "location-permission-asked",
+          "fields": {}
+        },
+        {
+          "atMs": 5510,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5527,
+          "name": "location-resolved",
+          "fields": {
+            "accuracyM": 13,
+            "elapsedMs": 1483,
+            "source": "device"
+          }
+        },
+        {
+          "atMs": 5527,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "camera"
+          }
+        },
+        {
+          "atMs": 21023,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 16978,
+            "slug": "heimilissorp"
+          }
+        },
+        {
+          "atMs": 34418,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 30374,
+            "slug": "gotusopun"
+          }
+        },
+        {
+          "atMs": 56154,
+          "name": "description-length",
+          "fields": {
+            "length": 44
+          }
+        },
+        {
+          "atMs": 59964,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "details"
+          }
+        },
+        {
+          "atMs": 62492,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 63931,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1438,
+            "ok": true,
+            "status": 201
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 14,
+          "receivedAt": "2026-08-24T22:00:21.222Z",
+          "firstAtMs": 0,
+          "lastAtMs": 63931
+        }
+      ],
+      "deliveryNote": "One batch, all fourteen events, flushed 1.3 s after the send result. Worth stating because the previous entry's batch was refused wholesale: this build's event names are all in the allowlist the live relay was deployed with, so the deploy-before-ship ordering held. The report row and the event batch are 0.7 s apart and agree on every figure they share.",
+      "reports": [
+        {
+          "id": "59e44c5a3f40ea64bc23b19259066c50",
+          "categorySlug": "gotusopun",
+          "photoCount": 1,
+          "photoBytes": 362438,
+          "dryRun": true,
+          "createdAt": "2026-08-24T22:00:20.561Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; 64.14872660202134, -21.780773687017017 reverse-looked to Gullengi 39, 112 Reykjavik, which the relay appended to the description as 'Naesta skrada heimilisfang'"
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "The 60-second authorization timeout is gone, on a real phone.",
+          "evidence": "location-resolved elapsedMs is 1483 against 100267 in her build-5 session the same evening, and there is no location-permission granted:false anywhere in this timeline. In the earlier session the false denial arrived 62429 ms after the location step began and she granted the permission 37810 ms after the app had already decided she refused.",
+          "issue": 134
+        },
+        {
+          "claim": "The asked-to-answered gap is measurable, and this is the first measurement of it.",
+          "evidence": "location-permission-asked at 4055 ms, location-permission granted:true at 5510 ms: 1455 ms. No build before 6 emits the asked event at all, so no earlier walk in this file can produce this number.",
+          "issue": 139
+        },
+        {
+          "claim": "A dialog was genuinely shown, rather than the event firing on a settled status.",
+          "evidence": "The emit is unreachable outside the .notDetermined branch of DeviceFix.requestWhenInUseAuthorization and is further guarded so a second caller does not re-emit, so the event firing IS the evidence a prompt went up. Consistent with a 1455 ms human answer rather than a microsecond early return.",
+          "issue": 139
+        },
+        {
+          "claim": "The app no longer calls itself a POC to the person it is asking.",
+          "evidence": "Her screenshot titles the screen 'Skra abendingu'. Build 5 read 'Borgarland POC'.",
+          "issue": 135
+        },
+        {
+          "claim": "The reworded label renders on iOS with its help line, and this time next to a changed mind.",
+          "evidence": "The picker screenshot shows 'Annad i almannarymi' above 'Bekkur, girding, tre eda annad sem a ekki heima i hinum flokkunum', matching data/category-labels.json. She chose heimilissorp at 21023 ms and changed to gotusopun at 34418 ms, so the picker was read rather than tapped through.",
+          "issue": 40
+        },
+        {
+          "claim": "The screenshots and the telemetry describe the same walk, independently.",
+          "evidence": "photo 362438 bytes on the summary screen equals photo-captured bytes; the description she typed is 44 characters and description-length says 44; 'Stadsetning ur: Taekjastadsetning (GPS)' matches location-resolved source device."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 139,
+          "severity": "open-question",
+          "what": "This walk does NOT test what #139 was actually about. The defect was that the event fires again on the SECOND and every later report, because the settled statuses return without prompting. She took one photograph, so the event had one chance to fire and fired once.",
+          "evidence": "A single photo-captured at 4044 ms and a single location-permission-asked at 4055 ms. The repeat is unobserved, not disproved. Worth recording alongside it: her permission was in .notDetermined on a build she UPDATED to, though she granted it on build 5 three hours earlier. An in-place TestFlight update preserves permissions, so something reset it, most likely a delete and reinstall to pick up build 6. Nothing in the telemetry records an install, so that cause is an inference from the app's behaviour and not an observation -- but it is why a dialog was available to be shown at all, and therefore why this walk could measure the gap and still not test the repeat.",
+          "whatWouldSettleIt": "One session with two or more photographs, where asked appears once and not twice."
+        },
+        {
+          "issue": 115,
+          "severity": "observation",
+          "what": "category-chosen elapsedMs is still measured from photo capture, so the two values here, 16978 and 30374, again include the whole location step and are not time spent choosing.",
+          "evidence": "Both equal atMs minus photo-captured.atMs exactly: 21023-4044 and 34418-4044."
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. dryRun was true and sent_at is null.",
+        "Nothing about the offline queue, which she never entered: the send answered 201 first try.",
+        "Nothing about the follow-up loop, which is Android-only and asks after fourteen days.",
+        "Nothing about which device this was, from the telemetry. The model comes from App Store Connect.",
+        "Nothing about the app-side suggestion panel beyond it reading 'Engin tillaga enn'. The ADDRESS is not that panel's job: it is resolved in the relay (decision 0009) and it worked."
+      ]
     }
   ]
 }
