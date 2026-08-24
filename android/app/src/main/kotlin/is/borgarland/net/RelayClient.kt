@@ -42,6 +42,26 @@ object RelayClient {
     val BASE_URL: String = BuildConfig.RELAY_BASE_URL
 
     /**
+     * Set explicitly so the platform default never goes out (#128).
+     *
+     * Android's HttpURLConnection otherwise sends
+     * `Dalvik/2.1.0 (Linux; U; Android 13; SM-A715F Build/TP1A.220624.014)`,
+     * built from device build properties. That is the handset MODEL, the OS
+     * version and a build fingerprint, on every request, travelling beside
+     * events whose own allowlist (data/relay-events.json) is careful to carry
+     * no device field at all. Three distinct models were visible in the
+     * relay's logs on 2026-08-24, which is how this was found.
+     *
+     * The allowlist governs the body. It never governed the transport, and
+     * four records claimed otherwise.
+     *
+     * Shape copied from what iOS already sends by default -- app and version,
+     * nothing about the phone. It does NOT make the request anonymous: the IP
+     * is still visible to the relay and cannot be removed from the client.
+     */
+    val USER_AGENT: String = "Borgarland/${BuildConfig.VERSION_NAME} (Android)"
+
+    /**
      * Why a non-HTTP failure happened, when it did. Feeds the telemetry
      * channel's send-failed reason (data/relay-events.json); null means the
      * relay answered, whatever the status.
@@ -64,6 +84,7 @@ object RelayClient {
             connectTimeout = 10_000
             readTimeout = 30_000
             setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            setRequestProperty("User-Agent", USER_AGENT)
         }
 
         return try {
@@ -112,6 +133,7 @@ object RelayClient {
             connectTimeout = 10_000
             readTimeout = 30_000
             setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("User-Agent", USER_AGENT)
         }
         val body = if (fixed) "{\"outcome\":\"fixed\"}" else "{\"outcome\":\"not-fixed\"}"
         return try {

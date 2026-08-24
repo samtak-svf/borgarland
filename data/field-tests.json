@@ -356,7 +356,7 @@
       "what": "The first run of the app by somebody who did not build it: a volunteer tester in Seattle, on TestFlight, guided step by step over Messenger. Being 5,630 km from the nearest Icelandic address he could exercise everything up to the municipality check and nothing past it, which makes him the only person who has met the refusal path on a real phone.",
       "device": {
         "model": "not recorded",
-        "note": "The telemetry channel carries no device identifier of any kind, by design (data/relay-events.json), and nothing else in this test recorded one. Nobody's phone model is known here and that is the intended cost. His device clock was on Pacific time, which distorts nothing here: atMs is elapsed milliseconds since the process started, and received_at is stamped by the relay."
+        "note": "The telemetry channel carries no device identifier of any kind, by design (data/relay-events.json), and nothing else in this test recorded one. Nobody's phone model is known here and that is the intended cost. His device clock was on Pacific time, which distorts nothing here: atMs is elapsed milliseconds since the process started, and received_at is stamped by the relay. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)"
       },
       "build": {
         "variant": "TestFlight, App Store distribution",
@@ -608,7 +608,7 @@
       "what": "The second volunteer, in Reykjavík, on the same TestFlight build. He completed the walk end to end and then ran three deliberate tests on purpose: sending in airplane mode, taking a photo with the location permission turned off in Settings, and the category picker. Six of the seven issues from that night come from this session.",
       "device": {
         "model": "not recorded",
-        "note": "The telemetry channel carries no device identifier of any kind, by design (data/relay-events.json), and nothing else in this test recorded one. Nobody's phone model is known here and that is the intended cost."
+        "note": "The telemetry channel carries no device identifier of any kind, by design (data/relay-events.json), and nothing else in this test recorded one. Nobody's phone model is known here and that is the intended cost. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)"
       },
       "build": {
         "variant": "TestFlight, App Store distribution",
@@ -1064,7 +1064,7 @@
       "what": "The Android walk run twice on a phone after the nine field-test fixes merged: once end to end to a recorded report, once to meet a denied location permission and come back from it. This is the run #101 was filed about, transcribed from D1 a day later.",
       "device": {
         "model": "not established",
-        "note": "The telemetry channel carries no device identifier by design (data/relay-events.json), and app_version is 0.1.0 (1) on every Android build so far, so it cannot tell one phone from another. The session handoff written that night says SM-A715F, the SMS-gateway A71. That is the only source, it is a memory rather than a measurement, and it is recorded here as such. The developer's SM-S918B also had the app installed at the time, so the two are not distinguishable from anything in this file."
+        "note": "The telemetry channel carries no device identifier by design (data/relay-events.json), and app_version is 0.1.0 (1) on every Android build so far, so it cannot tell one phone from another. The session handoff written that night says SM-A715F, the SMS-gateway A71. That is the only source, it is a memory rather than a measurement, and it is recorded here as such. The developer's SM-S918B also had the app installed at the time, so the two are not distinguishable from anything in this file. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)"
       },
       "build": {
         "variant": "release",
@@ -1533,10 +1533,10 @@
       "id": "2026-08-24-android-two-walks-by-someone-unrecorded",
       "date": "2026-08-24",
       "platform": "android",
-      "what": "Two complete walks in one session, both accepted by the relay, 53 minutes before the first recorded run of iOS build 5. Whose phone this was is NOT recorded and is not inferable: the telemetry carries no device identifier, and unlike the session earlier the same night nothing was attached over adb. The entry is written from the relay's own tables, which is all that exists. The two sessions' coordinates agreed to three decimal places when queried in D1, which is roughly a hundred metres; that value is deliberately NOT stored here, so this file cannot show it and a reader should not treat the sameness of place as established by this record.",
+      "what": "Two complete walks in one session, both accepted by the relay, 53 minutes before the first recorded run of iOS build 5. Whose phone this was is NOT recorded and is not inferable: the telemetry carries no device identifier, and unlike the session earlier the same night nothing was attached over adb. The entry is written from the relay's own tables, which is all that exists. The two sessions' coordinates agreed to three decimal places when queried in D1, which is roughly a hundred metres; that value is deliberately NOT stored here, so this file cannot show it and a reader should not treat the sameness of place as established by this record. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)",
       "device": {
         "model": "not recorded",
-        "note": "The event channel names no device field at all (data/relay-events.json), and no adb session ran alongside this one. Any statement about which handset this was would be a memory, not a measurement, so none is made."
+        "note": "The event channel names no device field at all (data/relay-events.json), and no adb session ran alongside this one. Any statement about which handset this was would be a memory, not a measurement, so none is made. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)"
       },
       "build": {
         "variant": "not recorded",
@@ -1835,7 +1835,7 @@
       "what": "The first recorded run of iOS build 5 — the first iOS build that reads data/category-labels.json — and the measurement that makes a claim in AGENTS.md and in two issues false. One complete walk, accepted by the relay. Whose phone it was is not recorded.",
       "device": {
         "model": "not recorded",
-        "note": "As with every entry here, the telemetry names no device. What IS established is the build: app_version 0.1.0 (5) on all fifteen events. There is no Mac on this machine, so a build-5 binary can only have come from TestFlight."
+        "note": "As with every entry here, the telemetry names no device. What IS established is the build: app_version 0.1.0 (5) on all fifteen events. There is no Mac on this machine, so a build-5 binary can only have come from TestFlight. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)"
       },
       "build": {
         "variant": "TestFlight, App Store distribution",
@@ -2042,7 +2042,7 @@
       "what": "The first install of the Android app by somebody who did not build it, from Google Play internal testing, hours after the track existed at all. One complete walk in Kringlan, accepted by the relay. He also sent a screenshot of the summary screen, which is the first time anyone outside this machine has photographed what this app looks like.",
       "device": {
         "model": "not recorded",
-        "note": "The telemetry names no device (data/relay-events.json) and no adb session was attached. The screenshot shows a dark theme and a 4G connection and nothing that identifies a handset."
+        "note": "The telemetry names no device (data/relay-events.json) and no adb session was attached. The screenshot shows a dark theme and a 4G connection and nothing that identifies a handset. (Body only. Android's default User-Agent named the handset model on every request until #128 replaced it on 2026-08-24, so at the time of this session the model WAS visible to the relay's logs.)"
       },
       "build": {
         "variant": "Google Play, internal testing track 4700074908779732142",

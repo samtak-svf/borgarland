@@ -268,6 +268,8 @@ class Telemetry {
                     connectTimeout = 10_000
                     readTimeout = 10_000
                     setRequestProperty("Content-Type", "application/json")
+                    // #128: never send the platform default, which names the handset.
+                    setRequestProperty("User-Agent", RelayClient.USER_AGENT)
                 }
                 try {
                     conn.outputStream.use { out -> out.write(body.toByteArray(Charsets.UTF_8)) }
