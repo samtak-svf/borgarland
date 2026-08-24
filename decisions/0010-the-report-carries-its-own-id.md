@@ -68,7 +68,9 @@ The lookup happens **before** the category, the coordinate and the jurisdiction
 are examined: a report the relay has taken must not be refused on a second press
 because something else about the request changed.
 
-The field is optional and stays optional while build 4 is the build anybody has.
+The field is optional and stays optional until every build in a hand sends it.
+Build 5 does and was uploaded 2026-08-24; build 4 does not and is what the two
+testers have installed.
 `data/relay-request.json` says in those words that an app without it cannot be
 protected, so "optional" is not read as "not needed".
 
