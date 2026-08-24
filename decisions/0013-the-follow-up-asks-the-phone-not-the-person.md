@@ -37,10 +37,23 @@ its own small list of ids it sent, and after an interval asks the person holding
 that phone whether the thing got fixed. The answer goes to the endpoint keyed by
 the id, which the relay already has a row for.
 
-**The relay learns one bit about a report it already knows about, and nothing at
-all about who filed it.** No email, no account, no device identifier, no contact
-of any kind. The follow-up loop exists and the privacy question #5 raises never
-arises, because the thing being asked is the phone.
+**The relay application learns one bit about a report it already knows about,
+and stores nothing about who filed it.** No email, no account, no contact of any
+kind, and no identifying column in D1.
+
+That is narrower than what this decision said when it was written. It said "no
+device identifier", full stop, and that was false of the wire: Android's
+`HttpURLConnection` sends a default `User-Agent` built from device build
+properties, so every request carried the handset model — `SM-A715F`,
+`OnePlus8Pro`, `SM-A356B` were all visible in the relay's logs on 2026-08-24.
+The event allowlist in `data/relay-events.json` governs the BODY. It never
+governed the transport, and this decision confused the two.
+
+Fixed the same day (#128): both apps now send `Borgarland/<version>`, verified
+against the relay's own logs rather than by reading the code. **The IP address
+remains and cannot be removed by a client**, so the honest claim is that the
+relay learns nothing identifying that it keeps, not that nothing identifying
+reaches it.
 
 ## Why fourteen days
 

@@ -168,7 +168,12 @@ walked by hand to a report row — recorded as
 [`2026-08-24-android-ime-fix-and-the-label-on-a-screen`](data/field-tests.json).
 The 2026-08-23 run that #101 was filed about is in the same file, and that entry
 is careful about what it cannot say: the telemetry carries no device identifier,
-so which phone it was is a memory rather than a measurement.
+so which phone it was is a memory rather than a measurement. True of the event
+BODY, which is what that entry meant and what `data/relay-events.json` enforces.
+It was false of the transport until 2026-08-24: Android's default `User-Agent`
+named the handset model on every request, and three models were visible in the
+relay's logs before #128 replaced it with `Borgarland/<version>`. The allowlist
+governs what the app sends, never what the platform adds underneath it.
 
 **A build existing and a build having been walked are different claims.** This
 paragraph has now been wrong five times, and the fifth failed differently from
