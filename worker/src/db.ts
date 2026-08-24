@@ -184,12 +184,15 @@ export async function insertClientEvents(
 /**
  * The result of trying to claim decision 0006's one live submission.
  *
- * `reserved` means this request owns it and may post to the city. `duplicate`
- * means the id is already the relay's record of a report and the caller gets
- * that row back. `gate-closed` means some OTHER report already spent the one.
+ * `reserved` means this request owns it and may post to the city. It carries no
+ * row: the caller is about to POST and then call `completeLiveReport`, which
+ * returns the finished one, so reading the reservation back here would be a
+ * second round trip whose result nobody uses. `duplicate` means the id is
+ * already the relay's record of a report and the caller gets that row back.
+ * `gate-closed` means some OTHER report already spent the one.
  */
 export type LiveReservation =
-  | { status: 'reserved'; report: ReportRecord }
+  | { status: 'reserved' }
   | { status: 'duplicate'; report: ReportRecord }
   | { status: 'gate-closed' }
 
@@ -280,11 +283,7 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
     return { status: 'duplicate', report: stored }
   }
 
-  if (changes > 0) {
-    const stored = await getReport(db, report.id)
-    if (stored === null) throw new Error('the live reservation was written and cannot be read back')
-    return { status: 'reserved', report: stored }
-  }
+  if (changes > 0) return { status: 'reserved' }
 
   const stored = await getReport(db, report.id)
   return stored === null ? { status: 'gate-closed' } : { status: 'duplicate', report: stored }
