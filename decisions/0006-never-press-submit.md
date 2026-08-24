@@ -59,11 +59,19 @@ accident anyway — 110474, withdrawn by email that evening
 rule about care is only as good as the care.
 
 Since 2026-08-23 the "one" is a property of the relay rather than of anyone's
-attention. The live branch counts rows in D1 and answers
-`409 live-send-already-used` when one exists, so a second submission cannot
-happen even with the secret still set, even from a different client, and even
-after a redeploy. Rows rather than a flag, because the database is the only thing
-that survives a new isolate and a re-set secret.
+attention: a second submission cannot happen even with the secret still set,
+even from a different client, and even after a redeploy. The "one" is a row in
+D1 rather than a flag, because the database is the only thing that survives a
+new isolate and a re-set secret.
+
+**How it is enforced changed on 2026-08-24, and the first version did not
+work.** It read a count and wrote the row after the city had already been posted
+to, so two requests in flight at once both counted zero and both filed
+(#98). The gate is now the write itself: a single conditional INSERT that
+succeeds only while no live row exists, performed BEFORE the city is asked. The
+answer to whoever loses is `409 live-send-already-used`, or the stored row if
+they are the same report arriving twice. Two overlapping requests are what the
+tests drive, because two sequential ones pass either way.
 
 Hard-coded on purpose: a variable is one typo from being raised. Lifting this
 should cost a code change and a review, which is exactly what going live for real

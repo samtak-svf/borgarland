@@ -563,8 +563,13 @@ describe('the relay files one real report, ever', () => {
 
   it('refuses the second, and does not call the city at all', async () => {
     let called = 0
+    // uniqueIds, because without it the fixture's randomId is a constant and
+    // the "second report" would share the first one's id. That is a repeat,
+    // which the relay now answers with the stored row rather than a 409, and
+    // it is a different property from the one this test is named after.
     const { app, sqlite } = createTestApp({
       live: true,
+      uniqueIds: true,
       cityFetch: async () => {
         called += 1
         return new Response(donePage('110999'), { status: 200 })
@@ -668,5 +673,170 @@ describe('a report the relay has already stored', () => {
     const report = (await json(response)).report as Record<string, unknown>
     expect(typeof report.id).toBe('string')
     expect(report.id).not.toBe('')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// #98. The gate above counted rows and the row was written after the city had
+// been posted to, so the two tests before this one pass on a relay that files
+// two real reports: they send one request, then the next. Nothing there
+// overlaps, and the hole was only ever reachable by overlapping.
+//
+// These drive two requests that are genuinely in flight at once. The first is
+// parked inside the city fetch while the second runs its whole pipeline.
+// ---------------------------------------------------------------------------
+
+describe('two live sends in flight at once', () => {
+  function liveRows(sqlite: TestApp['sqlite']): number {
+    const rows = sqlite.prepare('SELECT COUNT(*) AS n FROM reports WHERE dry_run = 0').all()
+    return Number((rows[0] as { n: number }).n)
+  }
+
+  /**
+   * A city stub that holds the first caller until it is released, so a second
+   * request can reach the gate while the first has not come back yet.
+   *
+   * The unconditional release is a safety valve: if the gate ever regresses,
+   * the second request calls the city too and would otherwise park forever,
+   * turning a real defect into a test timeout instead of an assertion.
+   */
+  function heldCity() {
+    let release!: () => void
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const state = { calls: 0 }
+    return {
+      state,
+      release: () => release(),
+      fetch: async () => {
+        state.calls += 1
+        await held
+        return new Response(donePage('110999'), { status: 200 })
+      },
+    }
+  }
+
+  it('lets exactly one of two different reports reach the city', async () => {
+    const city = heldCity()
+    const { app, sqlite } = createTestApp({ live: true, uniqueIds: true, cityFetch: city.fetch })
+
+    const first = postReport(app, reportForm())
+    const second = postReport(app, reportForm())
+
+    // The second must be answerable without the city. Releasing when it
+    // settles keeps the test fast; the timer releases anyway if it does not.
+    void second.finally(city.release)
+    const valve = setTimeout(city.release, 0)
+
+    const secondResponse = await second
+    const firstResponse = await first
+    clearTimeout(valve)
+
+    expect(city.state.calls).toBe(1)
+    expect(firstResponse.status).toBe(201)
+    expect(secondResponse.status).toBe(409)
+    expect((await json(secondResponse)).error).toBe('live-send-already-used')
+    expect(liveRows(sqlite)).toBe(1)
+  })
+
+  it('answers the loser of a same-id race with the row that won, and never sends it', async () => {
+    const city = heldCity()
+    // No uniqueIds: both requests carry the fixture's one id, which is what an
+    // app pressing send twice produces (#85, decision 0010).
+    const { app, sqlite } = createTestApp({ live: true, cityFetch: city.fetch })
+
+    const first = postReport(app, reportForm())
+    const second = postReport(app, reportForm())
+    void second.finally(city.release)
+    const valve = setTimeout(city.release, 0)
+
+    const secondResponse = await second
+    const firstResponse = await first
+    clearTimeout(valve)
+
+    expect(city.state.calls).toBe(1)
+    expect(firstResponse.status).toBe(201)
+    expect(secondResponse.status).toBe(200)
+
+    const body = await json(secondResponse)
+    expect(body.duplicate).toBe(true)
+    const winner = (await json(firstResponse)).report as Record<string, unknown>
+    expect((body.report as Record<string, unknown>).id).toBe(winner.id)
+    expect(liveRows(sqlite)).toBe(1)
+  })
+
+  it('writes the row before the city is asked, which is the whole reorder', async () => {
+    // The property #98 turned on, stated directly: at the moment the city is
+    // being called, the row that closes the gate already exists. Under the old
+    // order there was nothing in the table at this point.
+    let rowsWhenTheCityWasCalled = -1
+    const { app, sqlite } = createTestApp({
+      live: true,
+      cityFetch: async () => {
+        rowsWhenTheCityWasCalled = liveRows(sqlite)
+        return new Response(donePage('110999'), { status: 200 })
+      },
+    })
+
+    expect((await postReport(app, reportForm())).status).toBe(201)
+    expect(rowsWhenTheCityWasCalled).toBe(1)
+  })
+
+  it('answers a same-id repeat after the send is finished with the finished row', async () => {
+    // Not a race: the send has completed and the row is whole. Worth pinning
+    // because the answer CHANGED here. The count gate refused this with a 409;
+    // the reservation recognises the id and answers 200 with the row, which is
+    // what #85 and decision 0010 want a second press to get.
+    let called = 0
+    const { app, sqlite } = createTestApp({
+      live: true,
+      cityFetch: async () => {
+        called += 1
+        return new Response(donePage('110999'), { status: 200 })
+      },
+    })
+
+    const first = await postReport(app, reportForm())
+    expect(first.status).toBe(201)
+
+    const repeat = await postReport(app, reportForm())
+    expect(repeat.status).toBe(200)
+    const body = await json(repeat)
+    expect(body.duplicate).toBe(true)
+    const row = body.report as Record<string, unknown>
+    expect(row.cityReference).toBe('110999')
+    expect(row.sentAt).not.toBeNull()
+
+    expect(called).toBe(1)
+    expect(liveRows(sqlite)).toBe(1)
+  })
+
+  it('keeps the one spent when the city cannot be reached, and says so', async () => {
+    // A throw cannot tell "never left" from "arrived, answer lost", so the
+    // reservation is not rolled back. The second attempt is refused.
+    //
+    // This one passes on the OLD order too, and is here for that reason: the
+    // failure path already spent the one by inserting with dryRun false, and
+    // the reorder had to keep it that way rather than quietly hand back a
+    // retry.
+    let called = 0
+    const { app, sqlite } = createTestApp({
+      live: true,
+      uniqueIds: true,
+      cityFetch: async () => {
+        called += 1
+        throw new Error('connection refused')
+      },
+    })
+
+    const first = await postReport(app, reportForm())
+    expect(first.status).toBe(502)
+    expect((await json(first)).error).toBe('city-unreachable')
+
+    const second = await postReport(app, reportForm())
+    expect(second.status).toBe(409)
+    expect(called).toBe(1)
+    expect(liveRows(sqlite)).toBe(1)
   })
 })
