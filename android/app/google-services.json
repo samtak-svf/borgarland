@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "463581742136",
+    "project_id": "borgarland-app",
+    "storage_bucket": "borgarland-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:463581742136:android:3a50c629e3ab53fae452cd",
+        "android_client_info": {
+          "package_name": "is.borgarland"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSQeC6MAUZyOzrO_IIky-GzgYqDi5iZpg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

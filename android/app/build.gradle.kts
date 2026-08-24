@@ -1,10 +1,13 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 // Where the relay lives, per build type (#29). The counterpart of
@@ -26,16 +29,55 @@ check(listOf("127.0.0.1", "localhost", "::1", "0.0.0.0").none { relayBaseUrlRele
     "the release relay URL must not be a loopback: $relayBaseUrlRelease"
 }
 
+// Upload signing, per ~/.claude/skills/sosi-android-app-delivery. Values come
+// from app/keystore.properties (written by scripts/pull-release-keystore.sh) or
+// from the environment in CI. Slug is `borgarland`, so the env prefix is
+// BORGARLAND_.
+//
+// The keystore is NEVER in this repository: it is public, and Play pins the
+// upload certificate to the package name for the life of the app, so a leak
+// cannot be fixed by rotating.
+val keystorePropertiesFile = rootProject.file("app/keystore.properties")
+val keystoreProperties =
+    Properties().apply {
+        if (keystorePropertiesFile.exists()) {
+            keystorePropertiesFile.inputStream().use { load(it) }
+        }
+    }
+
+fun signingValue(propertyKey: String, envKey: String): String? =
+    keystoreProperties.getProperty(propertyKey) ?: System.getenv(envKey)
+
 android {
-    namespace = "is.borgarland.poc"
+    namespace = "is.borgarland"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "is.borgarland.poc"
+        applicationId = "is.borgarland"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // Driven by CI so a release never carries a placeholder. The skill's
+        // rule: the hardcoded default must never reach a store.
+        versionCode = (System.getenv("BORGARLAND_VERSION_CODE") ?: "1").toInt()
+        versionName = System.getenv("BORGARLAND_VERSION_NAME") ?: "0.1.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            val storeFilePath = signingValue("storeFile", "BORGARLAND_UPLOAD_KEYSTORE_PATH")
+            val storePwd = signingValue("storePassword", "BORGARLAND_UPLOAD_KEYSTORE_PASSWORD")
+            val alias = signingValue("keyAlias", "BORGARLAND_UPLOAD_KEY_ALIAS")
+            val keyPwd = signingValue("keyPassword", "BORGARLAND_UPLOAD_KEY_PASSWORD")
+            if (storeFilePath != null && storePwd != null && alias != null && keyPwd != null) {
+                storeFile =
+                    file(storeFilePath).let { f ->
+                        if (f.isAbsolute) f else rootProject.file("app/$storeFilePath")
+                    }
+                storePassword = storePwd
+                keyAlias = alias
+                keyPassword = keyPwd
+            }
+        }
     }
 
     buildTypes {
@@ -43,8 +85,21 @@ android {
             buildConfigField("String", "RELAY_BASE_URL", "\"$relayBaseUrlDebug\"")
         }
         release {
+            // R8 stays OFF for now, deliberately, and this diverges from the
+            // delivery skill. Turning on minification in the same change that
+            // adds Firebase is what shipped Simaver beta35 to 26 testers with a
+            // crash on every launch: R8 strips the Crashlytics ComponentRegistrar,
+            // the build succeeds, and only a real launch shows it. With minify
+            // off, Crashlytics needs no keep rules and no mapping upload, and
+            // stack traces arrive readable. Enabling R8 is its own change with
+            // its own on-device smoke test (#118).
             isMinifyEnabled = false
             buildConfigField("String", "RELAY_BASE_URL", "\"$relayBaseUrlRelease\"")
+
+            // Unsigned if no keystore is present, so a clean clone can still run
+            // assembleRelease. Real signing comes from CI env or the pull script.
+            val releaseSigning = signingConfigs.getByName("release")
+            signingConfig = if (releaseSigning.storeFile?.exists() == true) releaseSigning else null
         }
     }
 
@@ -79,6 +134,18 @@ kotlin {
 }
 
 dependencies {
+    // Crashlytics only, no Analytics. The Firebase project is `borgarland-app`
+    // on the personal Google account -- the same one ios-release.yml sends
+    // dSYMs to. Rosa Parks reports to the party's project; this is a Samtak
+    // svf. app and deliberately does not (#37).
+    //
+    // No ProGuard keep rules accompany this, and that is not an oversight:
+    // isMinifyEnabled is false, so R8 cannot strip the ComponentRegistrar that
+    // Firebase discovers by service loader. The keep rules become mandatory the
+    // moment minification is turned on (#118).
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

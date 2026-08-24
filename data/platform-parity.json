@@ -109,8 +109,8 @@
     },
     {
       "name": "crash-reporting",
-      "intent": "ios-only",
-      "reason": "#58 — whether Android ships to anyone is undecided, and crash reporting on a platform nobody installs is cost without signal. iOS has it on the borgarland-app Firebase project (#53).",
+      "intent": "parity",
+      "reason": "Both platforms report to the borgarland-app Firebase project on the personal Google account, Crashlytics only and no Analytics (#53 for iOS, #58 for Android, decision 0012). Android collects in release only: a debug build is the development loop and its crashes belong in logcat, not in a dashboard that exists to show what happens on somebody else's phone.",
       "detect": {
         "android": { "paths": ["android"], "pattern": "crashlytics|Crashlytics" },
         "ios": { "paths": ["ios/project.yml", "ios/Sources"], "pattern": "FirebaseCrashlytics|FirebaseApp.configure" }
@@ -118,8 +118,8 @@
     },
     {
       "name": "signed-release-pipeline",
-      "intent": "ios-only",
-      "reason": "#58 — same decision. iOS builds signed and uploads to TestFlight without a Mac; Android has no signing config and no release workflow.",
+      "intent": "parity",
+      "reason": "Both platforms build signed on hosted runners with no Mac and no local step (decision 0012). iOS exports a signed .ipa to TestFlight on an ios-v* tag; Android builds a signed APK and AAB on an android-v* tag and verifies the upload certificate against a pinned SHA-256 before publishing, because Play pins that certificate to the package name permanently.",
       "detect": {
         "android": { "paths": ["android/app/build.gradle.kts", ".github/workflows"], "pattern": "signingConfigs|android-release" },
         "ios": { "paths": [".github/workflows"], "pattern": "upload-testflight-build" }
