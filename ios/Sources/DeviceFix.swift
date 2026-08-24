@@ -84,6 +84,18 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
         case .denied, .restricted:
             return false
         case .notDetermined:
+            // A second caller must not clobber the first: a single slot means
+            // the earlier continuation is never resumed and its task hangs for
+            // the life of the process. Reachable, because the retry control
+            // stays tappable while the dialog is up.
+            if authorizationContinuation != nil {
+                // Somebody is already asking. Wait for the same answer rather
+                // than prompting again or stranding them.
+                while authorizationContinuation != nil {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                return isAuthorized
+            }
             let granted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 authorizationContinuation = continuation
                 // A dialog somebody never answers must not hold the walk open

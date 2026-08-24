@@ -128,6 +128,13 @@ for (const test of record.tests) {
   if (test.relay && test.relay.dryRun === undefined) {
     fail(id, 'relay.dryRun is missing, so the entry does not say whether the city could have been reached')
   }
+  // Presence is not membership. Every EVENT is held to the contract's enums
+  // while the field naming the device family was free, so a hand-copied
+  // "andorid" passed.
+  const platforms = contract.envelope?.platform?.enum
+  if (Array.isArray(platforms) && test.platform !== undefined && !platforms.includes(test.platform)) {
+    fail(id, `platform is ${JSON.stringify(test.platform)}, not one of ${platforms.join(', ')}`)
+  }
   if (typeof test.session !== 'string' || !SESSION_PATTERN.test(test.session)) {
     // Not cosmetic: a truncated id is not the value D1 stores, so the record
     // stops linking to the rows it was transcribed from.
@@ -219,7 +226,7 @@ function checkDelivery(id, test) {
   }
   const timeline = Array.isArray(test.timeline) ? test.timeline : []
   let consumed = 0
-  let previousReceived = ''
+  let previousReceived = null
   for (const [index, batch] of test.delivery.entries()) {
     if (!Number.isInteger(batch?.events) || batch.events <= 0) {
       fail(id, `delivery[${index}] carries ${JSON.stringify(batch?.events)} events`)
@@ -227,12 +234,15 @@ function checkDelivery(id, test) {
     }
     if (typeof batch.receivedAt !== 'string' || Number.isNaN(Date.parse(batch.receivedAt))) {
       fail(id, `delivery[${index}].receivedAt is not a timestamp: ${JSON.stringify(batch.receivedAt)}`)
-    } else if (batch.receivedAt < previousReceived) {
+    } else if (previousReceived !== null && Date.parse(batch.receivedAt) < previousReceived) {
       // A batch cannot arrive before the one before it. Equal is fine: two
-      // batches can share a millisecond.
-      fail(id, `delivery[${index}] arrived at ${batch.receivedAt}, before ${previousReceived}`)
+      // batches can share a millisecond. Compared as instants rather than as
+      // strings, because '…08.005Z' sorts BEFORE '…08Z' and this file's own
+      // sources mix the two precisions: D1 stamps milliseconds, Workers Logs
+      // do not.
+      fail(id, `delivery[${index}] arrived at ${batch.receivedAt}, before ${new Date(previousReceived).toISOString()}`)
     } else {
-      previousReceived = batch.receivedAt
+      previousReceived = Date.parse(batch.receivedAt)
     }
 
     const slice = timeline.slice(consumed, consumed + batch.events)
@@ -248,7 +258,11 @@ function checkDelivery(id, test) {
       fail(id, `delivery[${index}].lastAtMs is ${batch.lastAtMs}, and its last event is at ${slice[slice.length - 1]?.atMs}`)
     }
   }
-  if (test.delivery.length > 0 && consumed !== timeline.length) {
+  // No `length > 0` guard: an entry that carries `delivery: []` beside events
+  // is claiming they were delivered by nothing, which is the contradiction this
+  // section exists to catch. An entry with no `delivery` key at all returned
+  // above.
+  if (consumed !== timeline.length) {
     fail(id, `delivery accounts for ${consumed} events and the timeline has ${timeline.length}`)
   }
 }

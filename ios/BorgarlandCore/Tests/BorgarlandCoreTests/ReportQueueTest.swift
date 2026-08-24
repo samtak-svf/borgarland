@@ -69,6 +69,56 @@ final class ReportQueueTest: XCTestCase {
         XCTAssertEqual(restored.photos.first?.rotationDegrees, 90, "rotation survives, or the photo arrives sideways")
     }
 
+    /// #88's integration, which nothing pinned: the builder test supplies its
+    /// own id, and the round-trip test checked every field except the one that
+    /// travels. Deleting `reportId: report.id` from `payload(for:)` left the
+    /// whole suite green.
+    func testTheQueuesOwnIdIsWhatTheReportCarriesToTheRelay() throws {
+        let queue = makeQueue(ids: ["a1b2c3d4e5f60718293a4b5c6d7e8f90"])
+        let queued = try queue.enqueue(payload())
+
+        // Through a fresh instance, so this is the id as READ BACK rather than
+        // the one still in hand: a retry after a relaunch is the case that
+        // matters.
+        let reread = try XCTUnwrap(ReportQueue(root: root).pending().first)
+        let restored = try ReportQueue(root: root).payload(for: reread)
+        XCTAssertEqual(restored.reportId, queued.id)
+        XCTAssertEqual(restored.reportId, "a1b2c3d4e5f60718293a4b5c6d7e8f90")
+    }
+
+    /// The bytes field was added to a PERSISTED format. A required key is a
+    /// silent eviction: the record fails to decode and `pending()` skips
+    /// unreadable entries by design, so the report disappears with nobody told.
+    func testARecordWrittenBeforeTheSizeFieldExistedIsStillReadable() throws {
+        let queue = makeQueue(ids: ["older"])
+        try queue.enqueue(payload())
+
+        // The same record as a build that predates `bytes` would have left it.
+        let record = root.appendingPathComponent("older", isDirectory: true)
+            .appendingPathComponent("report.json")
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: try Data(contentsOf: record)) as? [String: Any]
+        )
+        var photos = try XCTUnwrap(json["photos"] as? [[String: Any]])
+        photos[0].removeValue(forKey: "bytes")
+        json["photos"] = photos
+        try JSONSerialization.data(withJSONObject: json).write(to: record)
+
+        let reread = ReportQueue(root: root).pending()
+        XCTAssertEqual(reread.count, 1, "the report must not vanish because the format grew")
+        XCTAssertEqual(reread.first?.photos.first?.bytes, 0, "unknown size counts as none, not as gone")
+    }
+
+    /// A write that fails halfway used to leave photo bytes in a directory with
+    /// no readable record: invisible to `pending()`, uncounted by the byte
+    /// bound, and removable by nothing.
+    func testAHalfWrittenReportLeavesNothingBehind() throws {
+        let queue = ReportQueue(root: root, maxBytes: 1)
+        XCTAssertThrowsError(try queue.enqueue(payload()))
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: root.path)) ?? []
+        XCTAssertEqual(entries, [], "a refused report leaves no directory at all")
+    }
+
     func testAReportWithNoPhotographIsStillAReport() throws {
         let queue = makeQueue()
         let queued = try queue.enqueue(payload(photo: nil))

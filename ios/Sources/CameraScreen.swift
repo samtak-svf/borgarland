@@ -109,7 +109,8 @@ struct CameraScreen: View {
             // same callback the Android launcher uses.
             guard model.state.needsLocationPermission else { return }
             let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
-            model.onLocationPermissionResult(granted, permanentlyDenied: !granted && DeviceFix.shared.isDenied)
+            let standing = LocationPermission.of(granted: granted, canAskAgain: !DeviceFix.shared.isDenied)
+            model.onLocationPermissionResult(granted, permanentlyDenied: standing == .deniedForGood)
         }
         .onChange(of: model.state.photo != nil) { _, hasPhoto in
             // The Kotlin unbinds the camera when the preview leaves
@@ -182,7 +183,13 @@ struct CameraScreen: View {
                     Text(locationError)
                         .foregroundStyle(.red)
                     HStack(spacing: 8) {
-                        if state.locationDenied {
+                        // Through the tested decision rather than around it
+                        // (#89): the screen asked `state.locationDenied`
+                        // directly, so the extraction was pinned by tests the
+                        // app itself did not use.
+                        let standing: LocationPermission =
+                            state.locationDenied ? .deniedForGood : .unanswered
+                        if standing.exit == .openSystemSettings {
                             // The system does not prompt twice, so Reyna aftur
                             // would return the same refusal forever — the field
                             // test pressed it and got exactly that (#76). The
@@ -239,7 +246,8 @@ struct CameraScreen: View {
         } else {
             Task {
                 let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
-                model.onLocationPermissionResult(granted, permanentlyDenied: !granted && DeviceFix.shared.isDenied)
+                let standing = LocationPermission.of(granted: granted, canAskAgain: !DeviceFix.shared.isDenied)
+                model.onLocationPermissionResult(granted, permanentlyDenied: standing == .deniedForGood)
             }
         }
     }

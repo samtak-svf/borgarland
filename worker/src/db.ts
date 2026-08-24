@@ -91,6 +91,19 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
   }
 }
 
+/**
+ * True when a write failed because the row is already there.
+ *
+ * The duplicate check in createReport is a check-then-act: two requests with the
+ * same id can both read nothing and both try to insert. The primary key is what
+ * actually makes the id unique, so the loser is recognised here rather than
+ * becoming a 500 for a report that IS stored.
+ */
+export function isDuplicateKey(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+  return /UNIQUE constraint failed|PRIMARY KEY|already exists/i.test(message)
+}
+
 export async function getReport(db: D1Database, id: string): Promise<ReportRecord | null> {
   const result = await db.prepare(`SELECT ${COLUMNS} FROM reports WHERE id = ?`).bind(id).all()
   const row = result.results?.[0] as unknown as ReportRow | undefined

@@ -20,6 +20,14 @@ public struct QueuedReport: Equatable, Codable {
         /// How large the file is. Recorded so the queue can answer how much of
         /// somebody's phone it is holding without opening every photograph to
         /// find out (#82).
+        ///
+        /// Decoded with a default rather than required, because this is a
+        /// PERSISTED format and a required key is a silent eviction: a record
+        /// written before the key existed fails to decode, `pending()` skips
+        /// unreadable entries by design, and the report disappears with nobody
+        /// told. No phone can be holding such a record today — the queue itself
+        /// shipped after the only build anybody has — but the next field added
+        /// here will have the same shape and a live queue underneath it.
         public let bytes: Int
 
         public init(file: String, name: String, mime: String, rotationDegrees: Int, bytes: Int) {
@@ -28,6 +36,17 @@ public struct QueuedReport: Equatable, Codable {
             self.mime = mime
             self.rotationDegrees = rotationDegrees
             self.bytes = bytes
+        }
+
+        public init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            file = try values.decode(String.self, forKey: .file)
+            name = try values.decode(String.self, forKey: .name)
+            mime = try values.decode(String.self, forKey: .mime)
+            rotationDegrees = try values.decode(Int.self, forKey: .rotationDegrees)
+            // 0 rather than a throw: a report readable and slightly
+            // under-counted beats a report silently gone.
+            bytes = try values.decodeIfPresent(Int.self, forKey: .bytes) ?? 0
         }
     }
 
@@ -186,13 +205,17 @@ public final class ReportQueue {
     /// lost by the very thing we are guarding against.
     @discardableResult
     public func enqueue(_ payload: Payload, at date: Date = Date()) throws -> QueuedReport {
-        // Read before the lock: `pending` takes it too, and this lock is not
-        // recursive.
-        let waiting = pending()
-
         lock.lock()
         defer { lock.unlock() }
 
+        // Read INSIDE the lock, through the unlocked reader. An earlier version
+        // called `pending()` before taking the lock, because `pending()` takes
+        // it and the lock is not recursive — which avoided the deadlock and
+        // bought a check-then-act gap instead: two callers could both see room
+        // and both write. Every call is main-actor serialised in the app today,
+        // so it could not fire; the type is public and the lock exists for
+        // callers that are not.
+        let waiting = pendingLocked()
         let incoming = payload.photos.reduce(0) { $0 + $1.bytes.count }
         let held = waiting.reduce(0) { $0 + $1.bytes }
         if waiting.count >= maxReports || held + incoming > maxBytes {
@@ -202,6 +225,15 @@ public final class ReportQueue {
         let id = newID()
         let directory = root.appendingPathComponent(id, isDirectory: true)
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        // A write that fails halfway leaves photo bytes in a directory with no
+        // readable record, which `pending()` cannot see, `maxBytes` cannot
+        // count and nothing can remove: a leak of one photograph per failure,
+        // on exactly the disk-pressure path this throws for.
+        var wrote = false
+        defer {
+            if !wrote { try? fileManager.removeItem(at: directory) }
+        }
 
         var refs: [QueuedReport.PhotoRef] = []
         for (index, photo) in payload.photos.enumerated() {
@@ -229,6 +261,7 @@ public final class ReportQueue {
             photos: refs
         )
         try writeRecord(report)
+        wrote = true
         return report
     }
 
@@ -249,9 +282,9 @@ public final class ReportQueue {
     public func remove(_ id: String) {
         lock.lock()
         defer { lock.unlock() }
-        // A traversal in an id would reach outside the queue. Ids come from
-        // UUID today, so this cannot happen; it costs one line and the file it
-        // would delete is somebody's.
+        // A traversal in an id would reach outside the queue. Ids are 32 hex
+        // characters from a secure source, so this cannot happen; it costs one
+        // line and the file it would delete is somebody's.
         guard !id.isEmpty, !id.contains("/"), id != ".", id != ".." else { return }
         try? fileManager.removeItem(at: root.appendingPathComponent(id, isDirectory: true))
     }
@@ -267,6 +300,12 @@ public final class ReportQueue {
     public func pending() -> [QueuedReport] {
         lock.lock()
         defer { lock.unlock() }
+        return pendingLocked()
+    }
+
+    /// The same read, for a caller that already holds the lock. The lock is not
+    /// recursive, so this exists rather than a second `lock()`.
+    private func pendingLocked() -> [QueuedReport] {
         guard let entries = try? fileManager.contentsOfDirectory(atPath: root.path) else { return [] }
         return entries
             .compactMap { readRecord(id: $0) }
