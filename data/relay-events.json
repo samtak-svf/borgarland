@@ -25,7 +25,10 @@
   "events": {
     "app-opened": { "fields": {} },
     "camera-permission": { "fields": { "granted": "boolean" } },
-    "location-permission": { "fields": { "granted": "boolean" } },
+    "location-permission-asked": { "fields": {},
+      "notes": "the dialog was put up. A SEPARATE EVENT rather than a third value on location-permission, because every field in this contract is required (worker/src/events.ts) and adding one would 400 the telemetry of every build already on a phone. It carries no field at all, so it says nothing new about a person and the privacy boundary is unchanged. It exists because until #134 the record could not distinguish somebody refusing from somebody still reading: iOS gave up after sixty seconds and reported the silence as a refusal. With the pair, a long gap between asked and the answer is a slow reader and the absence of an answer is nobody home." },
+    "location-permission": { "fields": { "granted": "boolean" },
+      "notes": "granted false means REFUSED. Before #134 it also meant `iOS stopped waiting`, and events recorded before 2026-08-24 cannot be told apart. See location-permission-asked." },
     "photo-captured": { "fields": { "elapsedMs": "integer", "bytes": "integer", "mime": ["image/jpeg", "image/png", "image/gif", "image/heic", "other"] } },
     "location-resolved": { "fields": { "elapsedMs": "integer", "source": ["device", "exif"], "accuracyM": "integer" } },
     "location-failed": { "fields": { "elapsedMs": "integer", "reason": ["permission", "timeout", "unavailable", "no-exif"] } },

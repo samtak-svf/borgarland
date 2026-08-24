@@ -108,6 +108,7 @@ struct CameraScreen: View {
             // dance runs once, and the result lands in the model through the
             // same callback the Android launcher uses.
             guard model.state.needsLocationPermission else { return }
+            Telemetry.shared.track(.locationPermissionAsked)
             let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
             let standing = LocationPermission.of(granted: granted, canAskAgain: !DeviceFix.shared.isDenied)
             model.onLocationPermissionResult(granted, permanentlyDenied: standing == .deniedForGood)
@@ -245,6 +246,7 @@ struct CameraScreen: View {
             model.requestDeviceFix()
         } else {
             Task {
+                Telemetry.shared.track(.locationPermissionAsked)
                 let granted = await DeviceFix.shared.requestWhenInUseAuthorization()
                 let standing = LocationPermission.of(granted: granted, canAskAgain: !DeviceFix.shared.isDenied)
                 model.onLocationPermissionResult(granted, permanentlyDenied: standing == .deniedForGood)

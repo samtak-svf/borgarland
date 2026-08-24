@@ -347,6 +347,7 @@ final class TelemetryTest: XCTestCase {
         switch name {
         case "app-opened": return .appOpened
         case "camera-permission": return .cameraPermission(granted: true)
+        case "location-permission-asked": return .locationPermissionAsked
         case "location-permission": return .locationPermission(granted: true)
         case "photo-captured": return .photoCaptured(elapsedMs: 0, bytes: 0, mime: "image/jpeg")
         case "location-resolved": return .locationResolved(elapsedMs: 0, source: .device, accuracyM: 0)

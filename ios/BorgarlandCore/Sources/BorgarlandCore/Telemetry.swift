@@ -342,6 +342,10 @@ public final class Telemetry {
 public enum TelemetryEvent {
     case appOpened
     case cameraPermission(granted: Bool)
+    /// The dialog was put up. Pairs with `locationPermission`, which is the
+    /// answer: the gap between them is how long somebody took to read it,
+    /// and until #134 a long enough gap was reported as a refusal.
+    case locationPermissionAsked
     case locationPermission(granted: Bool)
     case photoCaptured(elapsedMs: Int, bytes: Int, mime: String)
     case locationResolved(elapsedMs: Int, source: LocationSource, accuracyM: Int)
@@ -391,6 +395,7 @@ public enum TelemetryEvent {
         switch self {
         case .appOpened: return "app-opened"
         case .cameraPermission: return "camera-permission"
+        case .locationPermissionAsked: return "location-permission-asked"
         case .locationPermission: return "location-permission"
         case .photoCaptured: return "photo-captured"
         case .locationResolved: return "location-resolved"
@@ -413,6 +418,8 @@ public enum TelemetryEvent {
             return [:]
         case .cameraPermission(let granted):
             return ["granted": granted]
+        case .locationPermissionAsked:
+            return [:]
         case .locationPermission(let granted):
             return ["granted": granted]
         case .photoCaptured(let elapsedMs, let bytes, let mime):
@@ -442,6 +449,7 @@ public enum TelemetryEvent {
     public static let allNames: [String] = [
         "app-opened",
         "camera-permission",
+        "location-permission-asked",
         "location-permission",
         "photo-captured",
         "location-resolved",

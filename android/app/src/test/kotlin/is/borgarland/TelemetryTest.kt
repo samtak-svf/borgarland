@@ -336,6 +336,7 @@ class TelemetryTest {
     private fun sampleEvent(name: String): TelemetryEvent = when (name) {
         "app-opened" -> TelemetryEvent.AppOpened
         "camera-permission" -> TelemetryEvent.CameraPermission(true)
+        "location-permission-asked" -> TelemetryEvent.LocationPermissionAsked
         "location-permission" -> TelemetryEvent.LocationPermission(true)
         "photo-captured" -> TelemetryEvent.PhotoCaptured(0, 0, "image/jpeg")
         "location-resolved" -> TelemetryEvent.LocationResolved(0, TelemetryEvent.LocationSource.DEVICE, 0)
