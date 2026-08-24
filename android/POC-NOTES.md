@@ -24,8 +24,11 @@ versions mirror `rosaparks/gradle/libs.versions.toml` and its wrapper, because
 that project demonstrably builds here. The only version the repo did not pin is
 CameraX: 1.6.1, the latest stable on Google Maven at build time.
 
-One gotcha worth recording: the package `is.borgarland.poc` must be written
-`` `is`.borgarland.poc `` in Kotlin, because `is` is a hard keyword. Rosaparks
+One gotcha worth recording, and it still applies: the package must be written
+`` `is`.borgarland `` in Kotlin, because `is` is a hard keyword. It read
+`is.borgarland.poc` until 2026-08-24, when the package was renamed before Play
+could pin it (decision 0012); the backtick is a property of the `is` at the
+front, so the rename changed the example and not the problem. Rosaparks
 does the same (`` package `is`.rosaparks ``).
 
 ## The one rule, and how it is enforced
@@ -165,8 +168,10 @@ the manifest.
   facts file says the city enforces it, but the repo has no app-side
   validation spec. The POC gates the Continue button on a non-blank
   description.
-- **App name and package.** "Borgarland POC" and `is.borgarland.poc` are not
-  specified anywhere.
+- ~~**App name and package.** "Borgarland POC" and `is.borgarland.poc` are not
+  specified anywhere.~~ Settled 2026-08-24: the package is `is.borgarland`, made
+  permanent by the first Play upload, and the name is "Borgarland" (decision
+  0012).
 - **Location-source label wording** in Icelandic.
 - **The facts file travels verbatim** as an asset, including the endpoint
   strings it carries as data. The app never reads the endpoint fields, and the

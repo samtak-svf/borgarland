@@ -37,7 +37,7 @@ ktlint_standard_trailing-comma-on-call-site = disabled
 ktlint_standard_trailing-comma-on-declaration-site = disabled
 
 # The app's imports are hand-sorted in the order the authors read them, and the
-# package path is backtick-escaped throughout (`is`.borgarland.poc), which
+# package path is backtick-escaped throughout (`is`.borgarland), which
 # disagrees with ktlint's lexicographic-with-java/kotlin-last model in every
 # file that mixes the two. Reformatting would settle it; this branch does not
 # touch src/.
