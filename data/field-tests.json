@@ -1528,6 +1528,512 @@
         "Nothing about the gallery path, which exists on neither platform (#28).",
         "Nothing about how the first walk FELT. It was driven over adb, so its timings measure a script's patience rather than a person's — 5 seconds to choose a category, 81 seconds on the details screen. The second walk is the human one."
       ]
+    },
+    {
+      "id": "2026-08-24-android-two-walks-by-someone-unrecorded",
+      "date": "2026-08-24",
+      "platform": "android",
+      "what": "Two complete walks in one session, both accepted by the relay, 55 minutes before the first recorded run of iOS build 5 and from a coordinate that rounds to the same place. Whose phone this was is NOT recorded and is not inferable: the telemetry carries no device identifier, and unlike the session earlier the same night nothing was attached over adb. The entry is written from the relay's own tables, which is all that exists.",
+      "device": {
+        "model": "not recorded",
+        "note": "The event channel names no device field at all (data/relay-events.json), and no adb session ran alongside this one. Any statement about which handset this was would be a memory, not a measurement, so none is made."
+      },
+      "build": {
+        "variant": "not recorded",
+        "appVersion": "0.1.0 (1)",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves, which arrived at the deployed relay. The host is a buildConfigField, so an event reaching borgarland.samtak.is proves the build carried the deployed host.",
+        "note": "0.1.0 (1) is the same version string the Android walks earlier that night reported, which does not identify the binary: the Android version has not been bumped between builds, so this cannot be read as the same APK."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed, verified the same day the entries were written rather than at walk time: /api/health answered dryRun true with a registry snapshot of 139360 rows taken 2026-08-22T21:12:12.323Z, and `SELECT COUNT(*) FROM reports WHERE dry_run = 0` answered 0 across the whole table, not just these rows. Nothing either session did could reach the city."
+      },
+      "session": "45f1983b33d2705bcd64eabe931db2b7",
+      "method": "Transcribed from D1 by query, not by hand: the timeline below was generated directly from client_events and the delivery batches from received_at, so no value here was retyped.",
+      "timeline": [
+        {
+          "atMs": 7,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 251,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 8218,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 359,
+            "bytes": 4996227,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 8219,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 8526,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 8532,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 314,
+            "source": "device",
+            "accuracyM": 5
+          }
+        },
+        {
+          "atMs": 8532,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 14395,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 6176,
+            "slug": "gras-og-grodur"
+          }
+        },
+        {
+          "atMs": 26747,
+          "name": "description-length",
+          "fields": {
+            "length": 18
+          }
+        },
+        {
+          "atMs": 29270,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 31279,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 33915,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 2635,
+            "status": 201,
+            "ok": true
+          }
+        },
+        {
+          "atMs": 43841,
+          "name": "screen-left",
+          "fields": {
+            "screen": "confirm",
+            "completed": false
+          }
+        },
+        {
+          "atMs": 43865,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 73038,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 784,
+            "bytes": 7661367,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 73038,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 0,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 73348,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 73356,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 318,
+            "source": "device",
+            "accuracyM": 5
+          }
+        },
+        {
+          "atMs": 73356,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 76467,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 3429,
+            "slug": "nidurfoll"
+          }
+        },
+        {
+          "atMs": 87055,
+          "name": "description-length",
+          "fields": {
+            "length": 23
+          }
+        },
+        {
+          "atMs": 92533,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 94559,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 99191,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 4632,
+            "status": 201,
+            "ok": true
+          }
+        },
+        {
+          "atMs": 103088,
+          "name": "screen-left",
+          "fields": {
+            "screen": "confirm",
+            "completed": false
+          }
+        },
+        {
+          "atMs": 103116,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 12,
+          "receivedAt": "2026-08-24T11:03:59.987Z",
+          "firstAtMs": 7,
+          "lastAtMs": 33915
+        },
+        {
+          "events": 12,
+          "receivedAt": "2026-08-24T11:05:05.255Z",
+          "firstAtMs": 43841,
+          "lastAtMs": 99191
+        },
+        {
+          "events": 2,
+          "receivedAt": "2026-08-24T11:05:11.131Z",
+          "firstAtMs": 103088,
+          "lastAtMs": 103116
+        }
+      ],
+      "deliveryNote": "Three batches: one per completed walk, then a two-event tail when the camera was reopened a third time at 103116 and the session ended without another capture. Android has no queue (data/platform-parity.json), so each batch is a live send rather than a flush.",
+      "reports": [
+        {
+          "id": "32a9d15287c04e7e23a6b851af694edb",
+          "categorySlug": "gras-og-grodur",
+          "photoCount": 1,
+          "photoBytes": 4996227,
+          "dryRun": true,
+          "createdAt": "2026-08-24T11:03:58.909Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; the coordinate reverse-looked to a Reykjavík address"
+        },
+        {
+          "id": "9c03471459814dedd1604d05faed952f",
+          "categorySlug": "nidurfoll",
+          "photoCount": 1,
+          "photoBytes": 7661367,
+          "dryRun": true,
+          "createdAt": "2026-08-24T11:05:04.472Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; the coordinate reverse-looked to a Reykjavík address"
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "A single capture reached 7,661,367 bytes, larger than any photograph measured anywhere in this repository before it.",
+          "evidence": "photo-captured at atMs 73038, bytes 7661367, mime image/jpeg, and the same figure stored as photo_bytes on report 9c03471459814dedd1604d05faed952f. The previous largest measurements are in docs/research/photos-exif-and-formats.md and data/reykjavik-form.json: 1.1 MB from a Galaxy A71, 2.66 MB from a Galaxy S23 Ultra, 4.78 MB for an iPhone original transcoded to JPEG at quality 90.",
+          "wherePredicted": "data/reykjavik-form.json, which files the upload ceiling under unknowns and says three photos from a recent phone approach 8 MB",
+          "note": "This does NOT establish that the city would have rejected it. The ceiling is still unknown — the client sets no maxSize and finding the server's limit means uploading until something breaks, which nothing here did. dryRun was true, so no byte of either photograph left the relay."
+        },
+        {
+          "claim": "The capture path produced no EXIF location on either walk and the device fix answered both times, which is the documented shape rather than a failure.",
+          "evidence": "location-failed reason no-exif at atMs 8219 and 73038, each followed within milliseconds by location-resolved source device, accuracyM 5 both times, elapsedMs 314 and 318.",
+          "wherePredicted": "AGENTS.md and docs/research/photos-exif-and-formats.md: CameraX does not write EXIF GPS unless asked, so the device fix is the primary source on the capture path and not a fallback."
+        },
+        {
+          "claim": "Both sends were accepted.",
+          "evidence": "send-result status 201 ok true at atMs 33915 and 99191, elapsedMs 2635 and 4632, and two rows in reports with rejection null."
+        }
+      ],
+      "findings": [],
+      "notFoundHere": [
+        "Nothing about the city. dryRun was true for both walks.",
+        "Nothing about who walked this. The absence of a device identifier is deliberate and is the reason this entry names nobody.",
+        "Nothing about the reworded label. Neither walk chose almenn-abending, so this session says nothing about #40 either way.",
+        "Nothing about the keyboard fix from #111. These walks completed, but the timeline of a completed walk looks the same whether or not the submit button was ever hidden — that defect was only ever visible in a measurement, not in the events.",
+        "Nothing about a poor network. Sends took 2635 ms and 4632 ms; the second is the 7.66 MB photograph and the difference is plausibly its size, which is a guess and not a measurement."
+      ]
+    },
+    {
+      "id": "2026-08-24-ios-build-5-first-run",
+      "date": "2026-08-24",
+      "platform": "ios",
+      "what": "The first recorded run of iOS build 5 — the first iOS build that reads data/category-labels.json — and the measurement that makes a claim in AGENTS.md and in two issues false. One complete walk, accepted by the relay. Whose phone it was is not recorded.",
+      "device": {
+        "model": "not recorded",
+        "note": "As with every entry here, the telemetry names no device. What IS established is the build: app_version 0.1.0 (5) on all fifteen events. There is no Mac on this machine, so a build-5 binary can only have come from TestFlight."
+      },
+      "build": {
+        "variant": "TestFlight, App Store distribution",
+        "appVersion": "0.1.0 (5)",
+        "signing": "Apple team B4724Z74TM; the certificate and API key are team-scoped, so nothing app-specific was created for it",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves. A release build carries one host and only one, so an event arriving at the deployed relay proves the build was not pointing at the loopback."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed, verified the same day the entries were written rather than at walk time: /api/health answered dryRun true with a registry snapshot of 139360 rows taken 2026-08-22T21:12:12.323Z, and `SELECT COUNT(*) FROM reports WHERE dry_run = 0` answered 0 across the whole table, not just these rows. Nothing either session did could reach the city."
+      },
+      "session": "4fe325ba54a932bf270735eb5934b310",
+      "method": "Transcribed from D1 by query, not by hand; timeline generated directly from client_events and delivery from received_at.",
+      "timeline": [
+        {
+          "atMs": 0,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 91,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 7833,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 24057,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 284491,
+            "elapsedMs": 424,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 24067,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 10,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 26365,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 26400,
+          "name": "location-resolved",
+          "fields": {
+            "accuracyM": 10,
+            "elapsedMs": 2343,
+            "source": "device"
+          }
+        },
+        {
+          "atMs": 26400,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "camera"
+          }
+        },
+        {
+          "atMs": 56249,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 32192,
+            "slug": "heimilissorp"
+          }
+        },
+        {
+          "atMs": 84788,
+          "name": "description-length",
+          "fields": {
+            "length": 34
+          }
+        },
+        {
+          "atMs": 87815,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "details"
+          }
+        },
+        {
+          "atMs": 111532,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 113146,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1613,
+            "ok": true,
+            "status": 201
+          }
+        },
+        {
+          "atMs": 120164,
+          "name": "screen-left",
+          "fields": {
+            "completed": false,
+            "screen": "confirm"
+          }
+        },
+        {
+          "atMs": 120210,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 13,
+          "receivedAt": "2026-08-24T11:58:15.862Z",
+          "firstAtMs": 0,
+          "lastAtMs": 113146
+        },
+        {
+          "events": 2,
+          "receivedAt": "2026-08-24T11:58:25.718Z",
+          "firstAtMs": 120164,
+          "lastAtMs": 120210
+        }
+      ],
+      "deliveryNote": "Two batches covering a walk that took just over two minutes on the phone but arrived inside ten seconds of relay time. That gap is the iOS queue doing its job: atMs is the phone's clock and measures what the person experienced, received_at is the relay's and measures only when the flush happened. Reading the walk's duration off received_at would have made a 120-second walk look like a 10-second one.",
+      "reports": [
+        {
+          "id": "77e15a454553e04b37edd38fc94664f0",
+          "categorySlug": "heimilissorp",
+          "photoCount": 1,
+          "photoBytes": 284491,
+          "dryRun": true,
+          "createdAt": "2026-08-24T11:58:15.092Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; the coordinate reverse-looked to a Reykjavík address"
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "Build 5 has been installed and run by somebody. It had never been recorded as installed before this.",
+          "evidence": "Fifteen events on session 4fe325ba54a932bf270735eb5934b310 carrying app_version 0.1.0 (5), plus report 77e15a454553e04b37edd38fc94664f0 created at 11:58:15.092Z. Build 5 is CFBundleVersion 5, verified inside the .ipa when it was cut (#102).",
+          "wherePredicted": "Nowhere — the opposite was written down. AGENTS.md said 'nobody has installed build 5', #60 said 'Nobody has installed it: build 4 is still what the testers hold', and #56 said 'Nobody has installed 5 yet'. All three were true when written and false by 11:58.",
+          "note": "It does not follow that a TESTER ran it. The channel carries no device identifier, so this establishes that build 5 ran and nothing at all about whose hand it was in."
+        },
+        {
+          "claim": "The camera permission was refused and then granted 7.7 seconds later, in the same session.",
+          "evidence": "camera-permission granted false at atMs 91, then camera-permission granted true at atMs 7833.",
+          "note": "Whether that was a misplaced tap, a deliberate refusal reconsidered, or a prompt read slowly is not in the data. Recorded because it is the first time the denial path has been entered and then left on a build that could complete the walk — the earlier denial (2026-08-23-ios-reykjavik-offline-and-denial) ended the attempt."
+        },
+        {
+          "claim": "The photograph was an order of magnitude smaller than the Android captures the same hour.",
+          "evidence": "photo-captured bytes 284491 against 4996227 and 7661367 on Android at 11:03 and 11:05.",
+          "note": "Not a defect and not a like-for-like comparison: different camera, different scene, different subject distance. Recorded because AGENTS.md's size reasoning has so far rested on iPhone originals being LARGER, and one real iOS capture through our own AVCapturePhotoSettings JPEG path came in far under that."
+        },
+        {
+          "claim": "The walk was accepted.",
+          "evidence": "send-result status 201 ok true at atMs 113146, elapsedMs 1613, with rejection null on the stored row."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 115,
+          "severity": "observation",
+          "what": "The category picker carried elapsedMs 32192 — 32.2 seconds — against 6.2 s and 3.4 s on Android the same hour from the same coordinate.",
+          "evidence": "category-chosen { slug: heimilissorp, elapsedMs: 32192 } at atMs 56249.",
+          "whyNotADefect": "n=1, and the benign reading fits: somebody meeting twelve categories for the first time, one of them freshly reworded with a help line (#40), would reasonably spend half a minute reading. Nothing in the data separates reading from hunting, and no device identifier exists to say whether this person had used build 4 before.",
+          "status": "open in #115, which records what would settle it and says explicitly not to redesign the picker on one timing"
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. dryRun was true.",
+        "Nothing about the reworded label reaching THIS screen. The walk chose heimilissorp, not almenn-abending, so build 5's headline change was not exercised even though this is the first build carrying it. It remains recorded as seen on Android only.",
+        "Nothing about the offline queue under failure. The queue is visible here only as a delivery gap on a walk where every send succeeded; it was not tested against a dropped network.",
+        "Nothing about whether a second tester round happened. One session is one session."
+      ]
     }
   ]
 }
