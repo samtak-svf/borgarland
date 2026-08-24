@@ -47,8 +47,8 @@ locally — `--dry-run` exits before any API call):
 npx wrangler deploy --dry-run --outdir dist
 ```
 
-Last verified: typecheck clean, 62 tests passing across 5 files, bundle
-69.33 KiB total / 11.70 KiB gzipped.
+Last verified 2026-08-24: typecheck clean, 137 tests passing across 10 files,
+bundle 94.15 KiB total / 19.38 KiB gzipped.
 
 **iceaddr-ts comes from npm.** `iceaddr-ts@^0.1.0` is published, so a fresh
 `npm install` resolves it with no manual step.
