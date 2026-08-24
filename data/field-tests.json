@@ -547,7 +547,7 @@
           "lastAtMs": 317942
         }
       ],
-      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column and a flush is datable. Solving for the session start from the second batch puts it at 20:13:10.7Z; the third gives 20:13:17.6Z, and the seven seconds between them are the flush latency the method cannot see past. Either way the first batch is a flush that happened more than two minutes after its last event, which is the app being backgrounded rather than a threshold being reached. NOTE added 2026-08-24 (#134): before that day iOS reported an unanswered permission dialog as a refusal after sixty seconds, so a location-permission granted:false recorded on iOS cannot be read as a refusal. The location-permission-asked event now makes the two distinguishable.",
+      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column and a flush is datable. Solving for the session start from the second batch puts it at 20:13:10.7Z; the third gives 20:13:17.6Z, and the seven seconds between them are the flush latency the method cannot see past. Either way the first batch is a flush that happened more than two minutes after its last event, which is the app being backgrounded rather than a threshold being reached. NOTE added 2026-08-24 (#134): before that day iOS reported an unanswered permission dialog as a refusal after sixty seconds, so a location-permission granted:false recorded on iOS cannot be read as a refusal. The location-permission-asked event is what will make the two distinguishable, but nothing on a phone emits it yet: it was added after build 5 was cut, and until #139 it fired whether or not a dialog appeared. No reading of THIS run improves because of it.",
       "storedRow": "none. outside-reykjavik is thrown by the jurisdiction check before insertReport, so a refused report leaves nothing behind at all, and the reports table holds no row for this session.",
       "confirmed": [
         {
@@ -924,7 +924,7 @@
           "lastAtMs": 641821
         }
       ],
-      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column. That is not a detail: the fourth batch is a single send-failed arriving alone, with no send-started before it, and noticing that is how #74 was found. NOTE added 2026-08-24 (#134): before that day iOS reported an unanswered permission dialog as a refusal after sixty seconds, so a location-permission granted:false recorded on iOS cannot be read as a refusal. The location-permission-asked event now makes the two distinguishable.",
+      "deliveryNote": "Every event of one batch shares received_at, so a batch boundary is legible in that column. That is not a detail: the fourth batch is a single send-failed arriving alone, with no send-started before it, and noticing that is how #74 was found. NOTE added 2026-08-24 (#134): before that day iOS reported an unanswered permission dialog as a refusal after sixty seconds, so a location-permission granted:false recorded on iOS cannot be read as a refusal. The location-permission-asked event is what will make the two distinguishable, but nothing on a phone emits it yet: it was added after build 5 was cut, and until #139 it fired whether or not a dialog appeared. No reading of THIS run improves because of it.",
       "timelineHole": {
         "betweenAtMs": [
           441749,
