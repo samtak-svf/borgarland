@@ -133,8 +133,13 @@ suggestion box.
 Both pickers read that file, so the check is one grep of it rather than a
 memory of a screen. Worth saying because the obvious check is worse. iOS build 4
 was cut before the labels file was read at all; build 5, uploaded 2026-08-24 and
-VALID in TestFlight, is the first iOS build that reads it, and nobody has
-installed build 5. **On Android somebody has now seen it.** The picker rendered
+VALID in TestFlight, is the first iOS build that reads it. **Build 5 has now
+been run** — once, at 11:58 on 2026-08-24, a complete walk accepted by the relay
+and recorded as [`2026-08-24-ios-build-5-first-run`](data/field-tests.json) —
+**and it still does not settle the label**, because that walk chose
+`heimilissorp`. The build carrying the change has been walked; the change has
+not. Whose phone it was is not knowable here either: the channel names no
+device. **On Android somebody has now seen it.** The picker rendered
 `Annað í almannarými` with its help line on an SM-S918B on 2026-08-24, read off
 the device and matched to the file byte for byte, and the category was then
 walked by hand to a report row — recorded as
@@ -144,11 +149,20 @@ is careful about what it cannot say: the telemetry carries no device identifier,
 so which phone it was is a memory rather than a measurement.
 
 **A build existing and a build having been walked are different claims.** This
-paragraph has now been wrong four times. The third was a correction that cited
-`data/field-tests.json` for an observation the file did not contain; the fourth
-was this one still saying the run was recorded nowhere **one commit after the
-same session recorded it** (#113). Both directions of the same mistake, and the
-second was made by the person who had just written the first correction.
+paragraph has now been wrong five times, and the fifth failed differently from
+the other four: "nobody has installed build 5" was *true when it was written*
+and stopped being true at 11:58 the same day, while the sentence sat here for
+hours saying otherwise — and in two issue bodies as well, which is where most of
+the cost was. A sentence that reports the current state of the world has a shelf
+life, and this file is not a place to store one without saying when it was
+measured.
+
+The other four were wrong on the day they were written. The third was a
+correction that cited `data/field-tests.json` for an observation the file did
+not contain; the fourth was this one still saying the run was recorded nowhere
+**one commit after the same session recorded it** (#113). Both directions of the
+same mistake, and the second was made by the person who had just written the
+first correction.
 
 So the check is not "grep before you claim". It is **grep again after you change
 the record**, because the thing that most often falsifies a sentence here is
