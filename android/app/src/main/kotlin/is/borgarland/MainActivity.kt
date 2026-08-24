@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import `is`.borgarland.ui.BorgarlandPocTheme
 import `is`.borgarland.ui.CameraScreen
+import `is`.borgarland.ui.FollowUpDialog
 import `is`.borgarland.ui.DetailsScreen
 import `is`.borgarland.ui.SummaryScreen
 import `is`.borgarland.net.Telemetry
@@ -51,6 +52,21 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.padding(16.dp),
                             )
                             return@Box
+                        }
+
+                        // The follow-up question, asked once about one report
+                        // this phone filed a fortnight ago (#57, decision
+                        // 0013). It sits over whatever screen is showing
+                        // because it is not part of filing a report; it is a
+                        // different conversation that happens to start when
+                        // the app opens.
+                        state.followUp?.let { pending ->
+                            FollowUpDialog(
+                                categoryLabel = state.categoryDisplay[pending.categorySlug]
+                                    ?: pending.categorySlug,
+                                onAnswer = viewModel::answerFollowUp,
+                                onDismiss = viewModel::dismissFollowUp,
+                            )
                         }
 
                         when (state.screen) {

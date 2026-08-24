@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import `is`.borgarland.data.Category
 import `is`.borgarland.data.Facts
+import `is`.borgarland.data.FollowUps
 import `is`.borgarland.data.CategoryLabels
 import `is`.borgarland.data.CategoryLabelsFile
 import `is`.borgarland.data.FactsFile
@@ -91,6 +92,11 @@ data class PocUiState(
     val outOfBounds: Boolean = false,
     val sending: Boolean = false,
     val sendOutcome: SendOutcome? = null,
+    /**
+     * A report this phone filed long enough ago to ask about (#57, decision
+     * 0013). Null almost always: it is one question, once, about one report.
+     */
+    val followUp: FollowUps.Pending? = null,
 )
 
 /**
@@ -186,6 +192,44 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         // telemetry session, carries on. Emitting here therefore emitted twice
         // in one session. The event marks the start of a session, and a
         // session is a process, so BorgarlandApplication.onCreate owns it.
+
+        // Is there a report old enough to ask about (#57)? Reading a small
+        // local file, so it is safe here; a failure must never stop the app
+        // from doing the thing it is for, which is filing a report.
+        runCatching {
+            FollowUps.due(getApplication<Application>(), System.currentTimeMillis())
+        }.getOrNull()?.let { pending ->
+            _state.update { it.copy(followUp = pending) }
+        }
+    }
+
+    /**
+     * The answer to "was it fixed?", posted against a report id this phone
+     * generated itself (#57, decision 0013). Marked asked FIRST and locally,
+     * so a failed post cannot turn into the same question tomorrow: being
+     * nagged about a bin is how an app gets uninstalled, and the answer the
+     * person gave is worth more than the delivery of it.
+     */
+    fun answerFollowUp(fixed: Boolean) {
+        val pending = _state.value.followUp ?: return
+        _state.update { it.copy(followUp = null) }
+        val ctx = getApplication<Application>()
+        runCatching { FollowUps.markAsked(ctx, pending.id) }
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching { RelayClient.postOutcome(pending.id, fixed) }
+            }
+        }
+    }
+
+    /**
+     * Dismissed without answering. Still marked asked: somebody who ignores
+     * the question has answered it, and asking again is a nag.
+     */
+    fun dismissFollowUp() {
+        val pending = _state.value.followUp ?: return
+        _state.update { it.copy(followUp = null) }
+        runCatching { FollowUps.markAsked(getApplication<Application>(), pending.id) }
     }
 
     /**
@@ -449,6 +493,20 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 } ?: TelemetryEvent.SendFailure.OTHER
                 Telemetry.shared.track(TelemetryEvent.SendFailed(elapsedMs, reason))
+            }
+            // The relay accepted it, so this is a report worth asking about
+            // later (#57). The id was generated on this phone, so remembering
+            // it needs nothing at all about the person who filed it.
+            val filedId = payload.reportId
+            if (result.ok && filedId != null) {
+                runCatching {
+                    FollowUps.record(
+                        getApplication<Application>(),
+                        filedId,
+                        payload.categorySlug,
+                        System.currentTimeMillis(),
+                    )
+                }
             }
             // A natural end point: the events around the report send go now.
             Telemetry.shared.flush()

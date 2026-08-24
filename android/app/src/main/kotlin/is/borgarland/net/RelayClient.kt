@@ -91,6 +91,43 @@ object RelayClient {
     }
 
     /**
+     * The follow-up answer: was the thing fixed (#57, decision 0013).
+     *
+     * Deliberately NOT built from `data/relay-request.json`. That contract
+     * describes the report the app files; this is a different request to a
+     * different endpoint, and folding it in would make the report contract
+     * describe two things. The path is the endpoint the relay has routed since
+     * it was written and the body is two words, so there is nothing here for a
+     * contract to protect.
+     *
+     * The id is one the app generated itself, so this request carries no
+     * identifier of a person, a device or an account. It says one bit about a
+     * row the relay already has.
+     */
+    fun postOutcome(reportId: String, fixed: Boolean): Result {
+        val url = URL("$BASE_URL/api/reports/$reportId/outcome")
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            doOutput = true
+            connectTimeout = 10_000
+            readTimeout = 30_000
+            setRequestProperty("Content-Type", "application/json")
+        }
+        val body = if (fixed) "{\"outcome\":\"fixed\"}" else "{\"outcome\":\"not-fixed\"}"
+        return try {
+            DataOutputStream(conn.outputStream).use { out -> out.write(body.toByteArray()) }
+            val status = conn.responseCode
+            val stream = if (status in 200..299) conn.inputStream else conn.errorStream
+            val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
+            Result(status in 200..299, status, text)
+        } catch (e: Exception) {
+            Result(false, 0, e.message ?: e.javaClass.simpleName, Failure.CONNECTION)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /**
      * The exact multipart body the app posts, built from the contract. Parts
      * are written under the contract's field names in the contract's order.
      * The literal in the role binding is which role a contract field plays;
