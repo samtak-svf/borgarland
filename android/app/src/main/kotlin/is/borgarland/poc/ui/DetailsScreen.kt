@@ -3,6 +3,7 @@ package `is`.borgarland.poc.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -33,8 +34,21 @@ fun DetailsScreen(
     onContinue: () -> Unit,
 ) {
     Column(
+        // imePadding BEFORE verticalScroll, which is the whole of #110: the
+        // keyboard's height has to become padding on the scrollable container
+        // so the scroll range grows past it. After the scroll modifier the
+        // padding lands inside the scrolling content and the send button stays
+        // where the keyboard is. Google's edge-to-edge skill states the order
+        // as a MUST.
+        //
+        // Their preferred form is Modifier.fitInside(WindowInsetsRulers.Ime.current),
+        // which is not in Compose BOM 2026.04.01 (foundation-layout 1.11.0 has
+        // no WindowInsetsRulers at all), so this is their option 2. There is no
+        // Scaffold in this app, so no contentWindowInsets is already applying
+        // the IME inset and there is nothing to double up with.
         modifier = Modifier
             .fillMaxWidth()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
