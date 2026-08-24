@@ -2264,10 +2264,10 @@
       ]
     },
     {
-      "id": "2026-08-24-ios-denial-recovered-and-the-label-seen",
+      "id": "2026-08-24-ios-timeout-read-as-denial-and-the-label-seen",
       "date": "2026-08-24",
       "platform": "ios",
-      "what": "An iPhone tester on build 5, asked four specific questions and answering all of them with four screenshots. She refused the location permission, saw the refusal screen, granted it, and completed the walk. This is the first sighting of the reworded label on iOS, and the session that showed category-chosen's elapsedMs does not measure what two issues had assumed.",
+      "what": "An iPhone tester on build 5, asked four specific questions and answering all of them with four screenshots. The reworded label is confirmed on iOS for the first time. She was ALSO shown a refusal screen for a permission she had not refused: the app's 60-second authorization timeout fired while the system dialog was still on her screen, and reported a denial (#134). This entry said she declined and recovered until the code was read; the event said granted false and the event was wrong.",
       "device": {
         "model": "iPhone 15, iOS 26.5.2",
         "note": "Known from App Store Connect's tester list, NOT from the telemetry, which names no device. That is also why she can be named here at all: the relay could not have told us."
@@ -2431,9 +2431,10 @@
           "wherePredicted": "#40, built in #67. Build 5 is the first iOS build that reads the labels file, and until this AGENTS.md said in terms that the change had not been settled on iOS."
         },
         {
-          "claim": "A refused location permission is recoverable on iOS, and the walk completes afterwards.",
-          "evidence": "location-permission granted false at atMs 298434 with location-failed reason permission, then location-permission granted true at 336244 and location-resolved accuracyM 8 at 336266. Her screenshot shows the refusal screen she saw in between, offering 'Reyna aftur' and 'Taka nýja mynd'.",
-          "wherePredicted": "#75 and #76, the denial-exit work"
+          "claim": "An unanswered permission dialog is reported as a denial after 60 seconds, and the walk still completes when the person answers late.",
+          "evidence": "location-failed reason permission with elapsedMs 62435 against the 60000 ms bound in DeviceFix.requestWhenInUseAuthorization, whose timeout resumes with isAuthorized -- false for notDetermined. location-permission granted true arrives 37810 ms LATER, at 336244, and the fix resolves at 8 m. Her screenshot shows the red refusal screen she was given while still deciding.",
+          "wherePredicted": "Nowhere. #75 and #76 built the denial exit and #86 established that notDetermined is not an answer; this is that same confusion surviving inside the timeout path.",
+          "note": "The first reading of this entry, written before the code was read, said she declined and then granted. That came from trusting location-permission granted false, which is exactly the corruption #134 describes: a timeout and a refusal are byte-identical in the telemetry."
         },
         {
           "claim": "The outcome sentence and the disabled Sent button render on iOS in a dark theme.",
@@ -2449,13 +2450,23 @@
           "evidence": "Across all nine entries elapsedMs equals category-chosen.atMs minus photo-captured.atMs to within 1 ms. Here it is 108399 ms while only 8132 ms passed between location-resolved and category-chosen: she spent 100 seconds on a permission she had refused, and the metric counted it as picking a category. data/relay-events.json declares the field as 'integer' and says nothing about what it is elapsed from.",
           "whyNotADefect": "The number is not wrong, the reading of it was. Recomputed as time from location-resolved to category-chosen, the two known first-time users are 8.1 s (her, iOS) and 8.3 s (Guðmundur, Android). The 29.8 s that #115 was filed about stands alone as one session, not a platform and not a familiarity effect. Both the issue's original hypothesis and the correction written earlier today are unsupported.",
           "status": "open in #115, with the metric definition now the actual finding"
+        },
+        {
+          "issue": 134,
+          "severity": "defect",
+          "what": "An unanswered iOS location dialog is reported as a refusal, in the interface and in the telemetry.",
+          "evidence": "elapsedMs 62435 against a 60 s bound, then granted true 37.8 s later followed by a successful fix.",
+          "whyOnlyHere": "Every earlier iOS session answered the dialog quickly. It needed somebody who took longer than a minute over it, which is not unusual behaviour and had simply never been recorded.",
+          "consequence": "A person reading a dialog is told the permission is missing, and every granted false in this file is ambiguous between a refusal and a slow reader.",
+          "status": "open in #134"
         }
       ],
       "notFoundHere": [
         "Nothing about the city. dryRun was true.",
         "Nothing about the keyboard, which she was not asked about and which iOS has never had reported against it.",
         "Nothing about the follow-up loop: it is Android-only (data/platform-parity.json) and asks after fourteen days.",
-        "Nothing about why the app sat open for 3.9 minutes before the photograph. The events record it and cannot explain it."
+        "Nothing about why the app sat open for 3.9 minutes before the photograph. The events record it and cannot explain it.",
+        "Nothing about how many earlier granted false events were really timeouts. The two are indistinguishable in the record, which is half of what #134 is about."
       ]
     }
   ]
