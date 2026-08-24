@@ -216,9 +216,16 @@ the city's, after the report had been recorded as sent. The response names both:
 `{ declared, actual }`, with `actual: null` for anything unrecognisable.
 
 **`live-send-already-used` (409) is decision 0006 enforced in code.** The relay
-files exactly one real report, ever, and counts rows in D1 to decide. Not a
+files exactly one real report, ever, and a row in D1 is what decides. Not a
 variable and not a configurable limit: lifting it costs a code change and a
 review, which is precisely what going live for real will be (#6).
+
+It counted those rows until 2026-08-24, and counting was the bug: the count ran
+before the city POST and the row was written after it, so two requests in flight
+at once both counted zero and both filed (#98). The gate is now the write, in
+one statement — `reserveLiveReport` inserts only while no live row exists, and
+does it BEFORE the city is asked. A caller that loses the race gets the 409, or
+its own stored row if it is the same report twice.
 
 ## Places the repo did not say and I had to choose
 

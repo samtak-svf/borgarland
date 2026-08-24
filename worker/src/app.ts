@@ -31,8 +31,9 @@ import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
 import { isDryRun } from './config'
 import {
-  countLiveReports,
+  completeLiveReport,
   getReport,
+  reserveLiveReport,
   insertClientEvents,
   insertReport,
   isDuplicateKey,
@@ -345,9 +346,21 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     // cost a code change and a review — which is precisely what going live for
     // real will be (#6). Delete this block then, on purpose, in its own PR.
     //
-    // The count is of rows in D1, because that is the only thing that survives
-    // a deploy, a fresh isolate and a re-set secret.
-    if ((await countLiveReports(db)) > 0) {
+    // The gate is a row in D1, because that is the only thing that survives a
+    // deploy, a fresh isolate and a re-set secret. It is claimed by WRITING
+    // that row, in one statement, BEFORE the city is posted to (#98). Reading
+    // a count and writing the row afterwards is two statements, and two
+    // requests in flight at once both read zero and both reached the city.
+    const reservation = await reserveLiveReport(db, {
+      ...base,
+      dryRun: false,
+      sentAt: null,
+      cityStatus: null,
+      cityReference: null,
+      rejection: null,
+    })
+
+    if (reservation.status === 'gate-closed') {
       throw new HttpError(409, 'live-send-already-used', {
         reason:
           'this relay has already made its one deliberate real submission (decision 0006); ' +
@@ -355,15 +368,23 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       })
     }
 
+    if (reservation.status === 'duplicate') {
+      // The same report arriving twice, close enough together that the lookup
+      // at the top of this handler found nothing. It already has the one, so
+      // the answer is its row rather than a second send.
+      logEvent({ kind: 'report', outcome: 'already-stored', id: base.id, raced: true })
+      return json({ report: reservation.report, duplicate: true }, 200)
+    }
+
     let outcome: CitySubmitOutcome
     try {
       outcome = await submitCityPayload(payload, doFetch)
     } catch {
-      // The city never answered: connection/DNS error or a thrown fetch.
-      // Record the failure so the measurement layer sees the attempt.
-      const record = await insertReport(db, {
-        ...base,
-        dryRun: false,
+      // The city never answered: connection/DNS error or a thrown fetch. The
+      // row already exists, so this records the failure on it. The one stays
+      // spent, deliberately: a throw cannot distinguish a request that never
+      // left from one whose answer was lost.
+      const record = await completeLiveReport(db, base.id, {
         sentAt: null,
         cityStatus: null,
         cityReference: null,
@@ -372,9 +393,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       return json({ error: 'city-unreachable', report: record }, 502)
     }
 
-    const record = await insertReport(db, {
-      ...base,
-      dryRun: false,
+    const record = await completeLiveReport(db, base.id, {
       sentAt: now(),
       cityStatus: outcome.status === 'accepted' ? 200 : outcome.httpStatus,
       cityReference: outcome.status === 'accepted' ? outcome.reference : null,
