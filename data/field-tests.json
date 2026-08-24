@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. A `docs/research/` write-up of a test should cite the id here, and so should a decision a test caused; none does yet, because no test has produced one yet.",
-  "verifiedAt": "2026-08-23",
+  "verifiedAt": "2026-08-24",
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
     "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
@@ -1055,6 +1055,478 @@
         "No confirmation that telemetry survives an outage. It did not, and the entry above records the opposite; the fix in #80 is unverified on a device.",
         "Nothing about the gallery path or a map, neither of which exists.",
         "No second opinion on the layout findings. #78 and #79 rest on one screenshot and one sentence from one person, on one device."
+      ]
+    },
+    {
+      "id": "2026-08-23-android-walk-and-permission-on-a-second-phone",
+      "date": "2026-08-23",
+      "platform": "android",
+      "what": "The Android walk run twice on a phone after the nine field-test fixes merged: once end to end to a recorded report, once to meet a denied location permission and come back from it. This is the run #101 was filed about, transcribed from D1 a day later.",
+      "device": {
+        "model": "not established",
+        "note": "The telemetry channel carries no device identifier by design (data/relay-events.json), and app_version is 0.1.0 (1) on every Android build so far, so it cannot tell one phone from another. The session handoff written that night says SM-A715F, the SMS-gateway A71. That is the only source, it is a memory rather than a measurement, and it is recorded here as such. The developer's SM-S918B also had the app installed at the time, so the two are not distinguishable from anything in this file."
+      },
+      "build": {
+        "variant": "release",
+        "appVersion": "0.1.0 (1)",
+        "signing": "debug keystore",
+        "signingNote": "Android still has no release signing chain (#58); a release VARIANT is required regardless, because the relay host is a buildConfigField and only release carries the deployed one.",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves: they arrived at the deployed relay, which a loopback build could not have reached."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed throughout. The relay was on version d31a0d99, which still had the counted live gate later replaced by #98 — irrelevant here, because dry run never reaches that branch."
+      },
+      "session": "b1def7095dd9d4e4a918abbf0c038973",
+      "method": "Transcribed from D1 on 2026-08-24 by querying client_events and reports directly, not from the chat transcript or the PR bodies that were the only record for a day.",
+      "timeline": [
+        {
+          "atMs": 2,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 124,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 50980,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 669,
+            "bytes": 937975,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 50981,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 0,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 51290,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 51301,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 321,
+            "source": "device",
+            "accuracyM": 17
+          }
+        },
+        {
+          "atMs": 51301,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 74575,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 23595,
+            "slug": "ruslafotur"
+          }
+        },
+        {
+          "atMs": 99242,
+          "name": "description-length",
+          "fields": {
+            "length": 30
+          }
+        },
+        {
+          "atMs": 103013,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 124037,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 124504,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 466,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 2,
+          "receivedAt": "2026-08-23T23:47:52.119Z",
+          "firstAtMs": 2,
+          "lastAtMs": 124
+        },
+        {
+          "events": 10,
+          "receivedAt": "2026-08-23T23:49:56.331Z",
+          "firstAtMs": 50980,
+          "lastAtMs": 124504
+        }
+      ],
+      "deliveryNote": "Two batches. The first carries the app-opened pair; the second carries everything from the photograph to the send, flushed after the report came back. The 51-second gap between them is the tester composing, not a hole.",
+      "reports": [
+        {
+          "id": "069fe188779f2e7d3ac42436e0985c48",
+          "categorySlug": "ruslafotur",
+          "photoCount": 1,
+          "photoBytes": 937975,
+          "dryRun": true,
+          "createdAt": "2026-08-23T23:49:56.121Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; the coordinate reverse-looked to a Reykjavík address",
+          "descriptionShape": "the typed text, then a blank line, then the relay's appended nearest registered address: Gullengi 39, 112 Reykjavík"
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "The whole walk works on hardware against the deployed relay: camera, device fix, category, description, send, row in D1.",
+          "evidence": "send-result 201 in 466 ms at atMs 124504, and report 069fe188779f2e7d3ac42436e0985c48 stamped 78 ms earlier."
+        },
+        {
+          "claim": "A photo the app captures itself still carries no EXIF GPS, so the device fix is the primary source on the capture path.",
+          "evidence": "location-failed {reason: no-exif} at atMs 50981, before location-resolved {source: device} at 51301.",
+          "wherePredicted": "AGENTS.md; docs/research/photos-exif-and-formats.md",
+          "note": "Third independent observation of this on Android hardware."
+        },
+        {
+          "claim": "A denied location permission no longer dead-ends the walk, and granting it in Settings resumes the walk without a restart (#76).",
+          "evidence": "session 444fa4780aaf67c94efa2dedfa5c5b9a: location-permission {granted: false} at atMs 7526 with location-failed {reason: permission} in the same millisecond, then location-permission {granted: true} at 47282 and location-resolved at 47288 — 40 seconds later, in the SAME session, so the same process. The screen waited rather than failing.",
+          "wherePredicted": "#76, fixed in #83"
+        }
+      ],
+      "findings": [],
+      "notFoundHere": [
+        "Nothing about the city. The relay was unarmed, so the adapter, the city's validator and the reference-number parse were untouched (#56).",
+        "Nothing about WHICH phone this was. The channel carries no device identifier and that is the intended privacy cost; the handoff's SM-A715F is a memory, and this file does not launder it into a measurement.",
+        "Nothing about the reworded category label (#40). The walk chose ruslafotur and category-chosen carries a slug, never a label, so no event here can show what any screen said. The 2026-08-24 entry is the first that can.",
+        "Nothing about the offline queue, which is iOS-only (data/platform-parity.json) and which Android therefore still lacks.",
+        "Nothing about a report id on the wire. This build predates #95 on Android; the id in the row above was generated by the relay."
+      ]
+    },
+    {
+      "id": "2026-08-24-android-ime-fix-and-the-label-on-a-screen",
+      "date": "2026-08-24",
+      "platform": "android",
+      "what": "Two walks in one session on the developer's own phone, on a build of main made minutes earlier. The first verified the #110 keyboard fix and was driven over adb; the second was walked by hand by Guðröður through almenn-abending, which is the first time anyone has recorded reaching the reworded label on a screen.",
+      "device": {
+        "model": "Samsung Galaxy SM-S918B",
+        "androidVersion": 16,
+        "note": "Established, unlike the entry above: the phone was attached over adb throughout and `adb shell getprop ro.product.model` answered. Sideloaded, not a tester device."
+      },
+      "build": {
+        "variant": "release",
+        "appVersion": "0.1.0 (1)",
+        "signing": "debug keystore",
+        "signingNote": "Signed by hand with ~/.android/debug.keystore after zipalign, because #58 is still open. Installed 2026-08-24 03:47:40, confirmed with `adb shell dumpsys package`.",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves, which arrived at the deployed relay."
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Version bdadab48, the first carrying the #98 reorder. Confirmed unarmed after the deploy: `wrangler secret list` returned [] and rows with dry_run = 0 numbered 0."
+      },
+      "session": "e1f80395c37f5a99c8cbe3b534c22f36",
+      "method": "The first walk was driven over adb with uiautomator locating every control; the second was performed by hand. Transcribed from D1, not from the driver's own logs.",
+      "timeline": [
+        {
+          "atMs": 4,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 208,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5942,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 444,
+            "bytes": 386429,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 5943,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 6169,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 6172,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 230,
+            "source": "device",
+            "accuracyM": 49
+          }
+        },
+        {
+          "atMs": 6172,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 11028,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 5086,
+            "slug": "ruslafotur"
+          }
+        },
+        {
+          "atMs": 29848,
+          "name": "description-length",
+          "fields": {
+            "length": 14
+          }
+        },
+        {
+          "atMs": 110900,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 140006,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 141407,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1401,
+            "status": 201,
+            "ok": true
+          }
+        },
+        {
+          "atMs": 1091376,
+          "name": "screen-left",
+          "fields": {
+            "screen": "confirm",
+            "completed": false
+          }
+        },
+        {
+          "atMs": 1091427,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 1093794,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 494,
+            "bytes": 386480,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 1093794,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 0,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 1094089,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 1094093,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 299,
+            "source": "device",
+            "accuracyM": 5
+          }
+        },
+        {
+          "atMs": 1094093,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 1104139,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 10345,
+            "slug": "almenn-abending"
+          }
+        },
+        {
+          "atMs": 1112424,
+          "name": "description-length",
+          "fields": {
+            "length": 4
+          }
+        },
+        {
+          "atMs": 1117540,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 1121823,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 1123283,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1460,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 12,
+          "receivedAt": "2026-08-24T03:50:15.602Z",
+          "firstAtMs": 4,
+          "lastAtMs": 141407
+        },
+        {
+          "events": 12,
+          "receivedAt": "2026-08-24T04:06:37.477Z",
+          "firstAtMs": 1091376,
+          "lastAtMs": 1123283
+        }
+      ],
+      "deliveryNote": "Two batches, one per walk. The 16-minute gap between them is the phone sitting idle between the adb-driven walk and the hand-walked one, in the same process.",
+      "reports": [
+        {
+          "id": "21032bc139b28d1bd1f46e0224b9fb2c",
+          "categorySlug": "ruslafotur",
+          "photoCount": 1,
+          "photoBytes": 386429,
+          "dryRun": true,
+          "createdAt": "2026-08-24T03:50:15.075Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; Gullengi 39, 112 Reykjavík"
+        },
+        {
+          "id": "d234a2712fa073652b75145461fb0a11",
+          "categorySlug": "almenn-abending",
+          "photoCount": 1,
+          "photoBytes": 386480,
+          "dryRun": true,
+          "createdAt": "2026-08-24T04:06:36.000Z",
+          "sentAt": null,
+          "cityStatus": null,
+          "cityReference": null,
+          "rejection": null,
+          "municipalityCheck": "passed; Gullengi 35, 112 Reykjavík"
+        }
+      ],
+      "confirmed": [
+        {
+          "claim": "The #110 keyboard fix works: with the IME shown, the submit control is reachable, where before it was absent from the accessibility tree at any scroll position.",
+          "evidence": "Measured with `dumpsys input_method` and `uiautomator dump`, same two commands before and after the fix. Before: mInputShown=true, Áfram absent, bottom-most node y=1789. After: mInputShown=true, bottom-most node y=2316, and one scroll puts Áfram at y=1240, above the keyboard. Screen height 2316.",
+          "wherePredicted": "#110, fixed in #111",
+          "note": "Not visible in this timeline: the walk's events look identical either way. The measurement is the record, which is why it is written here rather than inferred from atMs."
+        },
+        {
+          "claim": "The reworded label reaches a screen. Both pickers were only ever verified by grepping data/category-labels.json; this is the first time anyone has recorded seeing it.",
+          "evidence": "The picker rendered 'Annað í almannarými' with its help line 'Bekkur, girðing, tré eða annað sem á ekki heima í hinum flokkunum.', read verbatim off the device with `uiautomator dump` and matching data/category-labels.json byte for byte. Then category-chosen {slug: almenn-abending} at atMs 1104139, walked by hand, producing report d234a2712fa073652b75145461fb0a11.",
+          "wherePredicted": "#40, built in #67",
+          "note": "AGENTS.md said for a day that no build anyone was holding showed this. That stops being true here."
+        },
+        {
+          "claim": "The relay's answer reaches the person as a sentence rather than as JSON, and the send button reads Sent and is disabled afterwards.",
+          "evidence": "Observed on the confirm screen after the first walk: the button greyed out reading 'Sent', above 'Þjónustan tók við ábendingunni en sendi hana ekki áfram. Hún er í þurrkeyrslu, svo ekkert fór til borgarinnar. Þetta var æfing.' — the outcome sentence from data/relay-outcomes.json.",
+          "wherePredicted": "#77 and #85, fixed in #84 and #95",
+          "note": "Neither had any evidence anywhere that it reached a screen. Like the label, they were verified by reading the file that supplies them."
+        },
+        {
+          "claim": "The device fix accuracy varies by an order of magnitude between two captures minutes apart, and nothing gates on it.",
+          "evidence": "location-resolved accuracyM 49 at atMs 6172 and accuracyM 5 at 1094093, both source device, both accepted without comment. The 49 m fix is the coordinate on the first report.",
+          "wherePredicted": "#31, which is open and says exactly this"
+        }
+      ],
+      "findings": [
+        {
+          "issue": 110,
+          "severity": "defect",
+          "what": "The soft keyboard covered the Áfram button and the content could not scroll past it, leaving a field of empty background where the button should be, so the screen read as finished.",
+          "evidence": "With the IME shown the accessibility tree ended at y=1789 on a 2316-tall screen and contained no Áfram node at any scroll position.",
+          "whyOnlyHere": "No unit test can raise a soft keyboard and CI has no screen. It needed a phone, and it needed a person looking at the screenshot: an agent had the defect in every screenshot it captured while it read node trees and blamed its own taps.",
+          "consequence": "On a phone whose screen is shorter, or with a taller keyboard, the walk cannot be completed at all after the description is typed.",
+          "status": "fixed in #111: imePadding() before verticalScroll() plus windowSoftInputMode=adjustResize, per Google's official system/edge-to-edge skill; parity capability submit-reachable-with-keyboard added"
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. dryRun was true for both walks and the relay's one live submission remains unspent (#56).",
+        "Nothing about the #98 fix in the app. The reorder is server-side and unreachable in dry run; it was verified separately against the deployed relay by replaying a report id.",
+        "Nothing about a poor network. Both sends ran on wifi indoors, 1401 ms and 1460 ms.",
+        "Nothing about the gallery path, which exists on neither platform (#28).",
+        "Nothing about how the first walk FELT. It was driven over adb, so its timings measure a script's patience rather than a person's — 5 seconds to choose a category, 81 seconds on the details screen. The second walk is the human one."
       ]
     }
   ]
