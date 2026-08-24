@@ -206,9 +206,11 @@ export type LiveReservation =
  *
  * A reservation alone does not fix it. Two requests carrying DIFFERENT ids both
  * insert successfully, because the primary key has nothing to say about them.
- * What makes this safe is that the condition and the write are one statement:
- * SQLite evaluates `NOT EXISTS` and performs the insert atomically, so the
- * second request sees the first request's row no matter how the two interleave.
+ * What is meant to make this safe is that the condition and the write are one
+ * statement, so that SQLite evaluates `NOT EXISTS` and performs the insert
+ * atomically and the second request sees the first one's row however they
+ * interleave. Read the next paragraph before relying on that: it is the
+ * conclusion of an argument, not a documented guarantee.
  *
  * Three outcomes, distinguished after the fact because SQLite reports a refused
  * conditional insert as zero changes rather than as an error:
