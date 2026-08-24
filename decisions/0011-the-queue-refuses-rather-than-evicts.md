@@ -13,8 +13,8 @@ no longer be built.
 
 Nothing else removed one, so a phone that never came back online kept every
 report ever filed on it, at a photograph each — 0.24 MB to 2.29 MB apiece across
-the two field tests. That is unbounded storage on somebody's phone, taken
-without asking (#82).
+the four field tests recorded so far. That is unbounded storage on somebody's
+phone, taken without asking (#82).
 
 The awkward part is that **every way of bounding a queue loses something
 somebody filed.** This is not a tuning problem with a right answer; it is a
@@ -50,8 +50,10 @@ send that cannot be retried is how the report was lost in the first place.
 **Twenty reports or 200 MB, whichever is reached first.** Twenty is a number
 about walks rather than about storage — a person reaches it only by filing
 report after report with no network at all, and by the twentieth something is
-wrong that more disk will not fix. The field tests filed one and two. The byte
-bound is roughly a hundred photographs at the sizes those tests measured.
+wrong that more disk will not fix. No recorded walk has come close: the Android
+first walk filed one report, the Reykjavík walk two, and the Seattle walk none.
+The byte bound is roughly a hundred photographs at the sizes those walks
+measured.
 
 Nothing leaves the queue without somebody choosing it. That is the property, and
 the numbers are in service of it.

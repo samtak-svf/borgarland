@@ -34,9 +34,10 @@ anyone can report anything again. The relay is also the only place the
 follow-through measurement can live.
 
 **A report is written to the phone before it is sent, and it carries its own
-id.** Both halves came out of one field test where a send in airplane mode lost
-the report, and another where a tester filed the same ábending twice because the
-screen never said the first one had worked.
+id.** Both halves came out of the same field test, on the same phone, an hour
+apart: a send in airplane mode lost the report, and a tester filed the same
+ábending twice because the screen never said the first one had worked
+([`2026-08-23-ios-reykjavik-offline-and-denial`](data/field-tests.json)).
 
 The queue is iOS-only and `data/platform-parity.json` records why; the id is on
 both. The id is 32 lowercase hex, generated per report by the app, and the relay
@@ -87,8 +88,13 @@ So the boundary is drawn in the interaction instead:
 suggestions, praise and ideas; here it is the net under a broken bench, a fallen
 tree, a collapsed fence — a walker's find with no category of its own. Both
 pickers show it as **Annað í almannarými**, with a line underneath saying what
-belongs there, from `data/category-labels.json` (#40, and seen on a phone on
-2026-08-23). Never present it as a suggestion box.
+belongs there, from `data/category-labels.json` (#40). Never present it as a
+suggestion box.
+
+Both pickers read that file, so the check is one grep of it rather than a
+memory of a screen. Worth saying because the obvious check is worse: no build
+anyone is holding shows this. iOS build 4 was cut before the labels file was
+read at all, and it is still the only iOS build there is.
 
 This paragraph twice said the opposite of the truth, in opposite directions. It
 first claimed the rewording existed when it did not; the correction then claimed

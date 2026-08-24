@@ -6,9 +6,10 @@
 ## Context
 
 On 2026-08-23 a volunteer tester filed the same ábending twice, thirty-five
-seconds apart. Two rows in D1, the same category, the same photograph byte
-count, and one `photo-captured` event in the whole session: one report, filed
-twice ([field test
+seconds apart. Two rows in D1, the same category, and both carrying the byte
+count of the SAME photograph, the one captured at `atMs 27511` — the session
+holds three photo-captured events and the other two carry different counts and
+were never sent. One report, filed twice ([field test
 `2026-08-23-ios-reykjavik-offline-and-denial`](../data/field-tests.json), #85).
 
 He pressed the button again because the screen never said the first press had
