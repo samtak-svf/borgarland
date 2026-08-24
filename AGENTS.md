@@ -34,10 +34,13 @@ anyone can report anything again. The relay is also the only place the
 follow-through measurement can live.
 
 **A report is written to the phone before it is sent, and it carries its own
-id.** Both halves came out of the same field test, on the same phone, an hour
-apart: a send in airplane mode lost the report, and a tester filed the same
-ábending twice because the screen never said the first one had worked
-([`2026-08-23-ios-reykjavik-offline-and-denial`](data/field-tests.json)).
+id.** Both halves came out of the same field test, on the same phone, nine
+minutes apart: a tester filed the same ábending twice because the screen never
+said the first one had worked, and a send in airplane mode lost the report
+([`2026-08-23-ios-reykjavik-offline-and-denial`](data/field-tests.json)). The
+two sends are 34.9 seconds apart in that timeline and the airplane-mode failure
+is 8 min 52 s after the first of them, by `atMs`, which is the phone's own clock
+and the only one that measures what the person experienced.
 
 The queue is iOS-only and `data/platform-parity.json` records why; the id is on
 both. The id is 32 lowercase hex, generated per report by the app, and the relay
