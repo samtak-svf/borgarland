@@ -41,8 +41,8 @@ settings:
     # tells a person what happened in a sentence rather than the relay's JSON
     # (#77), and lets them out of a denied permission (#76). It is also the
     # first iOS build that reads data/category-labels.json (#40), which build 4
-    # predates: until it uploads, no iOS build anyone holds says
-    # "Annað í almannarými".
+    # predates, so it is the first iOS build that says "Annað í almannarými"
+    # rather than the city's suggestion box.
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: 5
   configs:

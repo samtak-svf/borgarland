@@ -92,9 +92,20 @@ belongs there, from `data/category-labels.json` (#40). Never present it as a
 suggestion box.
 
 Both pickers read that file, so the check is one grep of it rather than a
-memory of a screen. Worth saying because the obvious check is worse: no build
-anyone is holding shows this. iOS build 4 was cut before the labels file was
-read at all, and it is still the only iOS build there is.
+memory of a screen. Worth saying because the obvious check is worse. iOS build 4
+was cut before the labels file was read at all; build 5, uploaded 2026-08-24 and
+VALID in TestFlight, is the first iOS build that reads it, and nobody has
+installed build 5. On Android the labels are in the release variant that was
+sideloaded onto an SM-A715F on 2026-08-23, and **that run is recorded nowhere**
+— it is the whole of #101, and the two Android entries in `data/field-tests.json`
+are a different phone running `0.1.0 (1)` and record no label observation at
+all. So the screen is not a source here and the file is.
+
+**A build existing and a build having been walked are different claims.** This
+paragraph has now been wrong three times, and the third time was a correction
+that cited `data/field-tests.json` for an observation that file does not
+contain. Before writing that something has been seen, grep the record that would
+hold it.
 
 This paragraph twice said the opposite of the truth, in opposite directions. It
 first claimed the rewording existed when it did not; the correction then claimed
