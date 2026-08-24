@@ -1533,7 +1533,7 @@
       "id": "2026-08-24-android-two-walks-by-someone-unrecorded",
       "date": "2026-08-24",
       "platform": "android",
-      "what": "Two complete walks in one session, both accepted by the relay, 55 minutes before the first recorded run of iOS build 5 and from a coordinate that rounds to the same place. Whose phone this was is NOT recorded and is not inferable: the telemetry carries no device identifier, and unlike the session earlier the same night nothing was attached over adb. The entry is written from the relay's own tables, which is all that exists.",
+      "what": "Two complete walks in one session, both accepted by the relay, 53 minutes before the first recorded run of iOS build 5. Whose phone this was is NOT recorded and is not inferable: the telemetry carries no device identifier, and unlike the session earlier the same night nothing was attached over adb. The entry is written from the relay's own tables, which is all that exists. The two sessions' coordinates agreed to three decimal places when queried in D1, which is roughly a hundred metres; that value is deliberately NOT stored here, so this file cannot show it and a reader should not treat the sameness of place as established by this record.",
       "device": {
         "model": "not recorded",
         "note": "The event channel names no device field at all (data/relay-events.json), and no adb session ran alongside this one. Any statement about which handset this was would be a memory, not a measurement, so none is made."
@@ -2000,13 +2000,13 @@
         {
           "claim": "Build 5 has been installed and run by somebody. It had never been recorded as installed before this.",
           "evidence": "Fifteen events on session 4fe325ba54a932bf270735eb5934b310 carrying app_version 0.1.0 (5), plus report 77e15a454553e04b37edd38fc94664f0 created at 11:58:15.092Z. Build 5 is CFBundleVersion 5, verified inside the .ipa when it was cut (#102).",
-          "wherePredicted": "Nowhere — the opposite was written down. AGENTS.md said 'nobody has installed build 5', #60 said 'Nobody has installed it: build 4 is still what the testers hold', and #56 said 'Nobody has installed 5 yet'. All three were true when written and false by 11:58.",
+          "wherePredicted": "Nowhere — the opposite was written down, in more places than the correcting commit claimed. AGENTS.md said 'nobody has installed build 5', #60 said 'Nobody has installed it: build 4 is still what the testers hold', #56 said 'Nobody has installed 5 yet', README.md said the build 'has not yet been installed by anyone', and ReportQueue.swift said it 'is installed nowhere'. Every one of them was true when written and false by 11:58. The commit that corrected the first three announced three, because it grepped for one spelling of the claim.",
           "note": "It does not follow that a TESTER ran it. The channel carries no device identifier, so this establishes that build 5 ran and nothing at all about whose hand it was in."
         },
         {
           "claim": "The camera permission was refused and then granted 7.7 seconds later, in the same session.",
           "evidence": "camera-permission granted false at atMs 91, then camera-permission granted true at atMs 7833.",
-          "note": "Whether that was a misplaced tap, a deliberate refusal reconsidered, or a prompt read slowly is not in the data. Recorded because it is the first time the denial path has been entered and then left on a build that could complete the walk — the earlier denial (2026-08-23-ios-reykjavik-offline-and-denial) ended the attempt."
+          "note": "Whether that was a misplaced tap, a deliberate refusal reconsidered, or a prompt read slowly is not in the data. It is NOT the first time the denial path has been entered and then left: 2026-08-23-ios-reykjavik-offline-and-denial, on build 4, carries camera-permission granted false at atMs 73 and granted true at 6247, and that session went on to two successful sends. This entry said the opposite until an audit checked the file's own earlier timeline against it. What is left is a plain observation with no precedence attached to it."
         },
         {
           "claim": "The photograph was an order of magnitude smaller than the Android captures the same hour.",
@@ -2022,7 +2022,7 @@
         {
           "issue": 115,
           "severity": "observation",
-          "what": "The category picker carried elapsedMs 32192 — 32.2 seconds — against 6.2 s and 3.4 s on Android the same hour from the same coordinate.",
+          "what": "The category picker carried elapsedMs 32192 — 32.2 seconds — against 6.2 s and 3.4 s on Android the same hour. The coordinates agreed to three decimal places in D1, a value this file does not store.",
           "evidence": "category-chosen { slug: heimilissorp, elapsedMs: 32192 } at atMs 56249.",
           "whyNotADefect": "n=1, and the benign reading fits: somebody meeting twelve categories for the first time, one of them freshly reworded with a help line (#40), would reasonably spend half a minute reading. Nothing in the data separates reading from hunting, and no device identifier exists to say whether this person had used build 4 before.",
           "status": "open in #115, which records what would settle it and says explicitly not to redesign the picker on one timing"

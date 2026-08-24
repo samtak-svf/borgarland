@@ -25,10 +25,12 @@ public struct QueuedReport: Equatable, Codable {
         /// PERSISTED format and a required key is a silent eviction: a record
         /// written before the key existed fails to decode, `pending()` skips
         /// unreadable entries by design, and the report disappears with nobody
-        /// told. No phone can be holding such a record today: the queue ships
-        /// first in build 5, and build 5 is installed nowhere. That stops being
-        /// true the moment somebody updates, and the next field added here will
-        /// have the same shape with a live queue underneath it.
+        /// told. The queue ships first in build 5, and build 5 was installed
+        /// nowhere until 2026-08-24, when it was run — so a phone CAN now be
+        /// holding such a record and the default is load-bearing rather than
+        /// theoretical. This comment asserted the opposite for as long as it
+        /// took somebody to update. The next field added here will have the
+        /// same shape with a live queue underneath it.
         public let bytes: Int
 
         public init(file: String, name: String, mime: String, rotationDegrees: Int, bytes: Int) {

@@ -30,8 +30,12 @@ what is built on top of it is:
   pipeline and ships to nobody ([#58](https://github.com/samtak-svf/borgarland/issues/58)).
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
-  request contract the Android and Worker tests pin. Build `0.1.0 (4)` is in
-  TestFlight, signed without a Mac, and has not yet been installed by anyone.
+  request contract the Android and Worker tests pin. Builds through `0.1.0 (5)`
+  are in TestFlight, signed without a Mac. Build 4 was walked by two testers on
+  2026-08-23 and build 5 has been run once, on 2026-08-24; both runs are in
+  [`data/field-tests.json`](data/field-tests.json). This line said nobody had
+  installed anything until 2026-08-24, having been written when that was true
+  and left alone afterwards.
 
 **Nothing in this repository has reached the city, and the relay cannot reach it
 by accident.** Forwarding requires the deliberate `CITY_SEND_KEY` secret, which
