@@ -85,15 +85,17 @@ android {
             buildConfigField("String", "RELAY_BASE_URL", "\"$relayBaseUrlDebug\"")
         }
         release {
-            // R8 stays OFF for now, deliberately, and this diverges from the
-            // delivery skill. Turning on minification in the same change that
-            // adds Firebase is what shipped Simaver beta35 to 26 testers with a
-            // crash on every launch: R8 strips the Crashlytics ComponentRegistrar,
-            // the build succeeds, and only a real launch shows it. With minify
-            // off, Crashlytics needs no keep rules and no mapping upload, and
-            // stack traces arrive readable. Enabling R8 is its own change with
-            // its own on-device smoke test (#118).
-            isMinifyEnabled = false
+            // R8 is ON as of #118, in its own change with its own on-device
+            // smoke test, which is the only thing that catches the failure it
+            // risks: R8 strips the Crashlytics ComponentRegistrar because it is
+            // found by service loader, the build stays green, and the app dies
+            // on launch. proguard-rules.pro keeps it, and a real walk on a real
+            // phone is what proved the rules are enough.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             buildConfigField("String", "RELAY_BASE_URL", "\"$relayBaseUrlRelease\"")
 
             // Unsigned if no keystore is present, so a clean clone can still run
