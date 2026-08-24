@@ -169,9 +169,15 @@ the manifest.
   validation spec. The POC gates the Continue button on a non-blank
   description.
 - ~~**App name and package.** "Borgarland POC" and `is.borgarland.poc` are not
-  specified anywhere.~~ Settled 2026-08-24: the package is `is.borgarland`, made
-  permanent by the first Play upload, and the name is "Borgarland" (decision
-  0012).
+  specified anywhere.~~ Settled 2026-08-24, in two steps, and the first one
+  claimed both. The package became `is.borgarland` before the first Play upload
+  made it permanent (decision 0012). This entry then said "the name is
+  Borgarland", which was **not true when it was written**: `android:label` and
+  `CFBundleDisplayName` still read "Borgarland POC", on six installed phones,
+  and the system permission dialog read it out loud — *"Allow Borgarland POC to
+  access this device's location?"* Fixed in #135, a day later, after a device
+  run put the sentence on screen. A rename covers a package or a label, never
+  both by implication.
 - **Location-source label wording** in Icelandic.
 - **The facts file travels verbatim** as an asset, including the endpoint
   strings it carries as data. The app never reads the endpoint fields, and the

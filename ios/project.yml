@@ -105,7 +105,7 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleDisplayName: Borgarland POC
+        CFBundleDisplayName: Borgarland
         # Both are required, and the build settings alone are not enough.
         # MARKETING_VERSION and CURRENT_PROJECT_VERSION populate an Info.plist
         # only where the plist references them; the one XcodeGen generates from

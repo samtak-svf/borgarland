@@ -63,7 +63,7 @@ fun DetailsScreen(
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("Tillaga úr myndinni", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Engin tillaga í þessari POC. Þegar greining verður til birtist tillagan hér, seint eða aldrei. Hún kemur aldrei í veg fyrir áframhald.",
+                    "Engin tillaga enn. Þegar greining verður til birtist tillagan hér, seint eða aldrei. Hún kemur aldrei í veg fyrir áframhald.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
