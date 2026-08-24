@@ -134,12 +134,17 @@ Both pickers read that file, so the check is one grep of it rather than a
 memory of a screen. Worth saying because the obvious check is worse. iOS build 4
 was cut before the labels file was read at all; build 5, uploaded 2026-08-24 and
 VALID in TestFlight, is the first iOS build that reads it. **Build 5 has now
-been run** — once, at 11:58 on 2026-08-24, a complete walk accepted by the relay
-and recorded as [`2026-08-24-ios-build-5-first-run`](data/field-tests.json) —
-**and it still does not settle the label**, because that walk chose
-`heimilissorp`. The build carrying the change has been walked; the change has
-not. Whose phone it was is not knowable here either: the channel names no
-device. **On Android somebody has now seen it.** The picker rendered
+been run**, and by more people than the relay can see. App Store Connect records
+**three** internal testers on build 5 as of 2026-08-24, with fourteen sessions
+between them; the relay recorded **one** walk, at 11:58, accepted and written up
+as [`2026-08-24-ios-build-5-first-run`](data/field-tests.json). This sentence
+said "once" until the tester list was actually read, which is the same mistake as
+every other one on this page: a count taken from the record nearest to hand
+rather than from the thing being counted. **And it still does not settle the
+label**, because that one walk chose `heimilissorp`. The build carrying the
+change has been walked; the change has not. Which tester made that walk is not
+knowable — App Store Connect names who installed, the telemetry names no device,
+and nothing joins the two. **On Android somebody has now seen it.** The picker rendered
 `Annað í almannarými` with its help line on an SM-S918B on 2026-08-24, read off
 the device and matched to the file byte for byte, and the category was then
 walked by hand to a report row — recorded as
