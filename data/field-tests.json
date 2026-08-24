@@ -1078,7 +1078,7 @@
         "dryRun": true,
         "citySendKeySet": false,
         "registryRows": 139360,
-        "note": "Unarmed throughout. The relay was on version d31a0d99, which still had the counted live gate later replaced by #98 — irrelevant here, because dry run never reaches that branch."
+        "note": "Unarmed throughout. The relay was on version 01703e95, deployed 23:46:15Z, 97 seconds before the first event of this session. It still had the counted live gate later replaced by #98, which is irrelevant here because dry run never reaches that branch. Corrected 2026-08-24: this said d31a0d99, which was the version 23 hours earlier and was copied from #56's 'Ready as of 2026-08-23 00:45' note rather than read off the deployments ledger."
       },
       "session": "b1def7095dd9d4e4a918abbf0c038973",
       "method": "Transcribed from D1 on 2026-08-24 by querying client_events and reports directly, not from the chat transcript or the PR bodies that were the only record for a day.",
@@ -1208,7 +1208,7 @@
       "confirmed": [
         {
           "claim": "The whole walk works on hardware against the deployed relay: camera, device fix, category, description, send, row in D1.",
-          "evidence": "send-result 201 in 466 ms at atMs 124504, and report 069fe188779f2e7d3ac42436e0985c48 stamped 78 ms earlier."
+          "evidence": "send-result 201 in 466 ms at atMs 124504, and report 069fe188779f2e7d3ac42436e0985c48 created_at 23:49:56.121Z — 210 ms before that event's batch reached the relay at 23:49:56.331Z. The row precedes the event because the relay writes it while answering the send; the two clocks are D1's and the relay's, both server-side."
         },
         {
           "claim": "A photo the app captures itself still carries no EXIF GPS, so the device fix is the primary source on the capture path.",
@@ -1253,7 +1253,7 @@
         "dryRun": true,
         "citySendKeySet": false,
         "registryRows": 139360,
-        "note": "Version bdadab48, the first carrying the #98 reorder. Confirmed unarmed after the deploy: `wrangler secret list` returned [] and rows with dry_run = 0 numbered 0."
+        "note": "Version bdadab48, deployed 03:24:08Z. The SECOND carrying the #98 reorder, not the first: #105 shipped in d8ca63ae at 02:24:09Z and bdadab48 an hour later added #108. Confirmed unarmed after the deploy: `wrangler secret list` returned [] and rows with dry_run = 0 numbered 0."
       },
       "session": "e1f80395c37f5a99c8cbe3b534c22f36",
       "method": "The first walk was driven over adb with uiautomator locating every control; the second was performed by hand. Transcribed from D1, not from the driver's own logs.",
@@ -1477,7 +1477,7 @@
           "photoCount": 1,
           "photoBytes": 386480,
           "dryRun": true,
-          "createdAt": "2026-08-24T04:06:36.000Z",
+          "createdAt": "2026-08-24T04:06:36.855Z",
           "sentAt": null,
           "cityStatus": null,
           "cityReference": null,

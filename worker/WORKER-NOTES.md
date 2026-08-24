@@ -50,6 +50,54 @@ npx wrangler deploy --dry-run --outdir dist
 Last verified 2026-08-24: typecheck clean, 137 tests passing across 10 files,
 bundle 94.15 KiB total / 19.38 KiB gzipped.
 
+## Which version is live, and which commit it is
+
+`wrangler deploy` uploads the WORKING TREE, not `HEAD`, so a version id means
+nothing on its own. Record the commit next to it every time, and check
+`git status` before deploying — a deploy from a dirty tree cannot be reproduced.
+
+| Version | Deployed (UTC) | Commit | What changed |
+|---|---|---|---|
+| `d31a0d99` | 2026-08-23 00:43 | — | the counted live gate (#68) |
+| `d8ca63ae` | 2026-08-24 02:24 | `ae76515` (#105) | the gate becomes the write (#98) |
+| `bdadab48` | 2026-08-24 03:24 | `21ba1f5` (#108) | drops a read-back nobody used |
+
+`npx wrangler deployments list` gives the live one. To prove the deployed
+bundle IS a given commit rather than assuming it, build that commit with
+`wrangler deploy --dry-run --outdir <dir>` and compare the hash; comments are
+stripped, so a docs-only commit produces a byte-identical bundle and needs no
+deploy. That is how #106 and #107 were shown not to require one.
+
+## Recovering the one live submission after a failed send
+
+Decision 0006 allows exactly one real submission, and `reserveLiveReport` writes
+the row that spends it BEFORE the city is posted to. That is deliberate: a fetch
+that throws cannot tell "never left the isolate" from "arrived and the answer
+was lost", and only one of those is safe to retry.
+
+The consequence has to be written down, because it is otherwise discovered at
+the worst moment: **a transient network failure at the city POST spends the one
+permanently.** The 502 comes back with a row carrying `sent_at = null` and
+`rejection = 'error'`, a retry of the same id answers `200 duplicate: true` with
+that failed row, and a different id gets `409 live-send-already-used`.
+
+There is no in-app way back, on purpose. Un-spending it is a deliberate act
+against the database, and it requires deciding first that the city really did
+not receive the report — check the city's own queue, not our row:
+
+```bash
+eval "$(node ~/.claude/scripts/switch-cf-profile.mjs personal)"
+cd worker && npx wrangler d1 execute borgarland-relay --remote \
+  --command "SELECT id, created_at, rejection FROM reports WHERE dry_run = 0"
+# then, only for a row confirmed never to have reached the city:
+npx wrangler d1 execute borgarland-relay --remote \
+  --command "DELETE FROM reports WHERE id = '<the 32 hex id>' AND dry_run = 0"
+```
+
+Deleting a row that DID reach the city re-arms the gate on a false premise and
+the next send files a second real ábending. That is the 2026-08-21 incident
+again, so the check is the city's queue and nothing else.
+
 **iceaddr-ts comes from npm.** `iceaddr-ts@^0.1.0` is published, so a fresh
 `npm install` resolves it with no manual step.
 

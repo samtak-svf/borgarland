@@ -134,17 +134,25 @@ Both pickers read that file, so the check is one grep of it rather than a
 memory of a screen. Worth saying because the obvious check is worse. iOS build 4
 was cut before the labels file was read at all; build 5, uploaded 2026-08-24 and
 VALID in TestFlight, is the first iOS build that reads it, and nobody has
-installed build 5. On Android the labels are in the release variant that was
-sideloaded onto an SM-A715F on 2026-08-23, and **that run is recorded nowhere**
-— it is the whole of #101, and the two Android entries in `data/field-tests.json`
-are a different phone running `0.1.0 (1)` and record no label observation at
-all. So the screen is not a source here and the file is.
+installed build 5. **On Android somebody has now seen it.** The picker rendered
+`Annað í almannarými` with its help line on an SM-S918B on 2026-08-24, read off
+the device and matched to the file byte for byte, and the category was then
+walked by hand to a report row — recorded as
+[`2026-08-24-android-ime-fix-and-the-label-on-a-screen`](data/field-tests.json).
+The 2026-08-23 run that #101 was filed about is in the same file, and that entry
+is careful about what it cannot say: the telemetry carries no device identifier,
+so which phone it was is a memory rather than a measurement.
 
 **A build existing and a build having been walked are different claims.** This
-paragraph has now been wrong three times, and the third time was a correction
-that cited `data/field-tests.json` for an observation that file does not
-contain. Before writing that something has been seen, grep the record that would
-hold it.
+paragraph has now been wrong four times. The third was a correction that cited
+`data/field-tests.json` for an observation the file did not contain; the fourth
+was this one still saying the run was recorded nowhere **one commit after the
+same session recorded it** (#113). Both directions of the same mistake, and the
+second was made by the person who had just written the first correction.
+
+So the check is not "grep before you claim". It is **grep again after you change
+the record**, because the thing that most often falsifies a sentence here is
+your own last commit.
 
 This paragraph twice said the opposite of the truth, in opposite directions. It
 first claimed the rewording existed when it did not; the correction then claimed
