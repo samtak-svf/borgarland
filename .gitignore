@@ -22,3 +22,10 @@ ios/*.xcodeproj/
 # The signing private key, the certificate request and the .p12 bundle.
 # Regenerable, but never in git.
 ios/signing/.secrets/
+
+# The Android upload key and the properties file that points at it.
+# NOT regenerable once Play pins the upload certificate to the package name,
+# and this repository is public, so a leak cannot be fixed by rotating.
+# Written by scripts/pull-release-keystore.sh; backed up in Secret Manager.
+android/app/*.p12
+android/app/keystore.properties
