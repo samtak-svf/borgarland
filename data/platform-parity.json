@@ -162,6 +162,15 @@
       }
     },
     {
+      "name": "submit-reachable-with-keyboard",
+      "intent": "parity",
+      "what": "The control that ends the screen stays reachable while the soft keyboard is up (#110). The two platforms answer it with different mechanisms and both count: iOS lets the person put the keyboard down, with scrollDismissesKeyboard and a keyboard toolbar (#79); Android insets the scrolling container so the scroll range grows past the keyboard, with imePadding placed BEFORE verticalScroll as Google's edge-to-edge skill requires. Detected on the mechanism each platform actually uses, because one shared pattern would read as a regression on whichever platform solved it the other way.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "imePadding\\(\\)" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "scrollDismissesKeyboard" }
+      }
+    },
+    {
       "name": "offline-queue",
       "intent": "ios-only",
       "what": "A report that cannot be sent is written to the phone before the attempt and retried when the app returns to the foreground or the network comes back, until it sends or a person discards it. Deliberately NOT a background upload: nothing here runs while the app is dead, which is why the detect pattern names our own type rather than BGTaskScheduler or a background URLSession. Those would be a different capability and a separate decision.",
