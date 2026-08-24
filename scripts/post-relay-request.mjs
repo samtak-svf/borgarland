@@ -8,7 +8,7 @@
 //   node scripts/post-relay-request.mjs --old-app   # the pre-contract request (the city's
 //                                                   # vocabulary), which the relay must reject
 //
-// The wire format mirrors android/app/src/main/kotlin/is/borgarland/poc/net/RelayClient.kt
+// The wire format mirrors android/app/src/main/kotlin/is/borgarland/net/RelayClient.kt
 // byte for byte: the same boundary scheme, the same part order (the contract's
 // field order), the same CRLF handling and UTF-8 text parts. The photo is a
 // realistic 1.1 MB JPEG with the JFIF magic, named mynd.jpg, matching the app's

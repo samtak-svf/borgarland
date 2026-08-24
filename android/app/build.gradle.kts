@@ -141,10 +141,11 @@ dependencies {
     // dSYMs to. Rosa Parks reports to the party's project; this is a Samtak
     // svf. app and deliberately does not (#37).
     //
-    // No ProGuard keep rules accompany this, and that is not an oversight:
-    // isMinifyEnabled is false, so R8 cannot strip the ComponentRegistrar that
-    // Firebase discovers by service loader. The keep rules become mandatory the
-    // moment minification is turned on (#118).
+    // The keep rules that make this survive R8 are in proguard-rules.pro, and
+    // they are not optional: minification is ON (#118), and R8 strips the
+    // ComponentRegistrar that Firebase discovers by service loader unless it is
+    // told not to. This comment said the opposite until an audit read it against
+    // the buildType fifty lines above, which had already been flipped.
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
 
