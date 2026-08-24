@@ -8,7 +8,7 @@ Three kinds of thing are recorded separately and should not be confused:
 
 | Where | What it holds |
 |---|---|
-| [`../data/`](../data/) | **Facts**, machine-readable, each carrying how and when it was established: the city's form, the request and the event stream our own apps send to our own relay, our words for a category, the platform parity manifest, and the field-test records. Scripts and CI read them. |
+| [`../data/`](../data/) | **Facts**, machine-readable, each carrying how and when it was established, plus the files holding our own words rather than the city's. Scripts and CI read them. Deliberately not listed here: this row named six files by hand and was one short within a fortnight, which is the drift its own warning below is about. (One, not four: the four belongs to the sentence below it, about an earlier version that named two of six. Borrowing a number from the paragraph you are correcting is its own small instance of the same failure.) |
 | [`../docs/research/`](../docs/research/) and [`../docs/incidents/`](../docs/incidents/) | **Reasoning** and write-ups. Prose, for humans. |
 | `decisions/` (here) | **Choices**, with the options that lost. |
 
@@ -34,3 +34,5 @@ is the main thing a decision log is for.
 | [0007](0007-approach-the-city-after-the-poc.md) | Approach the city after the proof of concept, not before | Accepted |
 | [0008](0008-photo-analysis-suggests-never-decides.md) | Photo analysis suggests, it never decides | Accepted |
 | [0009](0009-the-registry-stays-in-the-relay.md) | The registry stays in the relay, not behind greenfield's service | Accepted |
+| [0010](0010-the-report-carries-its-own-id.md) | The report carries its own id, and the relay stores it as the row | Accepted |
+| [0011](0011-the-queue-refuses-rather-than-evicts.md) | The offline queue refuses rather than evicts | Accepted |
