@@ -419,6 +419,15 @@ nobody earned. Build 6's first walk measured the asked-to-answered gap and did
 **not** test #139, because #139 was about the second report and she took one
 photograph. Unobserved is not disproved; write which one it is.
 
+The second walk that evening is the harder version of the same lesson, because
+it **looks** like the missing test. Two `photo-captured` and two
+`location-permission-asked` in one session id is exactly the shape #139 asked
+for, and it still settles nothing: the two are 98 minutes apart with the app
+left in between, and the tester's own voice note says she taps `Leyfa einu sinni`
+(Allow Once), which returns the permission to `.notDetermined` on its own. A
+matching shape is not a matching condition. Read the gaps between the events, not
+only the events.
+
 **6. Index every screenshot** in `private/testers.json`, saying what is ON the
 screen and what it cross-checks. Run `node scripts/check-private-index.mjs`,
 which reconciles the directory against the index and rejects a description too

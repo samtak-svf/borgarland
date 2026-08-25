@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. A `docs/research/` write-up of a test should cite the id here, and so should a decision a test caused; none does yet, because no test has produced one yet.",
-  "verifiedAt": "2026-08-24",
+  "verifiedAt": "2026-08-25",
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
     "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
@@ -2658,8 +2658,8 @@
           "issue": 139,
           "severity": "open-question",
           "what": "This walk does NOT test what #139 was actually about. The defect was that the event fires again on the SECOND and every later report, because the settled statuses return without prompting. She took one photograph, so the event had one chance to fire and fired once.",
-          "evidence": "A single photo-captured at 4044 ms and a single location-permission-asked at 4055 ms. The repeat is unobserved, not disproved. Worth recording alongside it: her permission was in .notDetermined on a build she UPDATED to, though she granted it on build 5 three hours earlier, and an in-place TestFlight update preserves permissions. This entry first guessed a delete and reinstall. **A simpler cause was missed, and the tester pointed at it herself**: asked on 2026-08-24 at 22:47 whether the dialog kept appearing, she answered that she had been asked for location every single time. iOS offers THREE answers, not two, and `Leyfa einu sinni` (Allow Once) returns the status to .notDetermined at the next launch. That reproduces everything observed here with no reinstall, and it means the dialog reappearing across launches is correct behaviour rather than a defect. Neither cause is observed: `DeviceFix` collapses .authorizedWhenInUse and .authorizedAlways into one branch, Allow Once yields .authorizedWhenInUse exactly as the durable choice does, and both emit `location-permission granted:true`. **No walk, past or future, can tell them apart from the telemetry alone.** Her answer also does not settle #139, because it does not distinguish between launches and reports within one launch, and #139 was only ever about the second. Asked at 23:09 which button she taps and whether a second photograph in the SAME run re-prompts; unanswered when this was written.",
-          "whatWouldSettleIt": "One session with two or more photographs, where asked appears once and not twice. A tester reporting that the dialog 'comes every time' does NOT settle it: across launches that is expected under Allow Once, and only within a single run is it evidence about #139."
+          "evidence": "A single photo-captured at 4044 ms and a single location-permission-asked at 4055 ms. The repeat is unobserved, not disproved. Worth recording alongside it: her permission was in .notDetermined on a build she UPDATED to, though she granted it on build 5 three hours earlier, and an in-place TestFlight update preserves permissions. This entry first guessed a delete and reinstall. **A simpler cause was missed, and the tester pointed at it herself**: asked on 2026-08-24 at 22:47 whether the dialog kept appearing, she answered that she had been asked for location every single time. iOS offers THREE answers, not two, and `Leyfa einu sinni` (Allow Once) returns the status to .notDetermined at the next launch. That reproduces everything observed here with no reinstall, and it means the dialog reappearing across launches is correct behaviour rather than a defect. Neither cause is observed: `DeviceFix` collapses .authorizedWhenInUse and .authorizedAlways into one branch, Allow Once yields .authorizedWhenInUse exactly as the durable choice does, and both emit `location-permission granted:true`. **No walk, past or future, can tell them apart from the telemetry alone.** Her answer also does not settle #139, because it does not distinguish between launches and reports within one launch, and #139 was only ever about the second. Asked at 23:09 which button she taps and whether a second photograph in the SAME run re-prompts; unanswered when this was written. **Both were answered at 23:38, by voice note, and the answer is transcribed in the next entry**: she taps Allow Once, which confirms the cause proposed here rather than leaving it inferred. The other half is not closed by it, because she also says a dialog appeared a THIRD time after she chose Allow While Using the App, which is now #147.",
+          "whatWouldSettleIt": "One session with two or more photographs, where asked appears once and not twice. A tester reporting that the dialog 'comes every time' does NOT settle it: across launches that is expected under Allow Once, and only within a single run is it evidence about #139. Still true after 2026-08-24-ios-build-6-the-municipality-guard-in-the-wild, which has two photographs in one session and does NOT settle it: they are 98 minutes apart with the app left in between, and Allow Once accounts for the second dialog."
         },
         {
           "issue": 115,
@@ -2674,6 +2674,295 @@
         "Nothing about the follow-up loop, which is Android-only and asks after fourteen days.",
         "Nothing about which device this was, from the telemetry. The model comes from App Store Connect.",
         "Nothing about the app-side suggestion panel beyond it reading 'Engin tillaga enn'. The ADDRESS is not that panel's job: it is resolved in the relay (decision 0009) and it worked."
+      ]
+    },
+    {
+      "id": "2026-08-24-ios-build-6-the-municipality-guard-in-the-wild",
+      "date": "2026-08-24",
+      "platform": "ios",
+      "what": "The same app session as the previous entry, 98 minutes later and 40 km east. The tester left the confirm screen without finishing, came back, photographed a street surface in Hveragerdi, and the relay refused the report because the coordinate is not Reykjavik's. It is the first time the municipality check has fired on a real coordinate from a real phone rather than in a test, and it named the municipality correctly. She also answered, in a voice note three minutes before the recording, the question this record has been carrying since the previous entry: she taps Allow Once.",
+      "device": {
+        "model": "iPhone 15, iOS 26.5.2",
+        "note": "Known from App Store Connect's tester list, NOT from the telemetry, which names no device."
+      },
+      "build": {
+        "variant": "TestFlight, internal group Prufuflug",
+        "appVersion": "0.1.0 (6)",
+        "signing": "Apple team B4724Z74TM",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves, which reached the deployed relay, and app_version in D1 reads 0.1.0 (6)"
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed, and it never got that far: the municipality check refuses before anything is written or forwarded. Row count read from D1 on 2026-08-25, the same figure as the previous entry."
+      },
+      "session": "71c0d091907547274f8dc8a9b81f2104",
+      "method": "Transcribed from D1 by query on 2026-08-25. This is the SECOND half of one session: the first fourteen events are the previous entry's and are not repeated here, and the two halves are 98 minutes apart with the app left running. The screen is read from a 45.4-second screen recording she sent at 23:41, and her account of the permission dialog from a 46.1-second voice note at 23:38, transcribed with Hreimur ASR. Recording, voice note, its Icelandic transcript and two stills are in the gitignored private/, indexed in private/testers.json.",
+      "timeline": [
+        {
+          "atMs": 5940829,
+          "name": "screen-left",
+          "fields": {
+            "completed": false,
+            "screen": "confirm"
+          }
+        },
+        {
+          "atMs": 5940901,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5950354,
+          "name": "photo-captured",
+          "fields": {
+            "bytes": 237284,
+            "elapsedMs": 556,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 5950356,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 2,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 5950360,
+          "name": "location-permission-asked",
+          "fields": {}
+        },
+        {
+          "atMs": 5966741,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5966759,
+          "name": "location-resolved",
+          "fields": {
+            "accuracyM": 5,
+            "elapsedMs": 16404,
+            "source": "device"
+          }
+        },
+        {
+          "atMs": 5966759,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "camera"
+          }
+        },
+        {
+          "atMs": 5969167,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 18812,
+            "slug": "holur-i-gotu"
+          }
+        },
+        {
+          "atMs": 6043032,
+          "name": "description-length",
+          "fields": {
+            "length": 51
+          }
+        },
+        {
+          "atMs": 6044116,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 93761,
+            "slug": "gotusopun"
+          }
+        },
+        {
+          "atMs": 6064833,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 114478,
+            "slug": "holur-i-gotu"
+          }
+        },
+        {
+          "atMs": 6065714,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 115359,
+            "slug": "gotusopun"
+          }
+        },
+        {
+          "atMs": 6066563,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 116208,
+            "slug": "holur-i-gotu"
+          }
+        },
+        {
+          "atMs": 6069825,
+          "name": "screen-left",
+          "fields": {
+            "completed": true,
+            "screen": "details"
+          }
+        },
+        {
+          "atMs": 6071657,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 6073317,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1660,
+            "ok": false,
+            "status": 400
+          }
+        },
+        {
+          "atMs": 6089228,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 6089591,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 363,
+            "ok": false,
+            "status": 400
+          }
+        },
+        {
+          "atMs": 6092257,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 6092577,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 319,
+            "ok": false,
+            "status": 400
+          }
+        },
+        {
+          "atMs": 6098596,
+          "name": "screen-left",
+          "fields": {
+            "completed": false,
+            "screen": "confirm"
+          }
+        },
+        {
+          "atMs": 6098626,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 17,
+          "receivedAt": "2026-08-24T23:40:30.625Z",
+          "firstAtMs": 5940829,
+          "lastAtMs": 6073317
+        },
+        {
+          "events": 2,
+          "receivedAt": "2026-08-24T23:40:46.809Z",
+          "firstAtMs": 6089228,
+          "lastAtMs": 6089591
+        },
+        {
+          "events": 2,
+          "receivedAt": "2026-08-24T23:40:49.800Z",
+          "firstAtMs": 6092257,
+          "lastAtMs": 6092577
+        },
+        {
+          "events": 2,
+          "receivedAt": "2026-08-24T23:40:59.597Z",
+          "firstAtMs": 6098596,
+          "lastAtMs": 6098626
+        }
+      ],
+      "deliveryNote": "Four batches, and the first one is worth reading. Seventeen events covering 132 seconds of interaction arrived together at 23:40:30, the moment of the first send result, which means everything from re-entering the camera onwards sat on the phone until a send flushed it. The three later batches are two events each and arrive as they happen. Nothing was lost: 23 events on the wire, 23 in the timeline.",
+      "confirmed": [
+        {
+          "claim": "The municipality guard refuses an out-of-Reykjavik coordinate end to end, on a real phone, and names the place correctly.",
+          "evidence": "Read off her screen recording: HTTP 400 {\"error\":\"outside-reykjavik\",\"reason\":\"this relay only files reports in Reykjavik (SVFNR 0000)\",\"nearestAddress\":\"Heidarbrun 46, 810 Hveragerdi\",\"svfnr\":8716}. Three send-result events carry status 400 and ok false. The reports table has no row for this session after the 22:00:20 one, so the refusal happens before anything is written."
+        },
+        {
+          "claim": "The refusal reaches the person as a sentence in Icelandic, not as the relay's JSON.",
+          "evidence": "Her screen reads 'Hnitin eru utan Reykjavikur.' above 'Thessi thjonusta sendir adeins til Reykjavikur. Sveitarfelagid sem a stadinn tekur sjalft vid abendingum um hann.', which is the outside-reykjavik pair in data/relay-outcomes.json word for word, with the raw response folded behind a 'Taeknilegt svar' disclosure.",
+          "issue": 77
+        },
+        {
+          "claim": "The repeating permission dialog is Allow Once, stated by the tester rather than inferred.",
+          "evidence": "Voice note at 23:38: 'eg profadi i eitt skipti ad yta a allow once ... tha kom thad aftur upp'. That is the cause the previous entry proposed without being able to observe it, and it means a dialog reappearing between launches is correct iOS behaviour.",
+          "issue": 139
+        },
+        {
+          "claim": "The screen recording and the telemetry describe the same report, independently.",
+          "evidence": "The summary screen shows photo mynd.jpg image/jpeg 237.284 bytes against photo-captured bytes 237284; the description counter reads 51 / 2.500 against description-length 51; 'Stadsetning ur: Taekjastadsetning (GPS)' against location-resolved source device; category holur-i-gotu against the last category-chosen."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 139,
+          "severity": "open-question",
+          "what": "This walk still does not test what #139 was about, and it looks at first glance as though it does. There are two photo-captured events and two location-permission-asked events in ONE session, which is the shape the question asked for. It is not the answer, because the two are 98 minutes apart with a screen-left {completed:false} between them and the app out of use, and the tester's own voice note says she chose Allow Once, which returns the status to .notDetermined. Every part of what was observed is explained without any defect.",
+          "evidence": "photo-captured at 4044 ms (previous entry) and 5950354 ms; location-permission-asked at 4055 ms and 5950360 ms. The gap is 5946310 ms, 99.1 minutes. Allow Once was named by the tester at 23:38.",
+          "whatWouldSettleIt": "Two photographs minutes apart in one uninterrupted run, with the app never leaving the foreground, where asked appears once and not twice. Nothing observed to date has that shape."
+        },
+        {
+          "issue": 148,
+          "severity": "defect",
+          "what": "The refusal does not read as final. She pressed send three times against a 400 that can never become anything else for the same coordinate, and the send button stayed enabled throughout.",
+          "evidence": "send-started at 6071657, 6089228 and 6092257 ms, 15.9 s and 3.0 s apart, each answered status 400. Her recording shows her scrolling the refusal between attempts."
+        },
+        {
+          "issue": 147,
+          "severity": "open-question",
+          "what": "The tester says a third dialog appeared AFTER she chose Allow While Using the App, which an authorized app should not see. Either it was the system's own periodic usage reminder, which is not ours and looks different, or she recalled the order wrong, or the status really was .notDetermined again for a reason we have not found.",
+          "evidence": "Voice note at 23:38: 'tha ytti eg a always eda ... while using the app. Og tha kom aftur upp i thridja skiptid valmoguleiki, hvort eg vildi breyta thvi'. Nothing in the telemetry separates the readings: DeviceFix collapses .authorizedWhenInUse and .authorizedAlways, and Allow Once yields the former exactly as the durable choice does.",
+          "whatWouldSettleIt": "One photograph of that third dialog. The permission alert has three buttons; the system's usage reminder has two and states how many times the app used the location."
+        },
+        {
+          "issue": 115,
+          "severity": "observation",
+          "what": "Five category-chosen events for one report, and the picker was genuinely worked rather than tapped through: holur-i-gotu, then gotusopun, then back and forth twice more, ending on holur-i-gotu. The description was typed in the middle of that, not after it.",
+          "evidence": "category-chosen at 5969167, 6044116, 6064833, 6065714 and 6066563 ms with description-length between the first two. Their elapsedMs are still measured from photo capture rather than from arriving at the picker, so 116208 is the whole tail of the walk and not time spent choosing."
+        },
+        {
+          "issue": 122,
+          "severity": "observation",
+          "what": "The location step took 16.4 seconds, and almost all of it was her. The ask-to-answer gap is 16381 ms against 1455 ms on the first report of the same session, because she was photographing the dialog to send to us.",
+          "evidence": "location-permission-asked 5950360, location-permission 5966741, location-resolved elapsedMs 16404 with accuracyM 5. A location elapsedMs that includes human answering time cannot be read as a measurement of the fix."
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about the city. The relay is unarmed, and the report never reached the point where that would matter.",
+        "No report row, on purpose: the municipality check refuses before the write, so this half of the session has telemetry and nothing else. The reports table's newest row is still the 22:00:20 one from the first half.",
+        "Nothing about the offline queue. A 400 is REJECTED rather than retryable, so the queue was never entered and the three retries were her thumb, not the app's.",
+        "Nothing about which of the two authorized statuses she granted the second time. DeviceFix collapses them and always will.",
+        "Nothing about #139's actual claim, which needs two photographs in one uninterrupted run and has still never been walked.",
+        "Nothing about how a person out of Reykjavik should proceed, because the app does not tell her."
       ]
     }
   ]

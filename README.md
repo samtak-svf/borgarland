@@ -33,8 +33,11 @@ what is built on top of it is:
   request contract the Android and Worker tests pin. Builds through `0.1.0 (6)`
   are in TestFlight, signed without a Mac. Build 4 was walked by two testers on
   2026-08-23; build 5 was installed by three testers on 2026-08-24, of whom the
-  relay saw one walk; build 6 was walked the same evening, 45 minutes after it
-  went VALID. Every run is in [`data/field-tests.json`](data/field-tests.json).
+  relay saw one walk; build 6 was walked twice the same evening, first 45
+  minutes after it went VALID and again at 23:40, when a report filed from
+  Hveragerði was refused by the municipality check. As of 2026-08-25 those are
+  the last two runs. Every run is in
+  [`data/field-tests.json`](data/field-tests.json).
 
   This line has been stale twice in two days, in the same way both times. It
   said nobody had installed anything until 2026-08-24, having been written when
