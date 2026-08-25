@@ -129,9 +129,16 @@ fun SummaryScreen(
         // twice (#85). The relay now refuses to store the repeat (#88); this is
         // so nobody is invited to make one.
         val alreadySent = state.sendOutcome?.ok == true
+        // And disabled once the answer cannot change. A refusal a person
+        // retries is a refusal that does not read as final: a tester pressed
+        // send three times against the same jurisdiction 400 because nothing
+        // on the screen said the coordinate was the problem and the button was
+        // the only live control (#148). Which answers are terminal is
+        // data/relay-outcomes.json's call, not this screen's.
+        val refusedForGood = state.sendOutcome?.outcome?.retryable == false
         Button(
             onClick = onSend,
-            enabled = !state.sending && !alreadySent,
+            enabled = !state.sending && !alreadySent && !refusedForGood,
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         ) {
             Text(
@@ -172,6 +179,18 @@ fun SummaryScreen(
                         outcome.advice?.let { advice ->
                             Text(
                                 advice,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        // Where the person actually is, when the relay said.
+                        // The refusal used to name what we would not do and
+                        // never where the coordinate fell (#148). Null when the
+                        // relay sent no such field, and then there is no line at
+                        // all rather than one with a hole in it.
+                        outcome.detail?.let { detail ->
+                            Text(
+                                detail,
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 4.dp),
                             )

@@ -66,6 +66,10 @@ final class RelayOutcomesTest: XCTestCase {
 
     // MARK: - Choosing the sentence
 
+    /// The sentence is the RENDERED outcome, not the file's entry verbatim.
+    /// They differ exactly where the entry carries a `{name}` placeholder: this
+    /// body names no place, so the detail line is dropped and everything else
+    /// is the file's own words (#148).
     func testARefusalGetsItsOwnSentence() throws {
         let file = try file()
         let outcome = RelayOutcomes.sentence(
@@ -73,7 +77,59 @@ final class RelayOutcomesTest: XCTestCase {
             body: #"{"error":"outside-reykjavik","svfnr":4200}"#,
             in: file
         )
-        XCTAssertEqual(outcome, file.outcomes["outside-reykjavik"])
+        let entry = try XCTUnwrap(file.outcomes["outside-reykjavik"])
+        XCTAssertEqual(outcome?.says, entry.says)
+        XCTAssertEqual(outcome?.advice, entry.advice)
+        XCTAssertNil(outcome?.detail)
+    }
+
+    /// #148: a refusal a person retries is a refusal that does not read as
+    /// final. A tester pressed send three times against the same jurisdiction
+    /// 400 because the button was the only live control on the screen.
+    func testAJurisdictionRefusalIsNotRetryable() throws {
+        let file = try file()
+        XCTAssertEqual(file.outcomes["outside-reykjavik"]?.isRetryable, false)
+        XCTAssertEqual(file.outcomes["jurisdiction-unknown"]?.isRetryable, false)
+        XCTAssertEqual(file.outcomes["live-send-already-used"]?.isRetryable, false)
+        XCTAssertEqual(file.outcomes["invalid-report-id"]?.isRetryable, false)
+    }
+
+    /// Absent means retryable. Wrongly retryable costs a wasted request;
+    /// wrongly terminal takes the only control on the screen away from
+    /// somebody who could have succeeded.
+    func testAnOutcomeThatSaysNothingAboutRetryingIsRetryable() throws {
+        let file = try file()
+        XCTAssertEqual(file.outcomes["city-unreachable"]?.isRetryable, true)
+        XCTAssertEqual(file.sent.isRetryable, true)
+    }
+
+    /// The placeholder is filled from the relay's own answer, never invented.
+    func testTheDetailSentenceNamesThePlaceTheRelayReported() throws {
+        let file = try file()
+        let outcome = RelayOutcomes.sentence(
+            status: 400,
+            body: #"{"error":"outside-reykjavik","svfnr":8716,"placeDative":"Hveragerði"}"#,
+            in: file
+        )
+        XCTAssertEqual(outcome?.detail, "Næsta skráða heimilisfang er í Hveragerði.")
+    }
+
+    /// Half a sentence in front of somebody is worse than the silence the
+    /// screen had before it, so a placeholder with nothing behind it drops the
+    /// whole line. A number is not a string and must not become the word it
+    /// prints as.
+    func testADetailWithNoFieldBehindItIsDropped() throws {
+        let file = try file()
+        XCTAssertNil(
+            RelayOutcomes.sentence(status: 400, body: #"{"error":"outside-reykjavik"}"#, in: file)?.detail
+        )
+        XCTAssertNil(
+            RelayOutcomes.sentence(
+                status: 400,
+                body: #"{"error":"outside-reykjavik","placeDative":8716}"#,
+                in: file
+            )?.detail
+        )
     }
 
     func testADryRunSuccessDoesNotClaimTheReportReachedTheCity() throws {

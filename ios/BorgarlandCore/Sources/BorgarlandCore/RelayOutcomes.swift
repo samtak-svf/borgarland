@@ -7,10 +7,27 @@ public struct RelayOutcome: Decodable, Equatable {
     /// What they can do about it, when there is anything. Often there is not,
     /// and a made-up suggestion is worse than none.
     public let advice: String?
+    /// One more sentence, built from a field the relay sent with the answer.
+    /// Carries a `{name}` placeholder in the file; by the time a screen sees
+    /// it, `sentence` has either filled it in or removed the whole sentence.
+    public let detail: String?
+    /// Whether sending the SAME request again could answer differently.
+    ///
+    /// Optional rather than defaulted, because absent in the file must mean
+    /// retryable and `Decodable` has no per-property default. Read it through
+    /// `isRetryable`, never directly.
+    public let retryable: Bool?
 
-    public init(says: String, advice: String?) {
+    /// Absent means yes. Wrongly retryable costs a wasted request; wrongly
+    /// terminal takes the only control on the screen away from somebody who
+    /// could have succeeded.
+    public var isRetryable: Bool { retryable ?? true }
+
+    public init(says: String, advice: String?, detail: String? = nil, retryable: Bool? = nil) {
         self.says = says
         self.advice = advice
+        self.detail = detail
+        self.retryable = retryable
     }
 }
 
@@ -75,6 +92,30 @@ public enum RelayOutcomes {
         return Answer(errorCode: object["error"] as? String, dryRun: report?["dryRun"] as? Bool)
     }
 
+    /// Fills `detail`'s `{name}` placeholders from the relay's own answer.
+    ///
+    /// A placeholder with no field behind it removes the whole sentence rather
+    /// than leaving a hole in it: half a sentence in front of somebody is
+    /// worse than the silence the screen had before (#148). Only strings are
+    /// substituted, so a number or a null cannot become the word "null".
+    static func filled(_ outcome: RelayOutcome, from body: String) -> RelayOutcome {
+        guard let detail = outcome.detail else { return outcome }
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return RelayOutcome(says: outcome.says, advice: outcome.advice, detail: nil, retryable: outcome.retryable)
+        }
+        var out = detail
+        while let open = out.firstIndex(of: "{"), let close = out[open...].firstIndex(of: "}") {
+            let key = String(out[out.index(after: open)..<close])
+            guard let value = object[key] as? String else {
+                return RelayOutcome(says: outcome.says, advice: outcome.advice, detail: nil, retryable: outcome.retryable)
+            }
+            out.replaceSubrange(open...close, with: value)
+        }
+        return RelayOutcome(says: outcome.says, advice: outcome.advice, detail: out, retryable: outcome.retryable)
+    }
+
     /// What to tell the person, or nil when the file is not there to say it.
     ///
     /// `status` is 0 when nothing answered, matching the transport's own
@@ -86,7 +127,9 @@ public enum RelayOutcomes {
         if (200..<300).contains(status) {
             return answer.dryRun == true ? file.dryRun : file.sent
         }
-        if let code = answer.errorCode, let known = file.outcomes[code] { return known }
+        if let code = answer.errorCode, let known = file.outcomes[code] {
+            return filled(known, from: body)
+        }
         return file.unknown
     }
 }

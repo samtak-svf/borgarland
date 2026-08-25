@@ -88,6 +88,15 @@ struct SummaryScreen: View {
                 // store the repeat (#88); this is so nobody is invited to make
                 // one.
                 let alreadySent = state.sendOutcome?.ok == true
+                // And disabled once the answer cannot change. A refusal a
+                // person retries is a refusal that does not read as final: a
+                // tester in Hveragerði pressed this three times against the
+                // same jurisdiction 400, 15.9 s and 3.0 s apart, because
+                // nothing on the screen said the coordinate was the problem
+                // and the button was the only live control (#148). Which
+                // answers are terminal is data/relay-outcomes.json's call, not
+                // this screen's.
+                let refusedForGood = state.sendOutcome?.outcome?.isRetryable == false
                 Button {
                     model.sendToRelay()
                 } label: {
@@ -103,7 +112,7 @@ struct SummaryScreen: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 16)
-                .disabled(state.sending || alreadySent)
+                .disabled(state.sending || alreadySent || refusedForGood)
 
                 // The way out. Before #73 the send control was dead for
                 // eighty-four seconds and the only live thing beside it was
@@ -162,6 +171,16 @@ struct SummaryScreen: View {
                             if let advice = outcome.advice {
                                 Text(advice)
                                     .font(.footnote)
+                            }
+                            // Where she actually is, when the relay said. The
+                            // refusal used to name what we would not do and
+                            // never where the coordinate fell (#148). Nil when
+                            // the relay sent no such field, and then there is
+                            // no line at all rather than one with a hole in it.
+                            if let detail = outcome.detail {
+                                Text(detail)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
                             }
                         }
 
