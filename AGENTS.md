@@ -157,11 +157,22 @@ between them; the relay recorded **one** walk, at 11:58, accepted and written up
 as [`2026-08-24-ios-build-5-first-run`](data/field-tests.json). This sentence
 said "once" until the tester list was actually read, which is the same mistake as
 every other one on this page: a count taken from the record nearest to hand
-rather than from the thing being counted. **And it still does not settle the
-label**, because that one walk chose `heimilissorp`. The build carrying the
-change has been walked; the change has not. Which tester made that walk is not
-knowable — App Store Connect names who installed, the telemetry names no device,
-and nothing joins the two. **On Android somebody has now seen it.** The picker rendered
+rather than from the thing being counted. That one walk chose `heimilissorp`, so
+it did not settle the label either. Which tester made it is not knowable — App
+Store Connect names who installed, the telemetry names no device, and nothing
+joins the two.
+
+**The label has now been seen on iOS, on build 6, at 22:00 on 2026-08-24.** A
+tester's screenshot of the picker shows `Annað í almannarými` above `Bekkur,
+girðing, tré eða annað sem á ekki heima í hinum flokkunum`, read off her iPhone
+and matched to `data/category-labels.json` — the same standard the Android half
+below is held to. Recorded as
+[`2026-08-24-ios-build-6-the-asked-to-answered-gap-measured`](data/field-tests.json).
+**Seen is not chosen**: she picked `heimilissorp` and switched to `gotusopun`, so
+no walk on either platform has yet filed a report under this category from iOS.
+Keep the two claims apart, because this page has confused them before.
+
+**On Android somebody has now seen it.** The picker rendered
 `Annað í almannarými` with its help line on an SM-S918B on 2026-08-24, read off
 the device and matched to the file byte for byte, and the category was then
 walked by hand to a report row — recorded as
@@ -205,6 +216,17 @@ stated a count from the pattern it had just been burned by. A prose claim has as
 many spellings as the people who wrote it, so search for the several ways it
 could be said, or state no number at all — which is what the paragraph two above
 already tells you to do.
+
+**A fresh instance, 2026-08-24, and it is the carrier lesson rather than a sixth
+wrong claim in this paragraph — the count above is deliberately left alone.**
+#127 corrected "build 5 was run once" to three testers and fourteen sessions,
+here. `README.md` went on saying "once" for eight hours afterwards, in the public
+front door, until a close-out sweep grepped for the claim rather than the file.
+The correction found the document it was already reading and stopped there. That
+is the whole failure above, repeated by a session that had just written the rule
+down — which is the strongest argument this page can make for the seven-step
+check in **When new test data arrives**, and why step 6 of it is a gate rather
+than a habit.
 
 This paragraph twice said the opposite of the truth, in opposite directions. It
 first claimed the rewording existed when it did not; the correction then claimed
