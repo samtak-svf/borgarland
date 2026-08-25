@@ -141,9 +141,15 @@ object RelayOutcomes {
         var i = 0
         while (i < detail.length) {
             val open = detail.indexOf('{', i)
-            if (open < 0) { out.append(detail, i, detail.length); break }
+            if (open < 0) {
+                out.append(detail, i, detail.length)
+                break
+            }
             val close = detail.indexOf('}', open)
-            if (close < 0) { out.append(detail, i, detail.length); break }
+            if (close < 0) {
+                out.append(detail, i, detail.length)
+                break
+            }
             out.append(detail, i, open)
             val key = detail.substring(open + 1, close)
             val value = runCatching {
