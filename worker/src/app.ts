@@ -26,6 +26,7 @@ import {
 } from './domain'
 import type { Registry } from './registry'
 import { describeAddress } from './registry'
+import { postcodeLookup } from 'iceaddr-ts/postcodes'
 import { checkJurisdiction, MAX_NEAREST_ADDRESS_KM } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
@@ -244,10 +245,21 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     const jurisdiction = checkJurisdiction(registry, latitude, longitude)
     if (!jurisdiction.ok) {
       if (jurisdiction.reason === 'outside-reykjavik') {
+        // `place` is the postal locality of the nearest registered address,
+        // NOT the municipality: the register carries a code (SVFNR) and a
+        // postcode, and no name for the sveitarfélag anywhere. The two
+        // coincide often enough to be useful and not always, so the sentence
+        // the apps build from it says where the nearest ADDRESS is and claims
+        // nothing about who administers it (#148). Dative because Icelandic
+        // needs one to say "í Hveragerði" / "í Kópavogi", and inventing it in
+        // the app would mean declining a place name in Swift and Kotlin twice.
+        const place = postcodeLookup(jurisdiction.nearest.postalCode)
         throw new HttpError(400, 'outside-reykjavik', {
           reason: 'this relay only files reports in Reykjavík (SVFNR 0000)',
           nearestAddress: describeAddress(jurisdiction.nearest),
           svfnr: jurisdiction.nearest.svfnr,
+          place: place?.nominative ?? null,
+          placeDative: place?.dative ?? null,
         })
       }
       throw new HttpError(400, 'jurisdiction-unknown', {

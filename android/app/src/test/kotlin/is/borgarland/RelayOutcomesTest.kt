@@ -73,10 +73,16 @@ class RelayOutcomesTest {
         assertEquals(RelayOutcomes.Answer(null, null), RelayOutcomes.read(""))
     }
 
+    /**
+     * The sentence is the RENDERED outcome, not the file's entry verbatim.
+     * They differ exactly where the entry carries a `{name}` placeholder: this
+     * body names no place, so the detail line is dropped and everything else is
+     * the file's own words (#148).
+     */
     @Test
     fun `a refusal gets its own sentence`() {
         assertEquals(
-            file.outcomes["outside-reykjavik"],
+            file.outcomes["outside-reykjavik"]?.copy(detail = null),
             RelayOutcomes.sentence(400, """{"error":"outside-reykjavik","svfnr":4200}""", file),
         )
     }
@@ -121,6 +127,58 @@ class RelayOutcomesTest {
     @Test
     fun `a missing file produces no sentence rather than an invented one`() {
         assertNull(RelayOutcomes.sentence(400, """{"error":"internal"}""", null))
+    }
+
+    /**
+     * #148: a refusal a person retries is a refusal that does not read as
+     * final. A tester pressed send three times against the same jurisdiction
+     * 400 because the button was the only live control on the screen.
+     */
+    @Test
+    fun `a jurisdiction refusal is not retryable and the screens can see it`() {
+        val file = RelayOutcomes.parse(File("../../data/relay-outcomes.json").readText())
+        assertEquals(false, file.outcomes["outside-reykjavik"]?.retryable)
+        assertEquals(false, file.outcomes["jurisdiction-unknown"]?.retryable)
+        assertEquals(false, file.outcomes["live-send-already-used"]?.retryable)
+        assertEquals(false, file.outcomes["invalid-report-id"]?.retryable)
+    }
+
+    /**
+     * Absent means retryable. Wrongly retryable costs a wasted request;
+     * wrongly terminal takes the only control on the screen away from somebody
+     * who could have succeeded.
+     */
+    @Test
+    fun `an outcome that says nothing about retrying is retryable`() {
+        val file = RelayOutcomes.parse(File("../../data/relay-outcomes.json").readText())
+        assertEquals(true, file.outcomes["city-unreachable"]?.retryable)
+        assertEquals(true, file.sent.retryable)
+    }
+
+    /** The placeholder is filled from the relay's own answer, never invented. */
+    @Test
+    fun `the detail sentence names the place the relay reported`() {
+        val file = RelayOutcomes.parse(File("../../data/relay-outcomes.json").readText())
+        val body = """{"error":"outside-reykjavik","svfnr":8716,"placeDative":"Hveragerði"}"""
+        assertEquals(
+            "Næsta skráða heimilisfang er í Hveragerði.",
+            RelayOutcomes.sentence(400, body, file)?.detail,
+        )
+    }
+
+    /**
+     * Half a sentence in front of somebody is worse than the silence the
+     * screen had before it, so a placeholder with nothing behind it drops the
+     * whole line.
+     */
+    @Test
+    fun `a detail with no field behind it is dropped rather than shown with a hole`() {
+        val file = RelayOutcomes.parse(File("../../data/relay-outcomes.json").readText())
+        assertNull(RelayOutcomes.sentence(400, """{"error":"outside-reykjavik"}""", file)?.detail)
+        // A number is not a string: it must not become the word it prints as.
+        assertNull(
+            RelayOutcomes.sentence(400, """{"error":"outside-reykjavik","placeDative":8716}""", file)?.detail,
+        )
     }
 
     /**

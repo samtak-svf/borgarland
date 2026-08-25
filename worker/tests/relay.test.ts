@@ -256,6 +256,19 @@ describe('jurisdiction', () => {
     expect(sqlite.prepare('SELECT COUNT(*) AS n FROM reports').all()).toEqual([{ n: 0 }])
   })
 
+  // The refusal used to say what we would not do and never where the person
+  // was. Both apps build a sentence from `placeDative` and drop the whole line
+  // when the field is absent, so a refusal that stops carrying it goes silently
+  // back to the screen a tester read three times (#148). Dative because
+  // Icelandic needs one to say "í Kópavogi", and declining a place name in
+  // Swift and Kotlin separately is two places for it to be wrong.
+  it('names the place, in the case the sentence needs', async () => {
+    const { app } = createTestApp()
+    const body = await json(await postReport(app, reportForm(KOPAVOGUR_POINT)))
+    expect(body.place).toBe('Kópavogur')
+    expect(body.placeDative).toBe('Kópavogi')
+  })
+
   it('a point that resolves to no address at all is refused, not filed', async () => {
     const { app } = createTestApp({ registry: createRegistry([]) })
     const response = await postReport(app, reportForm())

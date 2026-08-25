@@ -18,6 +18,20 @@ data class RelayOutcome(
      * and a made-up suggestion is worse than none.
      */
     val advice: String? = null,
+    /**
+     * One more sentence, built from a field the relay sent with the answer.
+     * Carries a `{name}` placeholder in the file; by the time a screen sees it,
+     * [RelayOutcomes.sentence] has either filled it in or removed the sentence.
+     */
+    val detail: String? = null,
+    /**
+     * Whether sending the SAME request again could answer differently.
+     *
+     * Absent means yes, which is the safe default: wrongly retryable costs a
+     * wasted request, wrongly terminal takes the only control on the screen
+     * away from somebody who could have succeeded (#148).
+     */
+    val retryable: Boolean = true,
 )
 
 /**
@@ -107,6 +121,43 @@ object RelayOutcomes {
             return if (answer.dryRun == true) file.dryRun else file.sent
         }
         val known = answer.errorCode?.let { file.outcomes[it] }
-        return known ?: file.unknown
+        return known?.let { filled(it, body) } ?: file.unknown
+    }
+
+    /**
+     * Fills [RelayOutcome.detail]'s `{name}` placeholders from the relay's own
+     * answer.
+     *
+     * A placeholder with no field behind it removes the whole sentence rather
+     * than leaving a hole in it: half a sentence in front of somebody is worse
+     * than the silence the screen had before (#148). Only strings are
+     * substituted, so a number or a null cannot become the word "null".
+     */
+    internal fun filled(outcome: RelayOutcome, body: String): RelayOutcome {
+        val detail = outcome.detail ?: return outcome
+        val root = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull()
+            ?: return outcome.copy(detail = null)
+        val out = StringBuilder()
+        var i = 0
+        while (i < detail.length) {
+            val open = detail.indexOf('{', i)
+            if (open < 0) {
+                out.append(detail, i, detail.length)
+                break
+            }
+            val close = detail.indexOf('}', open)
+            if (close < 0) {
+                out.append(detail, i, detail.length)
+                break
+            }
+            out.append(detail, i, open)
+            val key = detail.substring(open + 1, close)
+            val value = runCatching {
+                root[key]?.jsonPrimitive?.takeIf { it.isString }?.contentOrNull
+            }.getOrNull() ?: return outcome.copy(detail = null)
+            out.append(value)
+            i = close + 1
+        }
+        return outcome.copy(detail = out.toString())
     }
 }

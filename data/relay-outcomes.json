@@ -1,6 +1,6 @@
 {
   "$comment": "OUR WORDS for what the relay answered, one sentence per outcome, in the language the person filing the ábending is using. Sibling of category-labels.json and separate from it for the same reason it is separate from reykjavik-form.json: those files record what the CITY says, this one is what WE say to a person about what happened. The relay's own body stays exactly as it is and is still shown, behind a control the person opens on purpose (#77). Both apps read this file; worker/tests/outcomes.test.ts holds it to the relay's own source, ALL of it rather than one file, so an error code the relay can return and this file does not name fails the build rather than falling through to a shrug in front of somebody. The first version of that test read app.ts alone and therefore missed invalid-coordinate and invalid-description, which are thrown from domain.ts on the way through the report endpoint; they are named here now and the test reads every source file.",
-  "verifiedAt": "2026-08-23",
+  "verifiedAt": "2026-08-25",
   "source": "The first iOS field test, where one tester read {\"error\":\"outside-reykjavik\",...} on his phone and asked what it meant, and the other got the whole stored row and asked whether the app was connected to anything.",
   "sent": {
     "says": "Ábendingin komst til skila.",
@@ -41,7 +41,9 @@
     },
     "invalid-report-id": {
       "says": "Appið sendi ógilt auðkenni með ábendingunni.",
-      "advice": "Þetta er villa í appinu og lagast ekki nema með uppfærslu."
+      "advice": "Þetta er villa í appinu og lagast ekki nema með uppfærslu.",
+      "retryable": false,
+      "$why": "The app sent a malformed id. Nothing the person does on this screen changes it; the advice says so."
     },
     "invalid-photo": {
       "says": "Myndin var ekki samþykkt.",
@@ -49,15 +51,22 @@
     },
     "outside-reykjavik": {
       "says": "Hnitin eru utan Reykjavíkur.",
-      "advice": "Þessi þjónusta sendir aðeins til Reykjavíkur. Sveitarfélagið sem á staðinn tekur sjálft við ábendingum um hann."
+      "advice": "Þessi þjónusta sendir aðeins til Reykjavíkur. Sveitarfélagið sem á staðinn tekur sjálft við ábendingum um hann.",
+      "retryable": false,
+      "$why": "The coordinate is not going to move by pressing send again. A tester in Hveragerdi pressed it three times against the same 400 (#148).",
+      "detail": "Næsta skráða heimilisfang er í {placeDative}."
     },
     "jurisdiction-unknown": {
       "says": "Ekki tókst að sjá í hvaða sveitarfélagi hnitin eru.",
-      "advice": "Færðu þig nær götu eða húsi og taktu nýja mynd."
+      "advice": "Færðu þig nær götu eða húsi og taktu nýja mynd.",
+      "retryable": false,
+      "$why": "Same coordinate, same answer. The advice already says to move and take a new photograph, which is a new report rather than a retry."
     },
     "live-send-already-used": {
       "says": "Þjónustan hefur þegar sent sína einu raunverulegu ábendingu og sendir ekki fleiri.",
-      "advice": "Þetta er ákvörðun en ekki bilun. Að opna fyrir fleiri sendingar er breyting á forritinu sjálfu."
+      "advice": "Þetta er ákvörðun en ekki bilun. Að opna fyrir fleiri sendingar er breyting á forritinu sjálfu.",
+      "retryable": false,
+      "$why": "A decision rather than a failure. Retrying cannot undo decision 0006."
     },
     "city-unreachable": {
       "says": "Þjónustan náði ekki sambandi við borgina.",
@@ -88,5 +97,7 @@
     "$comment": "Codes the relay can return on endpoints no person is looking at, so a sentence for them would be written for nobody. Listed rather than omitted: the coverage test holds every code in the relay's source against this file, so a NEW code lands here or in outcomes by a decision instead of by silence.",
     "invalid-outcome": "PATCH /api/reports/:id/outcome, the follow-through endpoint (#57). Machine to machine; it has no caller at all yet.",
     "invalid-event-batch": "POST /api/events, the telemetry channel. Fire and forget by contract (data/relay-events.json): the app must never show a person anything about it."
-  }
+  },
+  "$retryableComment": "retryable:false marks an answer that CANNOT become a different answer for the same request. Both apps disable the send button on one, leaving 'Byrja aftur' as the way forward. Absent means true, so a new code is retryable until somebody decides otherwise, which is the safe default: wrongly retryable costs a wasted request, wrongly terminal takes away the only control on the screen. Added after a tester pressed send three times against the same jurisdiction refusal (#148).",
+  "$detailComment": "detail is one more sentence, built from a field the relay sent with the refusal. A {name} placeholder is filled from the relay's own answer, and when the field is missing the whole sentence is dropped rather than shown with a hole in it. It exists because the screen told a tester what we would NOT do and never said where she was or who could act (#148). It says where the nearest registered ADDRESS is, which is what the register knows: Stadfangaskra carries a municipality CODE and a postcode, and no name for the sveitarfelag at all, so a sentence naming one would be a claim nothing in the data supports."
 }
