@@ -57,20 +57,26 @@ The five values live in GCP Secret Manager, project `fedora-setup-secrets`,
 account `gudrodur@gmail.com`, and the whole of step 7 is:
 
 ```bash
-gcloud secrets versions access latest --secret=samtakamatt-rosaparks-ios-signing-p12 \
+gcloud secrets versions access latest --secret=apple-team-ios-signing-p12 \
   | gh secret set IOS_SIGNING_P12_BASE64
-gcloud secrets versions access latest --secret=samtakamatt-rosaparks-ios-signing-p12-password \
+gcloud secrets versions access latest --secret=apple-team-ios-signing-p12-password \
   | gh secret set IOS_SIGNING_P12_PASSWORD
-gcloud secrets versions access latest --secret=samtakamatt-rosaparks-asc-api-key-id \
+gcloud secrets versions access latest --secret=apple-team-asc-api-key-id \
   | gh secret set ASC_API_KEY_ID
-gcloud secrets versions access latest --secret=samtakamatt-rosaparks-asc-api-issuer-id \
+gcloud secrets versions access latest --secret=apple-team-asc-api-issuer-id \
   | gh secret set ASC_API_ISSUER_ID
-gcloud secrets versions access latest --secret=samtakamatt-rosaparks-asc-api-key-p8 \
+gcloud secrets versions access latest --secret=apple-team-asc-api-key-p8 \
   | gh secret set ASC_API_KEY_P8
 ```
 
-The names say `rosaparks` because that is the app they were made for. They are
-not specific to it. **Do not create a second certificate for a new app.**
+The names say `apple-team` because that is what the certificate and the API key
+are scoped to: both name the team (`UID=B4724Z74TM`) and neither mentions an app.
+**Do not create a second certificate for a new app.**
+
+They were called `samtakamatt-rosaparks-*` until 2026-08-25, after the first app
+that used them. All seven were recreated under `apple-team-*` with byte-identical
+values and the originals deleted, so a copy of this block from an older document
+will fail with `NOT_FOUND` rather than with a wrong credential.
 
 **Steps 5 and 6 do not need the web UI either, except for one part.** The App
 Store Connect API registers a bundle id and creates a profile in seconds:
