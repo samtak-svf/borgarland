@@ -30,12 +30,20 @@ what is built on top of it is:
   pipeline and ships to nobody ([#58](https://github.com/samtak-svf/borgarland/issues/58)).
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
-  request contract the Android and Worker tests pin. Builds through `0.1.0 (5)`
+  request contract the Android and Worker tests pin. Builds through `0.1.0 (6)`
   are in TestFlight, signed without a Mac. Build 4 was walked by two testers on
-  2026-08-23 and build 5 has been run once, on 2026-08-24; both runs are in
-  [`data/field-tests.json`](data/field-tests.json). This line said nobody had
-  installed anything until 2026-08-24, having been written when that was true
-  and left alone afterwards.
+  2026-08-23; build 5 was installed by three testers on 2026-08-24, of whom the
+  relay saw one walk; build 6 was walked the same evening, 45 minutes after it
+  went VALID. Every run is in [`data/field-tests.json`](data/field-tests.json).
+
+  This line has been stale twice in two days, in the same way both times. It
+  said nobody had installed anything until 2026-08-24, having been written when
+  that was true and left alone. It then said build 5 "has been run once" for
+  eight hours after `AGENTS.md` had been corrected to three testers and fourteen
+  sessions (#127) — the correction found the file it was looking at and stopped.
+  A sentence here reports the state of the world, so it needs a date attached or
+  a grep of the thing it describes; see **When new test data arrives** in
+  `AGENTS.md`, which exists because of exactly this.
 
 **Nothing in this repository has reached the city, and the relay cannot reach it
 by accident.** Forwarding requires the deliberate `CITY_SEND_KEY` secret, which
