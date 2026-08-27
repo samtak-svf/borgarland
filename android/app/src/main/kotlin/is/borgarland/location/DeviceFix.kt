@@ -39,10 +39,31 @@ class DeviceFix(context: Context) {
 
     private val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
+    /**
+     * A fix, or null when nothing has one.
+     *
+     * The cache is asked twice, and the second ask is the point (#122). The
+     * first person to install from Google Play waited out the whole
+     * [timeoutMillis] bound, was told no location could be had, tapped
+     * "Reyna aftur", and got an answer 2.3 seconds later accurate to 100
+     * metres. Nothing retried on its own; the second attempt was her finger,
+     * and it succeeded because it reached [lastKnown] on the way in.
+     *
+     * That is the shape of the defect. The fifteen seconds of
+     * `requestLocationUpdates` warm the platform's cache, `removeUpdates`
+     * then stops listening, and a fix landing a moment later is thrown away
+     * by us and kept by the system. So the answer already existed and the
+     * only route to it was a failure message and a button.
+     *
+     * Asking [lastKnown] once more on the way out costs nothing when the live
+     * fix worked, and turns that whole interaction into a wait that ends in a
+     * coordinate. It is deliberately not a retry: re-running [liveFix] would
+     * double a bound that is already too long to stand still for.
+     */
     suspend fun request(timeoutMillis: Long = 15_000): Location? {
         val manager = manager ?: return null
         lastKnown(manager)?.let { return it }
-        return liveFix(manager, timeoutMillis)
+        return liveFix(manager, timeoutMillis) ?: lastKnown(manager)
     }
 
     /** The freshest usable fix any provider is already holding. */
