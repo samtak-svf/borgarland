@@ -88,8 +88,8 @@ jobs:
             const area = m ? m[1] : (wide ? wide[1] : null);
             const ok = !!m && areas.includes(m[1]);
 
-            // Same transliteration as the module: accents dropped, þ→th, ð→d,
-            // æ→ae. One rule instead of a per-repo list of spelling pairs.
+            // Same transliteration as the module — ISNIC's IDN→non-IDN table
+            // (isnic.is/en/faq#q10-2): accents dropped, þ→th, ð→d, æ→ae, ö→o.
             const FOLD = { "þ": "th", "ð": "d", "æ": "ae", "á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u", "ý": "y", "ö": "o" };
             const folded = area ? [...area].map((c) => FOLD[c] || c).join("") : null;
             const foldHint = folded && folded !== area && areas.includes(folded) ? folded : null;
