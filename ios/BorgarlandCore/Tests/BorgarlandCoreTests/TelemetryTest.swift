@@ -229,6 +229,93 @@ final class TelemetryTest: XCTestCase {
 
     /// Without this, every event past the threshold starts another post while
     /// offline, and a batch requeued underneath a later one duplicates it.
+    // MARK: - The completion the shell holds a background assertion open for
+
+    // #126. App Store Connect counted fourteen build-5 sessions on 2026-08-24
+    // and the relay recorded one. A person who opens the app, looks and leaves
+    // never reaches the twenty-event threshold and never sends a report, so
+    // the whole session rests on the background flush — which posted from a
+    // process iOS was already suspending, with nothing asking it to wait.
+    //
+    // BorgarlandApp holds a UIKit background-task assertion across the flush
+    // now, and ends it on this completion. So the completion has to fire on
+    // every path: the assertion must not outlive the work, and it must not be
+    // left open when there was no work at all.
+
+    func testCompletionFiresWhenTheBatchIsDelivered() {
+        let start = Date()
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { _, done in done(.delivered) }
+        telemetry.track(.appOpened)
+
+        var completed = 0
+        telemetry.flush { completed += 1 }
+        XCTAssertEqual(completed, 1)
+    }
+
+    func testCompletionFiresWhenTheBatchIsNotDelivered() {
+        let start = Date()
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { _, done in done(.undelivered) }
+        telemetry.track(.appOpened)
+
+        var completed = 0
+        telemetry.flush { completed += 1 }
+        // Delivered or not, this flush is over and the assertion must end.
+        XCTAssertEqual(completed, 1)
+    }
+
+    func testCompletionFiresWithAnEmptyBuffer() {
+        let start = Date()
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { _, done in done(.delivered) }
+
+        var completed = 0
+        telemetry.flush { completed += 1 }
+        // Nothing to send is the commonest case of all: the app backgrounded
+        // twice in a row, or backgrounded after the threshold already flushed.
+        // An assertion held open for a flush that sent nothing would keep the
+        // app awake for no reason.
+        XCTAssertEqual(completed, 1)
+    }
+
+    func testCompletionFiresWhenAnotherBatchOwnsTheChannel() {
+        let start = Date()
+        var pending: [Telemetry.BatchReceipt] = []
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { _, done in pending.append(done) }
+
+        telemetry.track(.appOpened)
+        telemetry.flush()
+        XCTAssertEqual(pending.count, 1)
+
+        telemetry.track(.sendStarted)
+        var completed = 0
+        telemetry.flush { completed += 1 }
+        // This flush did nothing, because the first is still out. It is still
+        // over, and its assertion must not sit waiting on somebody else's
+        // request to answer.
+        XCTAssertEqual(completed, 1)
+        XCTAssertEqual(pending.count, 1, "the second flush waits for the first to answer")
+
+        pending[0](.delivered)
+    }
+
+    func testCompletionIsCalledOncePerFlushAndNotTwice() {
+        let start = Date()
+        let telemetry = Telemetry(sessionStart: start, now: { start })
+        telemetry.send = { _, done in done(.delivered) }
+        telemetry.track(.appOpened)
+
+        var completed = 0
+        telemetry.flush { completed += 1 }
+        telemetry.track(.sendStarted)
+        telemetry.flush { completed += 1 }
+        // Ending a background-task assertion twice traps, so a completion that
+        // can fire twice is a crash rather than a leak.
+        XCTAssertEqual(completed, 2)
+    }
+
     func testOnlyOneBatchIsInFlightAtATime() throws {
         let start = Date()
         var bodies: [Data] = []

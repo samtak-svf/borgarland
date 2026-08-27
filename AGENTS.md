@@ -162,6 +162,20 @@ it did not settle the label either. Which tester made it is not knowable — App
 Store Connect names who installed, the telemetry names no device, and nothing
 joins the two.
 
+**The gap between fourteen and one now has a mechanism rather than a suspicion,
+and it is not the one #126 thought most likely.** The telemetry buffer is memory
+only, and a session where somebody opens the app, looks and leaves reaches no
+other flush point: no report, so no send-result flush, and nowhere near the
+twenty events the threshold wants. Everything rests on the flush at
+`scenePhase == .background` — which posted with `URLSession.shared` from a
+process iOS was already suspending, with no background-task assertion asking it
+to wait. So the session simply left no trace. #126 guessed that `app-opened`
+alone never triggers a flush; it does, and the flush was being killed instead.
+
+Read every iOS count in this file as a **lower bound through build 6**. Build 7
+holds an assertion across that flush, which fixes the next walk and recovers
+none of the earlier ones.
+
 **The label has now been seen on iOS, on build 6, at 22:00 on 2026-08-24.** A
 tester's screenshot of the picker shows `Annað í almannarými` above `Bekkur,
 girðing, tré eða annað sem á ekki heima í hinum flokkunum`, read off her iPhone

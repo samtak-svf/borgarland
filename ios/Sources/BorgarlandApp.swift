@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import FirebaseCore
 import BorgarlandCore
 
@@ -59,7 +60,7 @@ struct BorgarlandApp: App {
             // ends in the background is not lost (data/relay-events.json).
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
-                    Telemetry.shared.flush()
+                    flushBeforeSuspending()
                 }
                 if phase == .active {
                     // The second retry trigger for a queued report (#73). The
@@ -73,5 +74,64 @@ struct BorgarlandApp: App {
                 }
             }
         }
+    }
+
+    /// The background flush, with an execution window to finish in.
+    ///
+    /// #126: App Store Connect counted fourteen build-5 sessions on
+    /// 2026-08-24 and the relay recorded one. The mechanism is here rather
+    /// than in the queue or in a lost iOS version. A person who opens the app,
+    /// looks and leaves reaches none of the other flush points — there is no
+    /// report, so no send-result flush, and far fewer than the twenty events
+    /// the threshold wants — so the whole session rests on this one call. And
+    /// this one call posted with `URLSession.shared` from a process iOS was
+    /// already suspending, with nothing asking it to wait. The buffer is
+    /// memory only, so a batch that does not make it out dies with the
+    /// process and leaves nothing anywhere to say a session happened.
+    ///
+    /// `beginBackgroundTask` is the ask. It buys the seconds the POST needs
+    /// and is ended the moment `flush` reports, so the app is not held awake
+    /// past its own work. The expiration handler is iOS running out of
+    /// patience first; there is nothing to salvage at that point, and the
+    /// batch is already back in the buffer where it will die with the process,
+    /// which is the honest outcome rather than a silent one.
+    ///
+    /// `ended` guards the pair: the completion and the expiration handler can
+    /// both arrive, and ending an assertion twice is a crash. Both hops go
+    /// through the main queue, so the flag needs no lock of its own.
+    private func flushBeforeSuspending() {
+        let assertion = BackgroundAssertion()
+        assertion.identifier = UIApplication.shared
+            .beginBackgroundTask(withName: "telemetry-flush") { [assertion] in
+                assertion.end()
+            }
+        guard assertion.identifier != .invalid else {
+            // No assertion granted. Flush anyway: that is exactly the
+            // behaviour this replaces, and it is strictly better than not
+            // flushing at all.
+            Telemetry.shared.flush()
+            return
+        }
+        Telemetry.shared.flush { [assertion] in
+            // The transport answers on its own thread; the assertion is UIKit.
+            DispatchQueue.main.async { assertion.end() }
+        }
+    }
+}
+
+/// Owns one background-task assertion so it can only be ended once.
+///
+/// Both callers can arrive: `flush`'s completion when the POST is done, and
+/// the expiration handler when iOS runs out of patience first. Ending the same
+/// assertion twice traps, so the identifier lives in one place rather than in
+/// a local variable two closures each captured. Only ever touched on the main
+/// queue, which is why it carries no lock.
+private final class BackgroundAssertion {
+    var identifier: UIBackgroundTaskIdentifier = .invalid
+
+    func end() {
+        guard identifier != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(identifier)
+        identifier = .invalid
     }
 }
