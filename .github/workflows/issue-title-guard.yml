@@ -77,9 +77,22 @@ jobs:
             }
 
             const labelled = (issue.labels || []).some((l) => (l.name || l) === LABEL);
+
+            // Two stages, mirroring scripts/issue-title-guard.mjs. Validity is
+            // ASCII; DIAGNOSIS is widened to Icelandic letters so the comment can
+            // say "`skráning` is not an area, did you mean `skraning`?" instead
+            // of "no area prefix at all", which was both unhelpful and untrue in
+            // Icelandic repos. An accented token is never valid.
             const m = /^([a-z0-9-]+):\s+\S/.exec(issue.title || "");
-            const area = m ? m[1] : null;
-            const ok = !!area && areas.includes(area);
+            const wide = /^([\p{Ll}\p{Lo}0-9-]+):\s+\S/u.exec(issue.title || "");
+            const area = m ? m[1] : (wide ? wide[1] : null);
+            const ok = !!m && areas.includes(m[1]);
+
+            // Same transliteration as the module: accents dropped, þ→th, ð→d,
+            // æ→ae. One rule instead of a per-repo list of spelling pairs.
+            const FOLD = { "þ": "th", "ð": "d", "æ": "ae", "á": "a", "é": "e", "í": "i", "ó": "o", "ú": "u", "ý": "y", "ö": "o" };
+            const folded = area ? [...area].map((c) => FOLD[c] || c).join("") : null;
+            const foldHint = folded && folded !== area && areas.includes(folded) ? folded : null;
 
             if (ok) {
               if (!labelled) return;
@@ -96,7 +109,7 @@ jobs:
             // Comment + label only on first detection — no spam on repeated edits.
             if (labelled) return;
             await github.rest.issues.addLabels({ owner, repo, issue_number: num, labels: [LABEL] });
-            const near = area && nearMisses[area];
+            const near = (area && nearMisses[area]) || foldHint;
             const body = [
               "🚫 **This issue title does not follow the repo convention.**",
               "",
