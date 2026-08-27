@@ -50,8 +50,26 @@ settings:
     # event recording that somebody was asked now fires only when a dialog is
     # actually put up (#139). Build 5 emitted neither, so the asked-to-answered
     # gap is measurable from this build and from no earlier one.
+    # 7: the first build that tells somebody a refusal is final, and the first
+    # whose telemetry survives being closed. A report outside Reykjavik cannot
+    # be made to succeed by pressing send again, and build 6 offered the button
+    # anyway; this one disables it and says which postal locality the nearest
+    # registered address is in (#148). And a session where somebody opens the
+    # app, looks and leaves used to leave no trace at all: the buffer is memory
+    # only, the flush at background posted from a process iOS was already
+    # suspending, and nothing asked it to wait. This build holds a
+    # background-task assertion across that flush (#126), so every iOS count
+    # taken before it is a lower bound rather than a measurement.
+    #
+    # Two things in it are not the binary. `method` in ExportOptions.plist is
+    # `app-store-connect`, the spelling Xcode has been asking for since build
+    # 5's export log (#103), which travels here because a real ios-v* tag is
+    # the only place that step runs. And the app now answers a
+    # -uiTestDetailsScreen launch argument under `#if DEBUG` so a simulator can
+    # reach the details screen (#125); Release does not compile it, so it is
+    # absent from this build and from every build anybody can install.
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 6
+    CURRENT_PROJECT_VERSION: 7
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is

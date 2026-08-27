@@ -14,8 +14,14 @@
 -->
 <plist version="1.0">
 <dict>
+    <!--
+      `app-store-connect`, not `app-store`. Xcode still accepts the old spelling
+      and prints `IDEDistribution: Command line name "app-store" is deprecated`
+      at the end of a green export, which is the shape #55 had: a warning nobody
+      reads, in the one step that has no local reproduction (#103).
+    -->
     <key>method</key>
-    <string>app-store</string>
+    <string>app-store-connect</string>
     <key>signingStyle</key>
     <string>manual</string>
     <key>signingCertificate</key>
