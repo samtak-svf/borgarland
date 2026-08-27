@@ -32,6 +32,13 @@ on:
     types: [opened, edited, reopened, labeled]
 
 permissions:
+  # `contents: read` is NOT optional here, and its absence is invisible until the
+  # workflow runs. Declaring a permissions block sets every scope you do not name
+  # to `none`, so with `issues: write` alone actions/checkout gets no read access
+  # and its fetch fails with "Repository not found" — a 404 that reads like the
+  # repo is gone rather than like a permission. Caught on the first execution
+  # ever, by a deliberate smoke test on a throwaway issue.
+  contents: read
   issues: write
 
 jobs:
