@@ -1,0 +1,17 @@
+{
+  "$comment": "Issue-title vocabulary for this repo. ONE source of truth, read by BOTH .github/workflows/issue-title-guard.yml and the PreToolUse hook ~/.claude/scripts/issue-title-hook.mjs, so the two cannot drift. Grammar is global (`area: description`); this list is not. NOTE: only 5 of this repo's first 59 issues carried any prefix, so this vocabulary was derived from what the titles are ABOUT rather than from prefixes already in use — see the areas below against `report`(13), `relay`(9), `ios`(8), `city`(8), `android`(7). Existing titles are not retroactively invalid; the guard only sees new ones.",
+  "areas": [
+    "ios", "android", "app", "relay", "report", "location", "permissions",
+    "telemetry", "city", "delivery", "release", "ci", "data", "ui", "photo",
+    "accountability", "apps", "distribution", "dev", "infra", "docs",
+    "security", "memory", "meta", "ops", "content"
+  ],
+  "nearMisses": {
+    "doc": "docs", "chore": "meta", "test": "ci", "build": "release",
+    "testflight": "release", "r8": "release", "runner": "ci",
+    "reykjavik": "city", "municipality": "city", "event": "telemetry",
+    "events": "telemetry", "permission": "permissions", "dialog": "ui",
+    "keyboard": "ui", "accuracy": "location", "send": "delivery",
+    "field-tests": "data", "backend": "relay", "worker": "relay"
+  }
+}
