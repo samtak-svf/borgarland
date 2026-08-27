@@ -119,14 +119,52 @@ export interface AppDeps {
 // iPhone's HEIC arrived mislabeled.
 // ---------------------------------------------------------------------------
 
-/** Fields from an HttpError's extra that are safe to keep in a log line. */
-const LOGGABLE_EXTRA = ['svfnr', 'field', 'mime', 'declared', 'actual', 'reason'] as const
+/**
+ * Fields from an HttpError's extra that are safe to keep in a log line.
+ *
+ * `event` names the allowlisted event a field error was about, so it carries no
+ * more than data/relay-events.json already publishes. `name` is the exception
+ * and is filtered; see safeEventName.
+ */
+const LOGGABLE_EXTRA = [
+  'svfnr',
+  'field',
+  'mime',
+  'declared',
+  'actual',
+  'reason',
+  'event',
+  'name',
+] as const
+
+// `name` is the one client-controlled string that reaches a log line, and #140
+// had this backwards: it called an event name "from a fixed allowlist, not free
+// text". That is true of `event` and false of `name`, because the only throw
+// carrying `name` is the one saying the name is UNKNOWN — so by construction
+// the allowlist did not match it.
+//
+// It is still the single most useful thing to log. One unknown name refuses the
+// whole batch, the app drops a 4xx without retrying, and the report travels on
+// a separate handler and succeeds, so the person filing sees success and the
+// log is the only place that loss is ever visible.
+//
+// Hence filtered rather than trusted. A real event name is kebab-case ASCII and
+// survives untouched; anything else is mangled to dots and bounded, so a
+// description or a coordinate cannot ride this field into the logs even if some
+// future client puts one there.
+const MAX_LOGGED_NAME = 40
+
+function safeEventName(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  return value.slice(0, MAX_LOGGED_NAME).replace(/[^a-z0-9-]/gi, '.')
+}
 
 function safeExtra(extra: Record<string, unknown> | undefined): Record<string, unknown> {
   if (extra === undefined) return {}
   const out: Record<string, unknown> = {}
   for (const key of LOGGABLE_EXTRA) {
-    if (key in extra) out[key] = extra[key]
+    if (!(key in extra)) continue
+    out[key] = key === 'name' ? safeEventName(extra[key]) : extra[key]
   }
   return out
 }
@@ -493,32 +531,51 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
   const db = env.DB
 
   return async function handler(request: Request): Promise<Response> {
+    // Which route is answering, so the catch below can say so.
+    //
+    // Every handler throws HttpError into this one catch, which used to
+    // hardcode `kind: 'report'`. A refused events batch therefore produced a
+    // line claiming to be about a report, and that is the endpoint it is least
+    // affordable on: validateBatch throws before handleEvents' own logEvent
+    // runs, the app treats 4xx as REJECTED and drops the batch without
+    // retrying, and the report goes through on a separate handler. The person
+    // filing sees success and the log is the only remaining witness (#140).
+    //
+    // Assigned by the router as it dispatches rather than derived from the path
+    // a second time, because a second path table is a second thing to keep in
+    // step with this one.
+    let kind = 'unknown'
     try {
       const path = new URL(request.url).pathname
 
       if (path === EVENTS_PATH) {
+        kind = 'events'
         if (request.method === 'POST') return await handleEvents(request)
         return json({ error: 'method-not-allowed' }, 405)
       }
 
       if (path === '/api/health') {
+        kind = 'health'
         if (request.method === 'GET') return await handleHealth()
         return json({ error: 'method-not-allowed' }, 405)
       }
 
       if (path === RELAY.endpoint.path) {
+        kind = 'report'
         if (request.method === 'POST') return await createReport(request)
         return json({ error: 'method-not-allowed' }, 405)
       }
 
       const outcomeMatch = path.match(/^\/api\/reports\/([^/]+)\/outcome$/)
       if (outcomeMatch) {
+        kind = 'outcome'
         if (request.method === 'POST') return await handleOutcome(outcomeMatch[1], request)
         return json({ error: 'method-not-allowed' }, 405)
       }
 
       const getMatch = path.match(/^\/api\/reports\/([^/]+)$/)
       if (getMatch) {
+        kind = 'report'
         if (request.method === 'GET') return await handleGet(getMatch[1])
         return json({ error: 'method-not-allowed' }, 405)
       }
@@ -527,7 +584,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     } catch (error) {
       if (error instanceof HttpError) {
         logEvent({
-          kind: 'report',
+          kind,
           outcome: 'refused',
           code: error.code,
           status: error.status,
@@ -536,7 +593,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
         return json({ error: error.code, ...error.extra }, error.status)
       }
       if (error instanceof RegistryNotLoadedError) {
-        logEvent({ kind: 'report', outcome: 'refused', code: 'registry-not-loaded', status: 503 })
+        logEvent({ kind, outcome: 'refused', code: 'registry-not-loaded', status: 503 })
         return json({ error: 'registry-not-loaded' }, 503)
       }
       console.error('internal error', error)
