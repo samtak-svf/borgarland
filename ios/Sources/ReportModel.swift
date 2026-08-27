@@ -199,6 +199,10 @@ final class ReportModel: ObservableObject {
         Telemetry.shared.appVersion = Self.currentAppVersion
         Telemetry.shared.track(.appOpened)
 
+        #if DEBUG
+        applyUITestSeamIfAsked()
+        #endif
+
         refreshQueuedCount()
         network.pathUpdateHandler = { [weak self] path in
             guard path.status == .satisfied else { return }
@@ -206,6 +210,40 @@ final class ReportModel: ObservableObject {
         }
         network.start(queue: DispatchQueue(label: "is.borgarland.connectivity"))
     }
+
+    #if DEBUG
+    /// A way onto the details screen for a UI test, and no way anywhere else.
+    ///
+    /// The app opens on the camera and a simulator has no camera, so every
+    /// screen past the first is unreachable to XCUITest without a seam. That
+    /// is why #110 — a keyboard covering the button under a text field — was
+    /// invisible to every check this project had and was found by a person
+    /// holding a phone.
+    ///
+    /// Inside `#if DEBUG` because a launch argument that fabricates a report
+    /// must not exist in a build anybody can install. `ios-release.yml` builds
+    /// Release, where this method is not compiled at all, so the seam cannot
+    /// ship even if the argument were somehow passed.
+    ///
+    /// The photograph is four bytes of JPEG marker rather than a real image:
+    /// nothing on this screen decodes it, and the test is about the keyboard,
+    /// not the picture. Nothing is ever sent — reaching the summary screen
+    /// still requires the same guards it always did.
+    private func applyUITestSeamIfAsked() {
+        guard ProcessInfo.processInfo.arguments.contains("-uiTestDetailsScreen") else { return }
+        guard let first = state.categories.first else { return }
+        state.photo = Photo(
+            bytes: Data([0xFF, 0xD8, 0xFF, 0xD9]),
+            name: "uitest.jpg",
+            mime: "image/jpeg",
+            rotationDegrees: 0
+        )
+        state.coordinate = Coordinate(latitude: 64.14658919, longitude: -21.93279823)
+        state.locationSource = "UI test"
+        state.selectedSlug = first.slug
+        state.screen = .details
+    }
+    #endif
 
     /// The envelope's app version in "0.1.0 (3)" form — the marketing
     /// version and the build number, the same pair the Android side builds
