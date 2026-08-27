@@ -114,3 +114,111 @@ describe('the health endpoint is not traffic', () => {
     expect(logged).toHaveLength(0)
   })
 })
+
+// ---------------------------------------------------------------------------
+// #140. A refused events batch used to be logged as `kind: 'report'`, because
+// every handler throws into one router-wide catch and that catch named the
+// kind itself.
+//
+// This is the failure AGENTS.md calls the dangerous half of the
+// deploy-before-ship rule. One unknown event name refuses the WHOLE batch; the
+// app treats 4xx as REJECTED and drops it without retrying; the report travels
+// on a separate handler and succeeds. So the person filing sees success, the
+// measurement is gone, and the log line is the only thing that could ever say
+// so — filed, until now, under the wrong endpoint.
+// ---------------------------------------------------------------------------
+
+const EVENT_SESSION = 'a1b2c3d4e5f6071829304a5b6c7d8e9f'
+
+function postEvents(app: (r: Request) => Promise<Response>, events: unknown[]) {
+  return app(
+    new Request('https://relay.local/api/events', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        session: EVENT_SESSION,
+        platform: 'ios',
+        appVersion: '0.1.0 (6)',
+        events,
+      }),
+    }),
+  )
+}
+
+describe('a refused batch is logged as the endpoint that refused it', () => {
+  it('says events, not report', async () => {
+    const { app } = createTestApp()
+    const response = await postEvents(app, [
+      { name: 'app-opened', atMs: 0 },
+      { name: 'nothing-like-this', atMs: 1 },
+    ])
+    expect(response.status).toBe(400)
+
+    const [event] = lines()
+    expect(event.kind).toBe('events')
+    expect(event.outcome).toBe('refused')
+    expect(event.code).toBe('invalid-event-batch')
+  })
+
+  it('names the event the contract did not know, which is the whole diagnosis', async () => {
+    const { app } = createTestApp()
+    await postEvents(app, [{ name: 'nothing-like-this', atMs: 1 }])
+
+    const [event] = lines()
+    expect(event.name).toBe('nothing-like-this')
+    expect(event.reason).toBe('unknown event name')
+  })
+
+  it('names the known event and the field when a field is the problem', async () => {
+    const { app } = createTestApp()
+    await postEvents(app, [{ name: 'app-opened', atMs: 0, smuggled: 'x' }])
+
+    const [event] = lines()
+    // `event` is matched against the allowlist before this throw is reachable,
+    // so it carries no more than data/relay-events.json already publishes.
+    expect(event.event).toBe('app-opened')
+    expect(event.field).toBe('smuggled')
+  })
+
+  it('still logs a refused report as a report, which is what it always did', async () => {
+    const { app } = createTestApp()
+    await postReport(app, reportForm(KOPAVOGUR_POINT))
+    expect(lines()[0].kind).toBe('report')
+  })
+})
+
+describe('the one client-controlled string in a log line is filtered', () => {
+  // `name` reaches a log only on the throw that says the name is UNKNOWN, so
+  // by construction the allowlist did not match it: it is an arbitrary string
+  // from the client. #140 reasoned the opposite way round, which is why this
+  // is tested rather than argued.
+  it('keeps a real event name intact', async () => {
+    const { app } = createTestApp()
+    await postEvents(app, [{ name: 'photo-captured-typo', atMs: 1 }])
+    expect(lines()[0].name).toBe('photo-captured-typo')
+  })
+
+  it('a description cannot ride the name field into the logs', async () => {
+    const { app } = createTestApp()
+    await postEvents(app, [{ name: SECRET_DESCRIPTION, atMs: 1 }])
+
+    const all = logged.join('\n')
+    expect(all).not.toContain(SECRET_DESCRIPTION)
+    expect(all).not.toContain('5812345')
+    // Spaces and digits are gone, and the 40-character cap cuts it mid-word.
+    // The shape survives well enough to debug with, which is the whole trade.
+    expect(lines()[0].name).toBe('Sorpid.vid.husid.mitt.og.simanumerid.mit')
+  })
+
+  it('bounds the length, so no one field can flood a log line', async () => {
+    const { app } = createTestApp()
+    await postEvents(app, [{ name: 'a'.repeat(500), atMs: 1 }])
+    expect(String(lines()[0].name)).toHaveLength(40)
+  })
+
+  it('a non-string name logs as null rather than as an object', async () => {
+    const { app } = createTestApp()
+    await postEvents(app, [{ name: { nested: 'x' }, atMs: 1 }])
+    expect(lines()[0].name).toBeNull()
+  })
+})

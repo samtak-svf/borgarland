@@ -69,17 +69,33 @@ It was measured with two curls against the live relay, minutes apart:
 ```
 
 A real walk on a phone lost its whole batch that way. **How many events that
-was is not recorded anywhere**, and an earlier draft of this note gave a number
-regardless. A refused batch stores no row by definition, and the log line the
-refusal does produce carries only `reason`: `safeExtra` filters `error.extra`
-against `LOGGABLE_EXTRA`, which has no batch size in it and does not even pass
-the offending event `name` through, though the response to the client does. So
-the only witness left is the phone, and nobody read it.
+was is still not recorded anywhere**, and an earlier draft of this note gave a
+number regardless. A refused batch stores no row by definition, and nothing
+counts what it was carrying, so for that walk the only witness was the phone
+and nobody read it.
 
-The refusal is also logged as `kind: 'report'`, because the router-wide catch
-in `app.ts` hardcodes that field for every route. Anyone grepping the logs for
-what the events endpoint did will not find this, which is worth knowing before
-trusting a log search to tell you a batch was never refused.
+The two things that made the line itself unreadable are fixed (#140), and the
+fix does not recover that walk — it only means the next one is legible:
+
+- **The kind is the route's now, not the catch's.** `app.ts` hardcoded
+  `kind: 'report'` for every route, so a refused batch produced one line
+  claiming to be about a report. The router assigns `kind` as it dispatches,
+  which also gives `outcome` and `health` their own names.
+- **`LOGGABLE_EXTRA` passes the offending event through.** `event` names the
+  allowlisted event a field error was about; `name` names the event the
+  allowlist did not know, which is the entire diagnosis and used to reach only
+  the client.
+
+`name` is the one client-controlled string in a log line, and #140 had its
+privacy argument backwards: it reasoned the value comes from a fixed
+allowlist, when the only throw carrying it is the one saying the allowlist did
+NOT match. So it is filtered rather than trusted — kebab-case ASCII survives
+intact, everything else is mangled to dots and capped at 40 characters, and
+`tests/logging.test.ts` posts a description as an event name to prove a
+sentence cannot ride that field into the logs.
+
+Still not in the line: how many events the batch held. Worth adding the day
+somebody needs it; nothing needs it yet.
 
 The report itself went through, because that is a different endpoint with a
 different contract, so the failure is invisible from the app: the person sees
