@@ -28,6 +28,13 @@ import Security
 ///      reaches the airplane-mode toggle, so the flush most likely to fail
 ///      is the one carrying the outage we are trying to measure. Dropping
 ///      under the cap is still correct; dropping on a failed request is not.
+///   6. The buffer is memory only, deliberately — a session id that is never
+///      persisted cannot have its events persisted either. The cost is that
+///      an undelivered batch dies with the process, so on iOS the background
+///      flush is a race against suspension and the shell has to hold a
+///      background-task assertion open until `flush`'s completion fires
+///      (#126). Without one, a person who opens the app, looks and leaves
+///      produces no record at all.
 ///
 /// Testable by injection: `send` is a closure a test replaces to capture the
 /// body without a network, and `now`/`sessionStart`/`sessionID` are
@@ -200,11 +207,22 @@ public final class Telemetry {
     /// is deliberate. A duplicated event is visible in the timeline and can be
     /// read around; a missing one is indistinguishable from someone standing
     /// still, which is exactly how #74 hid for a whole field test.
-    public func flush() {
+    ///
+    /// `completion` reports that this flush is over, delivered or not, and is
+    /// the whole reason it exists: on iOS the background flush is a race
+    /// against process suspension, and the shell needs to know when the POST
+    /// is done so it can hold a background-task assertion open for exactly
+    /// that long and no longer (#126). It is called exactly once, on whatever
+    /// thread the transport answered on, including on the paths that send
+    /// nothing at all.
+    public func flush(completion: (() -> Void)? = nil) {
         let batch: [BufferedEvent]
         lock.lock()
         if inFlight {
             lock.unlock()
+            // Another flush owns the channel. This one is over; the assertion
+            // held for it must not outlive it waiting on somebody else.
+            completion?()
             return
         }
         if buffer.count > maxBatch {
@@ -215,17 +233,22 @@ public final class Telemetry {
         inFlight = !batch.isEmpty
         lock.unlock()
 
-        guard !batch.isEmpty else { return }
+        guard !batch.isEmpty else {
+            completion?()
+            return
+        }
         guard let body = encode(batch) else {
             // Unencodable, so no amount of network will help. Drop it and let
             // the channel go again; this cannot happen with the contract's
             // field types and would be a bug in this file if it did.
             finish(batch, .rejected)
+            completion?()
             return
         }
         let transport = send ?? httpSend
         transport(body, BatchReceipt { [weak self] outcome in
             self?.finish(batch, outcome)
+            completion?()
         })
     }
 
