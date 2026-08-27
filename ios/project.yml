@@ -50,8 +50,16 @@ settings:
     # event recording that somebody was asked now fires only when a dialog is
     # actually put up (#139). Build 5 emitted neither, so the asked-to-answered
     # gap is measurable from this build and from no earlier one.
+    # 7: the first build that tells somebody a refusal is final. A report
+    # outside Reykjavik cannot be made to succeed by pressing send again, and
+    # build 6 offered the button anyway; this one disables it and says which
+    # postal locality the nearest registered address is in (#148). It also
+    # changes how it is exported rather than what it does: `method` in
+    # ExportOptions.plist is `app-store-connect`, the spelling Xcode has been
+    # asking for since build 5's export log (#103). Nothing about the binary
+    # depends on that, which is why it travels with a build being cut anyway.
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 6
+    CURRENT_PROJECT_VERSION: 7
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
