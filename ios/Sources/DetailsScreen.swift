@@ -111,6 +111,12 @@ struct DetailsScreen: View {
                 )
                 .lineLimit(4...10)
                 .focused($descriptionFocused)
+                // Named for the UI test that asserts the control below stays
+                // hittable with the keyboard up (#110, #125). A SwiftUI
+                // TextField with `axis: .vertical` is a text VIEW to XCUITest
+                // on some iOS versions and a text FIELD on others, so the
+                // query is by identifier rather than by element type.
+                .accessibilityIdentifier("description-field")
                 .padding(8)
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.systemGray4)))
                 .padding(.top, 8)
@@ -130,6 +136,9 @@ struct DetailsScreen: View {
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 16)
                 .disabled(state.selectedSlug == nil || descriptionIsBlank(state))
+                // The control #110 was about: the keyboard covered it, and a
+                // compile cannot see that.
+                .accessibilityIdentifier("continue-button")
 
                 if state.selectedSlug == nil || descriptionIsBlank(state) {
                     Text("Veldu flokk og skrifaðu lýsingu til að halda áfram. Borgin krefst lýsingar.")

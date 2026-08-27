@@ -172,3 +172,47 @@ targets:
           PROVISIONING_PROFILE_SPECIFIER: "Borgarland App Store"
           CODE_SIGNING_REQUIRED: "YES"
           CODE_SIGNING_ALLOWED: "YES"
+
+  # The one check that can see a layout, and the only one that could have
+  # caught #110 without a person holding a phone (#125). It runs on a
+  # simulator, which macos-latest already has and which this repository pays
+  # nothing for.
+  #
+  # `bundle.ui-testing` drives the app from a separate process, so it needs the
+  # app target as a dependency and nothing else. Unsigned like the app's own
+  # simulator build; signing belongs to ios-release.yml alone.
+  BorgarlandUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Borgarland
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1"
+        PRODUCT_BUNDLE_IDENTIFIER: is.borgarland.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+
+# Declared rather than left to Xcode's autocreation, because `xcodebuild test`
+# needs the UI test bundle to be IN the scheme's test action and an autocreated
+# scheme is not shared, so CI cannot see it. `ios-release.yml` archives this
+# same scheme; its build and archive actions are unchanged by the test action
+# gaining a target.
+schemes:
+  Borgarland:
+    build:
+      targets:
+        Borgarland: all
+        BorgarlandUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - BorgarlandUITests
+    run:
+      config: Debug
+    archive:
+      config: Release

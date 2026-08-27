@@ -88,3 +88,88 @@ jobs:
           name: Borgarland-simulator
           path: ios/build/Build/Products/Debug-iphonesimulator/Borgarland.app
           retention-days: 14
+
+  # The only check in this repository that can see a layout.
+  #
+  # Every iOS defect this project has found came from a person holding a phone:
+  # #73, #74, #76, #77, #78 and #79 from one field test, #85 and #86 from
+  # another. The loop is a signed build, an upload, App Store processing and
+  # somebody's evening. #110 was the clearest case, a keyboard covering a
+  # submit button, and it compiled perfectly, passed every unit test, and sat
+  # in screenshots nobody had read yet.
+  #
+  # A simulator catches that shape for the price of a job on a runner this
+  # public repository already gets free. It does NOT replace a phone in a hand;
+  # data/field-tests.json exists because the two find different things (#125).
+  #
+  # A separate job rather than another step in `build`, so a UI failure and a
+  # compile failure are never diagnosed as each other.
+  uitest:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      # The destination is RESOLVED, not named. Runner images rename and retire
+      # devices, and a workflow that needs 'iPhone 16' to exist fails months
+      # later for a reason with nothing to do with the code, which is the same
+      # lesson the generic destination in the build job above is written for. A
+      # UI test cannot use a generic destination, so it asks the runner what it
+      # actually has instead of assuming.
+      - name: Pick a simulator the runner actually has
+        id: sim
+        run: |
+          set -o pipefail
+          xcrun simctl list devices available | grep -i iphone || true
+          udid=$(xcrun simctl list devices available \
+            | awk -F'[()]' '/^[[:space:]]*iPhone/ { print $2; exit }')
+          if [ -z "$udid" ]; then
+            echo "::error::no available iPhone simulator on this runner"
+            exit 1
+          fi
+          echo "Chose $udid"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # A hardware keyboard attached to the simulator suppresses the software
+      # one, and the software keyboard is the entire subject of these tests.
+      # Without this the assertion that it came up fails, which is the right
+      # direction to fail in and still a wasted run.
+      - name: Make the software keyboard the one that appears
+        run: defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false || true
+
+      # `set -o pipefail` for the same reason as the build job: piping into a
+      # formatter otherwise hands the step the FORMATTER's exit code, and a
+      # failed test run reports success.
+      - name: Run the UI tests on the simulator
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Borgarland.xcodeproj \
+            -scheme Borgarland \
+            -configuration Debug \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath build \
+            -resultBundlePath build/uitest.xcresult \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      # Failure screenshots are in here, which is the whole point on a machine
+      # nobody can look at.
+      - name: Keep the result bundle
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Borgarland-uitest-results
+          path: ios/build/uitest.xcresult
+          retention-days: 14
