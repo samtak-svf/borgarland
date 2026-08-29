@@ -3219,6 +3219,180 @@
         "Anything about the DETAILS screen with the keyboard up, which is the screen #110 actually bit and the one this change gave a second text field immediately above the same control. Only the new onboarding screen was measured here, on Android. That gap was not idle: the iOS simulator test failed on exactly it in the first CI run after this record was written — the address field had pushed the button under the keyboard — and the fix pins the control with safeAreaInset(edge: .bottom) rather than leaving it last inside the ScrollView. Android's details screen still has no equivalent measurement.",
         "That the two platforms agree on what counts as an address. They did not: Java's Character.isWhitespace returns false for a non-breaking space and Swift's returns true, so 'nafn@example\\u00A0.is' was accepted on Android and refused on iOS, and neither test table carried a case that could tell them apart. Found by review after this walk, not by it. Both validators now use one explicit code-point table."
       ]
+    },
+    {
+      "id": "2026-08-29-android-the-address-reached-the-city-payload-and-nothing-kept-it",
+      "date": "2026-08-29",
+      "platform": "android",
+      "what": "The first walk on a build that carries the reporter's address, against the DEPLOYED relay rather than one on the development machine — and the first time both halves of #163's promise were observed together rather than one being inferred. The city payload on the summary screen reads \"email\":\"gudrodur@gmail.com\"; the stored row has no email key, and the reports table no longer has a column that could hold one.",
+      "device": {
+        "model": "Samsung SM-S918B (Galaxy S23 Ultra), 1080x2316",
+        "note": "Known because the phone is on a cable here, NOT from the telemetry, which names no device — and since #128 not from the User-Agent either."
+      },
+      "build": {
+        "variant": "release, upload-signed locally and installed over adb; NOT from CI and not on any track",
+        "appVersion": "0.1.0 (7)",
+        "signing": "the upload key from Secret Manager, CN=Borgarland, O=Samtak svf., SHA-256 35f297e41be8bb04e3362130c926d57a860cdcf9d0a1108b0e9c33de1f03184c",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the string in the APK's own dex, checked before installing, with no loopback string present; `adb reverse` was cleared first so the phone could not fall back to this machine; and app_version in the deployed D1 reads 0.1.0 (7)"
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "The deployed Worker, version fd2ac37c, put out ten minutes before this walk — the first deploy carrying #163. Migration 0004 had already been applied to the remote D1, so the email column was gone before this report was filed rather than merely unwritten. Unarmed, so the city never saw it."
+      },
+      "session": "106716c5c70b54d97420e7ffce5a6b1d",
+      "method": "Timeline and row transcribed from the DEPLOYED D1 by query on 2026-08-29, unedited. The city payload is read from a screenshot of the summary screen, which is the only place it is visible at all: the relay does not log the address and the row cannot hold it.",
+      "timeline": [
+        {
+          "atMs": 0,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 3535,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 8410,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 13844,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 893,
+            "bytes": 2113304,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 13844,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 0,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 14077,
+          "name": "location-permission-asked",
+          "fields": {}
+        },
+        {
+          "atMs": 15685,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 15694,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 1850,
+            "source": "device",
+            "accuracyM": 50
+          }
+        },
+        {
+          "atMs": 15694,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 18258,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 4414,
+            "slug": "nidurfoll"
+          }
+        },
+        {
+          "atMs": 36387,
+          "name": "description-length",
+          "fields": {
+            "length": 17
+          }
+        },
+        {
+          "atMs": 38976,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 44711,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 45223,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 512,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 14,
+          "receivedAt": "2026-08-29T23:39:45.952Z",
+          "firstAtMs": 0,
+          "lastAtMs": 45223,
+          "note": "One batch, all fourteen events, 267 ms after the report row was written at 23:39:45.685Z — the send-result flush. Boundaries read from received_at, not inferred."
+        }
+      ],
+      "confirmed": [
+        {
+          "what": "The address travelled. cityPayload.fields.email on the summary screen reads gudrodur@gmail.com, beside the city's own vocabulary (type specific, category Niðurföll, summary 'Ábending -> Niðurföll') which only the relay's adapter composes.",
+          "how": "read off the phone's screen. The previous entry could only INFER this from the code path — a missing address would have thrown in the body builder and produced send-failed(encoding) with no row. This is the observation that inference was standing in for."
+        },
+        {
+          "what": "The relay kept none of it. The stored row has fifteen columns and email is not among them; a query across every value in the row finds no @ at all.",
+          "how": "queried against the DEPLOYED D1 after migration 0004, not the local one. The column does not exist, so this cannot regress by an oversight at a call site — it would take a migration."
+        },
+        {
+          "what": "photo-captured bytes 2113304 equals the row's photo_bytes, and description-length 17 equals the typed text 'stíflað niðurfall'.",
+          "how": "two independent sources compared, per AGENTS.md step 3. As in the previous entry, the comparison is against the TYPED text: the row holds what the relay composed, which is that plus the appended address line."
+        },
+        {
+          "what": "The jurisdiction check passed on a real coordinate: 64.1486312, -21.7809494 resolved to Gullengi 39, 112 Reykjavík, and the relay appended it to the description for the crew.",
+          "how": "the composed description in the row, and the report being accepted at all — acceptance requires SVFNR 0000 within 10 km."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 163,
+          "what": "The camera permission was refused and then granted again, 3.54 s and 8.41 s into the session — the same shape as the walk earlier the same evening (29.31 s and 38.27 s). Twice is not a coincidence and it is not an explanation either; nothing in the telemetry says why, and the tester's account did not settle it. Recorded as observed."
+        },
+        {
+          "issue": 164,
+          "what": "The only evidence that the address travelled is a screenshot a person took and sent. Nothing in the walk captured it, and the relay deliberately cannot — which is precisely the gap #164 is about, and the reason that screenshot belongs in private/screenshots rather than here."
+        }
+      ],
+      "notFoundHere": [
+        "The city's confirmation email, which is the entire point of collecting the address. The relay is unarmed, the city never saw this report, and the address reached the door without being used. That is settled only by the one deliberate real submission, which is decision 0006.",
+        "Onboarding's cost. It emits no telemetry by design, so the 3.54 s from app-opened to the first camera-permission is an upper bound containing app startup and a permission dialog as well.",
+        "The details screen's editable copy of the address. It was prefilled from the device and left alone; the correction path has still never been walked on either platform.",
+        "Anything about iOS. This build is Android, and the iOS half of #163 has been compiled by CI and run by nobody.",
+        "Whether the keyboard covers the control on either screen of THIS build. The onboarding measurement in the previous entry was taken on the same handset and the same Android layout, which is unchanged since; this walk did not re-measure it, and a 2316-tall display is where there is most room to spare.",
+        "Anything about a phone that is not this one. One handset, one Android version, one screen size."
+      ]
     }
   ]
 }
