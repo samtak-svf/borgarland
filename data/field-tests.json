@@ -2965,6 +2965,79 @@
         "Nothing about #139's actual claim, which needs two photographs in one uninterrupted run and has still never been walked.",
         "Nothing about how a person out of Reykjavik should proceed, because the app does not tell her."
       ]
+    },
+    {
+      "id": "2026-08-29-ios-build-7-the-flush-that-survives-being-closed",
+      "date": "2026-08-29",
+      "platform": "ios",
+      "what": "The first real telemetry from build 7, and the direct test of #126 that no CI run can perform. Not a walk: a rack device in a data centre, driven from a browser, opened the app and was sent to the background. Two events, no report, far below the twenty-event threshold. It arrived. That session shape is exactly the one that used to leave no trace at all.",
+      "device": {
+        "model": "unknown",
+        "note": "A BrowserStack real device, iPhone 15. The iOS version is NOT known: the picker was on 17.0 when the first attempt was cancelled and the intended pick was the iOS 26 row, and the telemetry names no device or OS by design. Do not read an OS version into this entry."
+      },
+      "build": {
+        "variant": "the ios-v0.1.0-build7 CI artifact, uploaded to BrowserStack and re-signed by them with their own wildcard profile",
+        "appVersion": "0.1.0 (7)",
+        "signing": "built and signed for Apple team B4724Z74TM as app-store-connect, then RE-SIGNED by BrowserStack. The binary is the one testers have; the signature is not.",
+        "relayHost": "https://borgarland.samtak.is",
+        "hostVerifiedOn": "the events themselves, which reached the deployed relay, and app_version in D1 reads 0.1.0 (7)"
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "Unarmed, and never approached: no report was filed. Row count read from GET /api/health on 2026-08-28."
+      },
+      "session": "69c3b1097c9fcc45147d53506c925246",
+      "method": "Transcribed from D1 by query on 2026-08-29. This is ONE of four identical sessions in the same two-minute window, all 0.1.0 (7), all app-opened plus camera-permission, each delivered in a single batch: dd03636e015fc73318c0557784c16da1 at 00:34:16.935Z, ed5e5558eb8197e923793cdb229bd2a3 at 00:35:07.011Z, f6306160980e507f75386cffd6c42e5e at 00:35:29.017Z, and this one. Only this session is transcribed, because the record format holds one session and the four are indistinguishable. Four of four were delivered.",
+      "timeline": [
+        {
+          "atMs": 0,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 126,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 2,
+          "receivedAt": "2026-08-29T00:36:02.405Z",
+          "firstAtMs": 0,
+          "lastAtMs": 126
+        }
+      ],
+      "deliveryNote": "One batch, both events, delivered. The batch cannot have been sent by the twenty-event threshold, which two events do not reach, and cannot have been sent by the send-result flush, which requires a report that was never filed. The only remaining flush point in the shell is scenePhase == .background.",
+      "confirmed": [
+        126
+      ],
+      "findings": [
+        {
+          "issue": 126,
+          "severity": "fixed",
+          "what": "The background flush now survives suspension. #126 was that a person who opens the app, looks and leaves reaches no flush point except the one at background, and that one posted with URLSession.shared from a process iOS was already suspending, with nothing asking it to wait. Build 7 holds a beginBackgroundTask assertion across the flush. This is the first session of that exact shape to arrive, and four of four did.",
+          "evidence": "Sessions 69c3b109, dd03636e, ed5e5558 and f6306160, all app_version 0.1.0 (7), each two events, each delivered in one batch between 00:34:16.935Z and 00:36:02.405Z on 2026-08-29. Before these, the only 0.1.0 (7) row in the whole database was a hand-made probe from 2026-08-27T23:51:57.168Z."
+        },
+        {
+          "issue": 147,
+          "severity": "open-question",
+          "what": "This run could not test #147 and no run on a device farm can. The location prompt is gated on model.state.needsLocationPermission, which becomes true only when a photograph exists with no usable EXIF GPS. A rack device has no usable camera: camera-permission is granted:false in all four sessions, and the photo library is wiped between sessions. Without a photograph the app never reaches the location step.",
+          "evidence": "camera-permission granted:false in all four sessions. CameraScreen.swift runs the permission dance in .task(id: model.state.needsLocationPermission).",
+          "whatWouldSettleIt": "A phone that has already been granted Allow While Using App, relaunched. That state cannot exist on a device wiped between sessions, so it has to come from a tester. Asked of one on 2026-08-29 at 00:23."
+        }
+      ],
+      "notFoundHere": [
+        "Nothing about iOS version behaviour. The device picker was on 17.0 when a first attempt was cancelled, the intended pick was an iOS 26 row, and the telemetry names no OS. Which one ran this is not known and must not be inferred.",
+        "Nothing about the camera, the photograph, the coordinate, the category, the description or the send. The run stops at launch by design.",
+        "Nothing about #147, and nothing a device farm can ever say about it: the location prompt needs a photograph that a rack device cannot take.",
+        "No evidence either way about whether the three testers who have build 7 installed had opened it. At the time of this run they had produced no events at all, which is consistent both with not having opened it and with a defect this run then disproved.",
+        "Nothing about the city. The relay is unarmed and no report was filed, so no report row exists for this run."
+      ]
     }
   ]
 }
