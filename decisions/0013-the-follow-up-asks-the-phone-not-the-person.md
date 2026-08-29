@@ -41,6 +41,27 @@ the id, which the relay already has a row for.
 and stores nothing about who filed it.** No email, no account, no contact of any
 kind, and no identifying column in D1.
 
+> **2026-08-29, #163:** the app now collects an address, because the city
+> answers a report by email and by nothing else — see
+> [0015](0015-the-address-is-required-by-us-and-lives-on-the-phone.md). So "no
+> email" above is dated as a statement about the APP.
+>
+> **The paragraph it qualifies is still true of the relay, and more literally
+> than when it was written.** The address is forwarded to the city and kept
+> nowhere here; migration 0004 drops the `email` column outright, so `reports`
+> has no place to put one. The relay application still stores nothing about who
+> filed a report, and there is still no identifying column in D1.
+>
+> The DECISION is untouched: the follow-up asks the phone, keys on an id
+> generated on the device, and needs no way to reach anybody. It did not become
+> an email question the moment an address existed.
+>
+> An earlier version of this very note said the opposite — that D1's `email`
+> column now held real values. It was written while that was the plan and
+> outlived it by about an hour, which is the failure mode this repository keeps
+> finding in its own prose: a sentence describing an intention rather than the
+> tree.
+
 That is narrower than what this decision said when it was written. It said "no
 device identifier", full stop, and that was false of the wire: Android's
 `HttpURLConnection` sends a default `User-Agent` built from device build

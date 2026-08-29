@@ -36,8 +36,8 @@
       "notes": "the relay appends the nearest registered address line for the crew (AGENTS.md) and drops it rather than overflow the limit; the limit is the city's, enforced by the relay."
     },
     "email": {
-      "required": false,
-      "notes": "the only way the reporter hears back; the POC never collects it, the relay forwards it when present."
+      "required": true,
+      "notes": "the only way the reporter hears back: the city answers a report by email and by nothing else (data/reykjavik-form.json fields.email), so a report filed without one lands in the queue and the person who filed it is never told anything by anyone but us. Required BY US, exactly as the coordinate is (#163) — the city enforces neither.\n\nRead `required` here as the APP's obligation, not the relay's tolerance. The Worker uses this file for the unknown-field allowlist alone and hardcodes the email as optional (worker/src/app.ts), so it keeps accepting a report from a build that predates this. That divergence is deliberate and is the only one: tightening the relay first would reject every report from builds 6 and 7, which are on testers' phones and send no email. The relay follows once no such build remains.\n\nThe address belongs to the phone rather than to the report. It is typed once, stored on the device beside the queue and the follow-ups, and prefilled — so a queued report picks up whatever address the phone holds when it finally sends, not the one it held when it was filed."
     },
     "photo": {
       "required": false,

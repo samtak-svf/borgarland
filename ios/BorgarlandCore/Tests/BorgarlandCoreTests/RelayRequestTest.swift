@@ -28,7 +28,11 @@ final class RelayRequestTest: XCTestCase {
         XCTAssertTrue(contract.latitude.required)
         XCTAssertTrue(contract.longitude.required)
         XCTAssertTrue(contract.description.required)
-        XCTAssertFalse(contract.email.required)
+        // Required of the APP, not of the relay (#163). The Worker still
+        // accepts a report without an address, because builds 6 and 7 send
+        // none; worker/tests/contract.test.ts pins that half. This is the one
+        // field where the two sides differ on purpose.
+        XCTAssertTrue(contract.email.required)
         XCTAssertFalse(contract.photo.required)
     }
 
@@ -52,7 +56,8 @@ final class RelayRequestTest: XCTestCase {
             latitude: 64.14658919,
             longitude: -21.93279823,
             description: "Full ruslafata við stíginn",
-            photos: [Photo(bytes: Data([1, 2, 3]), name: "mynd.jpg", mime: "image/jpeg", rotationDegrees: 0)]
+            photos: [Photo(bytes: Data([1, 2, 3]), name: "mynd.jpg", mime: "image/jpeg", rotationDegrees: 0)],
+            email: "nafn@example.is"
         )
 
         let boundary = "----boundary"
@@ -72,6 +77,9 @@ final class RelayRequestTest: XCTestCase {
             + "--\(boundary)\r\n"
             + "Content-Disposition: form-data; name=\"description\"\r\n\r\n"
             + "Full ruslafata við stíginn\r\n"
+            + "--\(boundary)\r\n"
+            + "Content-Disposition: form-data; name=\"email\"\r\n\r\n"
+            + "nafn@example.is\r\n"
             + "--\(boundary)\r\n"
             + "Content-Disposition: form-data; name=\"photo\"; filename=\"mynd.jpg\"\r\n"
             + "Content-Type: image/jpeg\r\n\r\n"
@@ -98,16 +106,17 @@ final class RelayRequestTest: XCTestCase {
             latitude: 64.14658919,
             longitude: -21.93279823,
             description: "lýsing",
-            photos: []
+            photos: [],
+            email: "nafn@example.is"
         )
 
         let body = try MultipartBodyBuilder.buildBody(payload: payload, contract: contract, boundary: "----b")
 
-        // email is optional and the app never collects it; photo is optional
-        // and this payload has none. Neither part may appear.
+        // photo is optional and this payload has none, so the part may not
+        // appear. reportId is optional too and this payload carries none.
         let text = String(decoding: body, as: UTF8.self)
-        XCTAssertFalse(text.contains("name=\"email\""))
         XCTAssertFalse(text.contains("name=\"photo\""))
+        XCTAssertFalse(text.contains("name=\"reportId\""))
         XCTAssertTrue(text.contains("name=\"category\""))
     }
 
@@ -124,6 +133,7 @@ final class RelayRequestTest: XCTestCase {
                 longitude: -21.93279823,
                 description: "lýsing",
                 photos: [],
+                email: "nafn@example.is",
                 reportId: id
             ),
             contract: contract,
@@ -144,7 +154,8 @@ final class RelayRequestTest: XCTestCase {
                 latitude: 64.14658919,
                 longitude: -21.93279823,
                 description: "lýsing",
-                photos: []
+                photos: [],
+                email: "nafn@example.is"
             ),
             contract: contract,
             boundary: "----boundary"
@@ -153,24 +164,18 @@ final class RelayRequestTest: XCTestCase {
         XCTAssertFalse(text.contains("reportId"), "an optional part with no value is not written at all")
     }
 
-    func testRequiredRoleTheAppCannotFillFailsLoudly() throws {
-        // A role the app has no binding for must not be silently omitted:
-        // that is exactly how the app and the relay drift apart. The Kotlin
-        // test injects a synthetic extra field into the contract map; this
-        // model is structural, so the equivalent is a role the app can never
-        // fill — email is never collected, and a contract that requires it
-        // must fail before a byte of the body exists.
+    func testAReportWithNoAddressCannotBeBuilt() throws {
+        // The city answers a report by email and by nothing else, so we
+        // require one though the city does not (#163). The refusal lives in
+        // the same loop that refuses any missing required part — one gate, not
+        // a second rule beside the screen's.
+        //
+        // This test used to prove the same mechanism by INVENTING a contract
+        // that required the email, on the stated grounds that the app could
+        // never fill it. That premise is now false, and the real contract says
+        // what the synthetic one used to, so the case is the honest one: a
+        // payload with no address, against the file as it actually ships.
         let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
-        let broken = RelayRequestFile(
-            endpoint: contract.endpoint,
-            category: contract.category,
-            latitude: contract.latitude,
-            longitude: contract.longitude,
-            description: contract.description,
-            email: FieldSpec(required: true, maxLength: nil, accept: nil),
-            photo: contract.photo,
-            reportId: contract.reportId
-        )
         let payload = Payload(
             categorySlug: "ruslafotur",
             latitude: 64.14658919,
@@ -180,7 +185,7 @@ final class RelayRequestTest: XCTestCase {
         )
 
         XCTAssertThrowsError(
-            try MultipartBodyBuilder.buildBody(payload: payload, contract: broken, boundary: "----boundary")
+            try MultipartBodyBuilder.buildBody(payload: payload, contract: contract, boundary: "----boundary")
         ) { error in
             XCTAssertEqual(error as? RelayContractError, .requiredFieldMissing(wireName: "email"))
         }

@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. A `docs/research/` write-up of a test should cite the id here, and so should a decision a test caused; none does yet, because no test has produced one yet.",
-  "verifiedAt": "2026-08-25",
+  "verifiedAt": "2026-08-29",
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
     "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
@@ -3037,6 +3037,187 @@
         "Nothing about #147, and nothing a device farm can ever say about it: the location prompt needs a photograph that a rack device cannot take.",
         "No evidence either way about whether the three testers who have build 7 installed had opened it. At the time of this run they had produced no events at all, which is consistent both with not having opened it and with a defect this run then disproved.",
         "Nothing about the city. The relay is unarmed and no report was filed, so no report row exists for this run."
+      ]
+    },
+    {
+      "id": "2026-08-29-android-the-address-asked-once-and-the-keyboard-that-did-not-cover-it",
+      "date": "2026-08-29",
+      "platform": "android",
+      "what": "The first walk on a build that asks for an email address (#163). Onboarding on the first launch, then camera, category, description, send — accepted in 202 ms against a relay running on the development machine. Afterwards, and separately from the walk, the onboarding screen was measured on the same handset over adb with the keyboard raised, because whether a soft keyboard covers the one control on a new screen is exactly the shape of #110 and no telemetry can answer it.",
+      "device": {
+        "model": "Samsung SM-S918B (Galaxy S23 Ultra), 1080x2316",
+        "note": "Known because the phone is on a cable here, NOT from the telemetry, which names no device — and since #128 not from the User-Agent either."
+      },
+      "build": {
+        "variant": "debug, installed over adb",
+        "appVersion": "0.1.0 (1)",
+        "signing": "debug key",
+        "relayHost": "http://127.0.0.1:8787 via adb reverse",
+        "hostVerifiedOn": "the events reached the local relay and app_version in its D1 reads 0.1.0 (1); the phone itself answered /api/health through the tunnel before the walk"
+      },
+      "relay": {
+        "dryRun": true,
+        "citySendKeySet": false,
+        "registryRows": 139360,
+        "note": "A local wrangler dev with the full registry seeded. Unarmed, so nothing could reach the city; the report row was written and forwarded nowhere."
+      },
+      "session": "7387eb34865fc24757d88559388f9b87",
+      "method": "Timeline transcribed from the local D1 by query on 2026-08-29, unedited. The onboarding measurements below are separate: uiautomator bounds and a screencap taken over adb after `pm clear`, on the same build and handset, roughly forty minutes after the walk.",
+      "timeline": [
+        {
+          "atMs": 3,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 29310,
+          "name": "camera-permission",
+          "fields": {
+            "granted": false
+          }
+        },
+        {
+          "atMs": 38268,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 45365,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 711,
+            "bytes": 1865003,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 45365,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 0,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 45646,
+          "name": "location-permission-asked",
+          "fields": {}
+        },
+        {
+          "atMs": 48614,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 48623,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 3258,
+            "source": "device",
+            "accuracyM": 53
+          }
+        },
+        {
+          "atMs": 48623,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 53768,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 8403,
+            "slug": "ruslafotur"
+          }
+        },
+        {
+          "atMs": 64032,
+          "name": "description-length",
+          "fields": {
+            "length": 10
+          }
+        },
+        {
+          "atMs": 66543,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 72995,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 73197,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 202,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 14,
+          "receivedAt": "2026-08-29T21:58:23.490Z",
+          "note": "One batch, all fourteen events, arriving 28 ms after the report row was written at 21:58:23.462Z — the send-result flush. Boundaries read from received_at in D1, not inferred.",
+          "firstAtMs": 3,
+          "lastAtMs": 73197
+        }
+      ],
+      "confirmed": [
+        {
+          "what": "The address reached the relay. The app cannot build a body without one — the contract marks email required and the valueFor loop throws — so a send-failed(encoding) with no report row is what a missing address looks like. There is a 201 and a row, and no send-failed anywhere in the session.",
+          "how": "inference from the code path, not an observation of the wire: the relay does not log the address and the row has no column for it since migration 0004. The only place it was visible is the response the phone received."
+        },
+        {
+          "what": "photo-captured bytes 1865003 equals the stored row's photo_bytes, and description-length 10 equals the TYPED text 'yfirfullt ' — nine characters and a trailing space.",
+          "how": "two independent sources compared, per AGENTS.md step 3; neither read off a screen. One correction to an earlier version of this sentence, which said the length equalled 'the stored description': it does not and cannot. The relay composes what it stores — composeDescription appends '\\n\\nNæsta skráða heimilisfang: …' whenever the jurisdiction lookup found an address, which acceptance requires — so the row holds about 65 characters, not 10. The event measures what the person typed; the row holds what the relay sent. The comparison is against the typed prefix, and the appended line being present in the row is itself the evidence that the local relay was running this branch's worker."
+        },
+        {
+          "what": "The capture path takes its coordinate from the device, not from EXIF: location-failed reason=no-exif, then location-resolved source=device accuracyM=53.",
+          "how": "the timeline, and it matches what AGENTS.md says CameraX does."
+        },
+        {
+          "what": "On the onboarding screen with the soft keyboard raised, the Áfram control sits at y 1007-1069 while the keyboard's top edge is at roughly y 1346 on a 2316-tall display. It is reachable both while disabled (empty field) and enabled (a valid address typed), and the helper line at 1132-1230 is above the keyboard too.",
+          "how": "uiautomator bounds plus a screencap, with mInputShown=true read from dumpsys input_method at each step so the run cannot silently prove nothing. This is #110's shape on a screen #110 predates."
+        },
+        {
+          "what": "The event stream carries nothing personal: no @, no description text and no coordinate digits anywhere in it.",
+          "how": "queried across every fields column in the local D1 rather than reasoned from the allowlist."
+        }
+      ],
+      "findings": [
+        {
+          "issue": 163,
+          "what": "Onboarding emits no telemetry, so the cost of the screen cannot be measured from the stream. The gap from app-opened to the first camera-permission is 29.31 s and CONTAINS the onboarding screen, but also app startup, the camera screen appearing and a permission dialog being answered. Read it as an upper bound on the screen, never as its cost."
+        },
+        {
+          "issue": 164,
+          "what": "Every screenshot here was taken by hand over adb after the walk was already over. Nothing in the walk itself captured anything, which is the gap #164 is about — and the onboarding screenshot contains the address, so it belongs in private/screenshots rather than in this repository."
+        }
+      ],
+      "notFoundHere": [
+        "That the address which travelled is the one the tester typed. The app's gate proves one was present and well-formed; nothing on this side can see its value, by design.",
+        "The city's confirmation email. The relay was unarmed and the city never saw this report, so the whole point of collecting the address is still untested end to end.",
+        "The details screen's editable copy of the address. It was prefilled and left alone; the correction path has never been walked.",
+        "Anything about iOS. There is no Mac here, the iOS half of #163 is unbuilt locally, and CI is the only compiler.",
+        "Why the camera permission was refused at 29.31 s and granted at 38.27 s. Two camera-permission events, false then true, are in the timeline; the cause is not established and the tester's answer did not settle it. Recorded as observed rather than explained.",
+        "The offline queue, which Android does not have (data/platform-parity.json, offline-queue is ios-only).",
+        "Whether the onboarding screen behaves the same on a short display. It was measured on a 2316-tall phone, where there is room to spare; a smaller screen is where #110 actually bit.",
+        "Anything about the DETAILS screen with the keyboard up, which is the screen #110 actually bit and the one this change gave a second text field immediately above the same control. Only the new onboarding screen was measured here, on Android. That gap was not idle: the iOS simulator test failed on exactly it in the first CI run after this record was written — the address field had pushed the button under the keyboard — and the fix pins the control with safeAreaInset(edge: .bottom) rather than leaving it last inside the ScrollView. Android's details screen still has no equivalent measurement.",
+        "That the two platforms agree on what counts as an address. They did not: Java's Character.isWhitespace returns false for a non-breaking space and Swift's returns true, so 'nafn@example\\u00A0.is' was accepted on Android and refused on iOS, and neither test table carried a case that could tell them apart. Found by review after this walk, not by it. Both validators now use one explicit code-point table."
       ]
     }
   ]

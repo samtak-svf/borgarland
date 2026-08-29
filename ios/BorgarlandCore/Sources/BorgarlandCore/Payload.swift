@@ -34,6 +34,16 @@ public struct Payload {
     public let longitude: Double
     public let description: String
     public let photos: [Photo]
+    /// Where the city sends its confirmation, and the only channel it has back
+    /// to the person who filed this (#163). Held on the device rather than
+    /// asked for each time (`ContactDetails`), and required by us though the
+    /// city treats it as optional — the same override the coordinate gets.
+    ///
+    /// Optional because the type has to be able to express a report without
+    /// one; the contract's `required` flag is what refuses to send it, in
+    /// `MultipartBodyBuilder`, so there is exactly one gate rather than two
+    /// that can disagree.
+    public let email: String?
 
     public init(
         categorySlug: String,
@@ -41,6 +51,7 @@ public struct Payload {
         longitude: Double,
         description: String,
         photos: [Photo],
+        email: String? = nil,
         reportId: String? = nil
     ) {
         self.reportId = reportId
@@ -49,6 +60,7 @@ public struct Payload {
         self.longitude = longitude
         self.description = description
         self.photos = photos
+        self.email = email
     }
 
     /// Formatted the way the relay script formats them: shortest round-trip

@@ -8,11 +8,17 @@ import BorgarlandCore
 struct DetailsScreen: View {
     @ObservedObject var model: ReportModel
 
-    /// Whether the description field holds the keyboard. Without a focus to
-    /// take away there was no way to put the keyboard down at all (#79): the
-    /// screen had no scroll-to-dismiss, no focus state and no keyboard toolbar,
-    /// so it went away only if the system happened to take it.
-    @FocusState private var descriptionFocused: Bool
+    /// Which field holds the keyboard, or none. Without a focus to take away
+    /// there was no way to put the keyboard down at all (#79): the screen had
+    /// no scroll-to-dismiss, no focus state and no keyboard toolbar, so it
+    /// went away only if the system happened to take it.
+    ///
+    /// An enum rather than a Bool since #163 added a second field. The
+    /// toolbar's way down has to work from whichever field is up, and a
+    /// per-field Bool is how one of them quietly stops having one.
+    @FocusState private var focused: Field?
+
+    private enum Field { case description, email }
 
     /// The title, pinned above the scroll view rather than carried inside it.
     ///
@@ -110,7 +116,7 @@ struct DetailsScreen: View {
                     axis: .vertical
                 )
                 .lineLimit(4...10)
-                .focused($descriptionFocused)
+                .focused($focused, equals: .description)
                 // Named for the UI test that asserts the control below stays
                 // hittable with the keyboard up (#110, #125). A SwiftUI
                 // TextField with `axis: .vertical` is a text VIEW to XCUITest
@@ -127,37 +133,105 @@ struct DetailsScreen: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.top, 2)
 
-                Button {
-                    model.continueToSummary()
-                } label: {
-                    Text("Áfram")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 16)
-                .disabled(state.selectedSlug == nil || descriptionIsBlank(state))
-                // The control #110 was about: the keyboard covered it, and a
-                // compile cannot see that.
-                .accessibilityIdentifier("continue-button")
+                // The city answers a report by email and by nothing else, so a
+                // report without one is filed into silence (#163). Asked for
+                // here, once per phone: the model prefills it from the device
+                // and writes it back when this screen is left, so a second
+                // walk finds it already filled.
+                TextField(
+                    "Netfang",
+                    text: Binding(
+                        get: { model.state.email },
+                        set: { model.onEmailChange($0) }
+                    )
+                )
+                .keyboardType(.emailAddress)
+                .textContentType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($focused, equals: .email)
+                .accessibilityIdentifier("email-field")
+                .padding(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(emailLooksWrong(state) ? Color.red : Color(.systemGray4))
+                )
+                .padding(.top, 12)
 
-                if state.selectedSlug == nil || descriptionIsBlank(state) {
-                    Text("Veldu flokk og skrifaðu lýsingu til að halda áfram. Borgin krefst lýsingar.")
+                Text("Borgin sendir staðfestingu og tilvísunarnúmer á þetta netfang. Það er eina leiðin sem þú heyrir frá henni.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
+
+                // The line saying why Áfram is refused. It lives HERE rather
+                // than in the pinned footer: every point the footer occupies is
+                // a point of content it covers at rest, and on an iPhone 17 Pro
+                // a footer carrying both the button and this line reached far
+                // enough up to cover the description field's centre — which is
+                // where XCUITest taps, so the field never took focus and both
+                // keyboard tests failed on typing rather than on layout.
+                if blocked(state) {
+                    Text("Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.")
                         .font(.caption)
-                        .padding(.top, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 12)
                 }
+
             }
             .padding(16)
         }
         .safeAreaInset(edge: .top, spacing: 0) { header("Skrá ábendingu") }
+        // The control that ends the screen is PINNED, not scrolled to (#110,
+        // again). It used to be the last thing inside the ScrollView, and that
+        // held only because the content above it happened to be short enough:
+        // adding the address field and its caption (#163) pushed it under the
+        // keyboard, and the simulator test caught it on the first CI run — the
+        // regression a compile cannot see, which is why that test exists.
+        //
+        // safeAreaInset(edge: .bottom) makes the button part of the scroll
+        // view's safe area instead of its content, so it sits ABOVE the
+        // keyboard rather than behind it, and the scrollable content is inset
+        // to match. That is the same modifier already holding the title still
+        // at the top, used for the same reason at the other end — and it is
+        // now independent of how much this screen grows, which the previous
+        // arrangement never was.
+        .safeAreaInset(edge: .bottom, spacing: 0) { footer(state) }
         // Two ways down, because one is a gesture nobody is told about and the
         // other is a control somebody can see (#79).
         .scrollDismissesKeyboard(.interactively)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Loka lyklaborði") { descriptionFocused = false }
+                Button("Loka lyklaborði") { focused = nil }
             }
         }
+    }
+
+    /// The button that ends the screen, plus the line saying why it is refused.
+    /// Pinned to the bottom rather than carried in the scroll view — see the
+    /// safeAreaInset above. Opaque, because the content scrolls underneath it.
+    private func footer(_ state: ReportUiState) -> some View {
+        Button {
+            model.continueToSummary()
+        } label: {
+            Text("Áfram")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(blocked(state))
+        // The control #110 was about: the keyboard covered it, and a compile
+        // cannot see that.
+        .accessibilityIdentifier("continue-button")
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground))
+    }
+
+    /// Why Áfram is refused, in one place so the button and the line beneath
+    /// the form cannot disagree about it.
+    private func blocked(_ state: ReportUiState) -> Bool {
+        state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid
     }
 
     /// The Kotlin's `isNotBlank()`: whitespace-only text does not count as a
@@ -165,5 +239,13 @@ struct DetailsScreen: View {
     /// field.
     private func descriptionIsBlank(_ state: ReportUiState) -> Bool {
         state.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Red only once there is something to be wrong ABOUT. An empty field on a
+    /// fresh install is not an error, it is a field nobody has reached yet, and
+    /// marking it red before the first keystroke tells somebody they have made
+    /// a mistake by opening the app.
+    private func emailLooksWrong(_ state: ReportUiState) -> Bool {
+        !state.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !state.emailValid
     }
 }

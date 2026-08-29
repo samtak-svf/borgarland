@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import `is`.borgarland.ui.BorgarlandPocTheme
 import `is`.borgarland.ui.CameraScreen
 import `is`.borgarland.ui.FollowUpDialog
+import `is`.borgarland.ui.OnboardingScreen
 import `is`.borgarland.ui.DetailsScreen
 import `is`.borgarland.ui.SummaryScreen
 import `is`.borgarland.net.Telemetry
@@ -86,6 +87,12 @@ class MainActivity : ComponentActivity() {
                         }
 
                         when (state.screen) {
+                            Screen.Onboarding -> OnboardingScreen(
+                                state = state,
+                                onEmailChange = viewModel::onEmailChange,
+                                onDone = viewModel::completeOnboarding,
+                            )
+
                             Screen.Camera -> CameraScreen(
                                 state = state,
                                 onPhotoCaptured = viewModel::onPhotoCaptured,
@@ -100,6 +107,7 @@ class MainActivity : ComponentActivity() {
                                 state = state,
                                 onSelectCategory = viewModel::selectCategory,
                                 onDescriptionChange = viewModel::onDescriptionChange,
+                                onEmailChange = viewModel::onEmailChange,
                                 onContinue = viewModel::continueToSummary,
                             )
 

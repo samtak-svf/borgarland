@@ -140,7 +140,11 @@ the manifest.
   without it.
 - **Single photo.** The form accepts repeated files (`files` is repeated in
   the facts file); the POC captures one.
-- **No email field**, though the facts file lists it as optional.
+- ~~**No email field**, though the facts file lists it as optional.~~ — no
+  longer true. #163 added one: the city answers a report by email and by
+  nothing else, so a report filed without an address goes into silence. It is
+  asked for once and kept on the phone (`data/ContactDetails.kt`), and the
+  facts file now records it as required by us the way the coordinate is.
 - ~~**Device fix is GPS-only**~~ — no longer true. Testing on a real phone
   indoors showed GPS never fixes under a roof, so a GPS-only request timed out
   and the report was refused while the network and fused providers held a

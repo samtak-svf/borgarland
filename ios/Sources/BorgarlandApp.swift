@@ -40,6 +40,8 @@ struct BorgarlandApp: App {
                         .padding(16)
                 } else {
                     switch model.state.screen {
+                    case .onboarding:
+                        OnboardingScreen(model: model)
                     case .camera:
                         CameraScreen(model: model)
                     case .details:

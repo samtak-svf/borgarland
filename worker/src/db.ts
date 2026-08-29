@@ -11,7 +11,6 @@ interface ReportRow {
   latitude: number
   longitude: number
   description: string
-  email: string | null
   photo_count: number
   photo_bytes: number
   dry_run: number
@@ -25,7 +24,7 @@ interface ReportRow {
 }
 
 const COLUMNS =
-  'id, category_slug, latitude, longitude, description, email, photo_count, photo_bytes, ' +
+  'id, category_slug, latitude, longitude, description, photo_count, photo_bytes, ' +
   'dry_run, created_at, sent_at, city_status, city_reference, rejection, outcome, outcome_at'
 
 export interface NewReport {
@@ -34,7 +33,6 @@ export interface NewReport {
   latitude: number
   longitude: number
   description: string
-  email: string | null
   photoCount: number
   photoBytes: number
   dryRun: boolean
@@ -49,7 +47,7 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
   await db
     .prepare(
       `INSERT INTO reports (${COLUMNS})
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       report.id,
@@ -57,7 +55,6 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
       report.latitude,
       report.longitude,
       report.description,
-      report.email,
       report.photoCount,
       report.photoBytes,
       report.dryRun ? 1 : 0,
@@ -76,7 +73,6 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
     latitude: report.latitude,
     longitude: report.longitude,
     description: report.description,
-    email: report.email,
     photoCount: report.photoCount,
     photoBytes: report.photoBytes,
     dryRun: report.dryRun,
@@ -130,7 +126,6 @@ function mapRow(row: ReportRow): ReportRecord {
     latitude: row.latitude,
     longitude: row.longitude,
     description: row.description,
-    email: row.email,
     photoCount: row.photo_count,
     photoBytes: row.photo_bytes,
     dryRun: row.dry_run === 1,
@@ -250,7 +245,7 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
     const result = await db
       .prepare(
         `INSERT INTO reports (${COLUMNS})
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
          WHERE NOT EXISTS (SELECT 1 FROM reports WHERE dry_run = 0)`,
       )
       .bind(
@@ -259,7 +254,6 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
         report.latitude,
         report.longitude,
         report.description,
-        report.email,
         report.photoCount,
         report.photoBytes,
         0, // dry_run: a live reservation, counted by the gate immediately

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import `is`.borgarland.PocUiState
 
@@ -31,6 +34,7 @@ fun DetailsScreen(
     state: PocUiState,
     onSelectCategory: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
 ) {
     Column(
@@ -126,14 +130,35 @@ fun DetailsScreen(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )
 
+        // The city answers a report by email and by nothing else, so a report
+        // without one is filed into silence (#163). It is asked for here, once
+        // per phone: the model prefills it from the device and writes it back
+        // when this screen is left, so a second walk finds it already filled.
+        OutlinedTextField(
+            value = state.email,
+            onValueChange = onEmailChange,
+            label = { Text("Netfang") },
+            supportingText = {
+                Text("Borgin sendir staðfestingu og tilvísunarnúmer á þetta netfang. Það er eina leiðin sem þú heyrir frá henni.")
+            },
+            isError = state.email.isNotBlank() && !state.emailValid,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                autoCorrectEnabled = false,
+                imeAction = ImeAction.Done,
+            ),
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        )
+
         Button(
             onClick = onContinue,
-            enabled = state.selectedSlug != null && state.description.isNotBlank(),
+            enabled = state.selectedSlug != null && state.description.isNotBlank() && state.emailValid,
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         ) { Text("Áfram") }
-        if (state.selectedSlug == null || state.description.isBlank()) {
+        if (state.selectedSlug == null || state.description.isBlank() || !state.emailValid) {
             Text(
-                "Veldu flokk og skrifaðu lýsingu til að halda áfram. Borgin krefst lýsingar.",
+                "Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp),
             )

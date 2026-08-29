@@ -58,8 +58,20 @@ for (const category of facts.categories) {
   )
 }
 
-// Requiredness, as the relay enforces it.
-const REQUIRED = { category: true, latitude: true, longitude: true, description: true, email: false, photo: false }
+// Requiredness, which is the APP's obligation and not the relay's tolerance.
+//
+// The two used to be the same thing, and the comment here said "as the relay
+// enforces it" while that happened to hold for all seven fields. It never
+// described the mechanism: the Worker reads this file for the unknown-field
+// allowlist alone (worker/src/app.ts) and hardcodes each field's own parse.
+// What actually reads `required` is the valueFor(name) loop in both apps,
+// which refuses to build a body without a required part.
+//
+// `email` is where the two diverge on purpose (#163). The app must send one;
+// the relay still accepts a report without one, because builds 6 and 7 are on
+// testers' phones and send none. worker/tests/contract.test.ts pins that
+// tolerance, so the divergence cannot be closed by accident on either side.
+const REQUIRED = { category: true, latitude: true, longitude: true, description: true, email: true, photo: false }
 for (const [name, expected] of Object.entries(REQUIRED)) {
   check(
     contract.fields[name]?.required === expected,

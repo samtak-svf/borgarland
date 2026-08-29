@@ -23,7 +23,10 @@ CREATE TABLE IF NOT EXISTS reports (
   -- What we send to the city: the user's description plus the nearest
   -- registered address line (see src/domain.ts composeDescription).
   description   TEXT NOT NULL,
-  email         TEXT,
+  -- No email column. The reporter's address is forwarded to the city and kept
+  -- nowhere here (#163, migration 0004): it is the one thing the city can
+  -- answer to, and it answers none of the questions this table exists to
+  -- answer. Same rule as the photo parts below.
   -- Photo parts are forwarded to the city but not stored here; only what they
   -- were is recorded, for the measurement layer.
   photo_count   INTEGER NOT NULL DEFAULT 0,

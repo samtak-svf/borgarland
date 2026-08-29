@@ -60,9 +60,13 @@ server-side and reachable anonymously, and that a malformed request creates
 nothing.
 
 Note what is *not* in `inputErrors`: `lat` and `lng`. **The only field the city
-enforces is `description`** — the location appears to be required in the browser
-only, by the map picker refusing to submit without a marker. That was not tested
-further, because a request that passes validation files a real report.
+enforces is `description`.** This paragraph used to go on to say the location
+"appears to be required in the browser only, by the map picker refusing to
+submit without a marker"; measurement on 2026-08-29 did not support that, and
+the detail is in [payload-map.md](payload-map.md#only-description-is-enforced).
+The short of it: the submit button is not disabled with the coordinate empty,
+so whatever refuses — if anything does — is not the button. Pressing it to find
+out is decision 0006, so it stays untested.
 
 The consequence is a requirement on our side rather than theirs: the relay must
 reject a report with no coordinate, since the city will not.

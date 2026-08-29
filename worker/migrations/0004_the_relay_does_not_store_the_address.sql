@@ -1,0 +1,20 @@
+-- The reporter's address passes through the relay and is not kept by it.
+--
+-- #163 made the app collect one, because the city answers a report by email
+-- and by nothing else. That address has exactly one destination: the city's
+-- own form, so the city's confirmation reaches the person who filed. The relay
+-- forwards it and keeps nothing.
+--
+-- Same rule the photo parts have had since 0001, stated one column above this
+-- one in schema.sql: forwarded to the city, not stored here. The relay's job is
+-- to be a record of WHAT was sent and WHEN, which is the measurement the city
+-- publishes nothing about — and a personal address answers none of those
+-- questions while being the most sensitive thing in the request.
+--
+-- The column has held nothing but NULL in production: no build has ever sent
+-- an address, so there is no data to migrate and nothing is lost by dropping
+-- it. Dropping rather than leaving it unwritten is deliberate — a nullable
+-- column nothing writes is one careless INSERT away from being a store of
+-- personal data again, and the schema should refuse rather than rely on
+-- everyone remembering.
+ALTER TABLE reports DROP COLUMN email;

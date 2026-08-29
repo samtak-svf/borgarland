@@ -28,6 +28,18 @@ data class Payload(
     val description: String,
     val photos: List<Photo>,
     /**
+     * Where the city sends its confirmation, and the only channel it has back
+     * to the person who filed this (#163). Held on the device rather than
+     * asked for each time (data/ContactDetails.kt), and required by us though
+     * the city treats it as optional — the same override the coordinate gets.
+     *
+     * Nullable because the type has to be able to express a report without
+     * one; the contract's `required` flag is what refuses to send it, in
+     * net/RelayClient.kt, so there is exactly one gate rather than two that
+     * can disagree.
+     */
+    val email: String? = null,
+    /**
      * Which report this IS, so sending it twice cannot file it twice (#88).
      * The relay stores it as the row's own id and answers a repeat with the row
      * it already has. Optional because the relay generates one when the app

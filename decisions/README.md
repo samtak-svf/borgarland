@@ -36,3 +36,7 @@ is the main thing a decision log is for.
 | [0009](0009-the-registry-stays-in-the-relay.md) | The registry stays in the relay, not behind greenfield's service | Accepted |
 | [0010](0010-the-report-carries-its-own-id.md) | The report carries its own id, and the relay stores it as the row | Accepted |
 | [0011](0011-the-queue-refuses-rather-than-evicts.md) | The offline queue refuses rather than evicts | Accepted |
+| [0012](0012-android-ships-on-a-personal-play-account.md) | Android ships, on a personal Play account and not the party's | Accepted |
+| [0013](0013-the-follow-up-asks-the-phone-not-the-person.md) | The follow-up asks the phone, not the person | Accepted |
+| [0014](0014-a-simulator-checks-behaviour-not-pixels.md) | A simulator checks behaviour, not pixels | Accepted |
+| [0015](0015-the-address-is-required-by-us-and-lives-on-the-phone.md) | The reporter's address is required by us, and lives on the phone | Accepted |
