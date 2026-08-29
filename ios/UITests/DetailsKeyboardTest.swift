@@ -29,17 +29,43 @@ final class DetailsKeyboardTest: XCTestCase {
         return app
     }
 
-    func testTheContinueButtonStaysHittableWithTheKeyboardUp() {
-        let app = launchOnDetails()
-
+    /// The description field, scrolled until a tap will actually land on it.
+    ///
+    /// This is a PRECONDITION of both scenarios, not part of either assertion.
+    /// The details screen is longer than the display, and since the Áfram
+    /// button was pinned to the bottom (#163) the field can sit under it at
+    /// rest: on an iPhone 17 Pro the field reported {{24, 734}, {354, 86}} on
+    /// an 874-point screen, so its centre — where XCUITest taps — was behind
+    /// the pinned bar. Both tests then failed with "Neither element nor any
+    /// descendant has keyboard focus", which reads like a keyboard defect and
+    /// is a scrolling one.
+    ///
+    /// Bounded, and it asserts rather than giving up quietly: a test that
+    /// cannot reach the field proves nothing about #110 and must say so.
+    private func focusedDescriptionField(in app: XCUIApplication) -> XCUIElement {
         let field = app.descendants(matching: .any)
             .matching(identifier: "description-field").firstMatch
         XCTAssertTrue(
             field.waitForExistence(timeout: 60),
             "the details screen never appeared; the -uiTestDetailsScreen seam is the suspect"
         )
-
+        var swipes = 0
+        while !field.isHittable && swipes < 4 {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(
+            field.isHittable,
+            "the description field never became tappable after \(swipes) swipes, so this run cannot say anything about #110"
+        )
         field.tap()
+        return field
+    }
+
+    func testTheContinueButtonStaysHittableWithTheKeyboardUp() {
+        let app = launchOnDetails()
+
+        let field = focusedDescriptionField(in: app)
         field.typeText("Prufa")
 
         // A hard requirement, not a guard. If the software keyboard never
@@ -77,10 +103,7 @@ final class DetailsKeyboardTest: XCTestCase {
     func testTheKeyboardCanBeDismissedByAControlAndNotOnlyByAGesture() {
         let app = launchOnDetails()
 
-        let field = app.descendants(matching: .any)
-            .matching(identifier: "description-field").firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 60))
-        field.tap()
+        let field = focusedDescriptionField(in: app)
         field.typeText("Prufa")
         XCTAssertTrue(app.keyboards.element.waitForExistence(timeout: 15))
 

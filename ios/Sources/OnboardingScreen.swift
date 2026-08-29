@@ -62,6 +62,16 @@ struct OnboardingScreen: View {
                         .stroke(looksWrong ? Color.red : Color(.systemGray4))
                 )
 
+                // In the scroll content, not the pinned footer: every point the
+                // footer occupies is a point of content it covers at rest, and
+                // on the details screen a footer carrying both the button and
+                // its explanatory line reached far enough up to cover a text
+                // field's centre — which is where a tap lands.
+                if !model.state.emailValid {
+                    Text("Sláðu inn netfang til að halda áfram. Þú getur breytt því síðar á skjánum þar sem ábendingin er skrifuð.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -90,25 +100,16 @@ struct OnboardingScreen: View {
     /// The button that leaves this screen, plus the line saying why it is
     /// refused. Opaque, because the content scrolls underneath it.
     private var footer: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Button {
-                model.completeOnboarding()
-            } label: {
-                Text("Áfram").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!model.state.emailValid)
-            .accessibilityIdentifier("onboarding-continue-button")
-
-            if !model.state.emailValid {
-                Text("Sláðu inn netfang til að halda áfram. Þú getur breytt því síðar á skjánum þar sem ábendingin er skrifuð.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        Button {
+            model.completeOnboarding()
+        } label: {
+            Text("Áfram").frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
+        .disabled(!model.state.emailValid)
+        .accessibilityIdentifier("onboarding-continue-button")
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
         .background(Color(.systemBackground))
     }
 

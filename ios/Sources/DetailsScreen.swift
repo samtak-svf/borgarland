@@ -164,6 +164,20 @@ struct DetailsScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 2)
 
+                // The line saying why Áfram is refused. It lives HERE rather
+                // than in the pinned footer: every point the footer occupies is
+                // a point of content it covers at rest, and on an iPhone 17 Pro
+                // a footer carrying both the button and this line reached far
+                // enough up to cover the description field's centre — which is
+                // where XCUITest taps, so the field never took focus and both
+                // keyboard tests failed on typing rather than on layout.
+                if blocked(state) {
+                    Text("Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.")
+                        .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 12)
+                }
+
             }
             .padding(16)
         }
@@ -198,29 +212,26 @@ struct DetailsScreen: View {
     /// Pinned to the bottom rather than carried in the scroll view — see the
     /// safeAreaInset above. Opaque, because the content scrolls underneath it.
     private func footer(_ state: ReportUiState) -> some View {
-        let blocked = state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid
-        return VStack(alignment: .leading, spacing: 4) {
-            Button {
-                model.continueToSummary()
-            } label: {
-                Text("Áfram")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(blocked)
-            // The control #110 was about: the keyboard covered it, and a
-            // compile cannot see that.
-            .accessibilityIdentifier("continue-button")
-
-            if blocked {
-                Text("Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.")
-                    .font(.caption)
-            }
+        Button {
+            model.continueToSummary()
+        } label: {
+            Text("Áfram")
+                .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
+        .disabled(blocked(state))
+        // The control #110 was about: the keyboard covered it, and a compile
+        // cannot see that.
+        .accessibilityIdentifier("continue-button")
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
         .background(Color(.systemBackground))
+    }
+
+    /// Why Áfram is refused, in one place so the button and the line beneath
+    /// the form cannot disagree about it.
+    private func blocked(_ state: ReportUiState) -> Bool {
+        state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid
     }
 
     /// The Kotlin's `isNotBlank()`: whitespace-only text does not count as a
