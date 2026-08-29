@@ -14,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import `is`.borgarland.data.Category
+import `is`.borgarland.data.ContactDetails
 import `is`.borgarland.data.Facts
 import `is`.borgarland.data.FollowUps
 import `is`.borgarland.data.CategoryLabels
@@ -34,6 +35,14 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 sealed interface Screen {
+    /**
+     * Shown once, on the first launch, and never again once the phone holds an
+     * address (#163). Not on the path to a report: the report flow still opens
+     * on the camera, which is what AGENTS.md means by the camera being the
+     * entry point.
+     */
+    data object Onboarding : Screen
+
     data object Camera : Screen
 
     data object Details : Screen
@@ -91,6 +100,18 @@ data class PocUiState(
     val locationError: String? = null,
     val selectedSlug: String? = null,
     val description: String = "",
+    /**
+     * Where the city will send its confirmation (#163). Read from the device
+     * at startup, so somebody who has filed before finds it already there.
+     */
+    val email: String = "",
+    /**
+     * Whether that address is one we will send with. Resolved here rather than
+     * on the screen for the same reason `categoryDisplay` is: the rule lives
+     * in data/ContactDetails.kt, and a screen that re-implemented it would be
+     * a second rule that can disagree with the first.
+     */
+    val emailValid: Boolean = false,
     val outOfBounds: Boolean = false,
     val sending: Boolean = false,
     val sendOutcome: SendOutcome? = null,
@@ -193,6 +214,23 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                     descriptionMaxLength = parsed.fields.description.maxLength,
                 )
             }
+        }
+
+        // The address the city answers to, from the last time somebody typed
+        // one on this phone (#163). Absent on a fresh install, which is the
+        // one walk where it has to be asked for.
+        val storedEmail = runCatching { ContactDetails.read(getApplication()) }.getOrNull()
+        _state.update {
+            it.copy(
+                email = storedEmail.orEmpty(),
+                emailValid = storedEmail != null && ContactDetails.isValid(storedEmail),
+                // A phone with no address is a phone that has not been asked
+                // yet. Everything else starts where it always did. Not gated on
+                // factsError: a missing facts file is shown by MainActivity
+                // over whatever screen this is, and asking for the address is
+                // still the right first thing.
+                screen = if (storedEmail == null) Screen.Onboarding else it.screen,
+            )
         }
 
         // No app-opened here, deliberately (#70). This init runs once per
@@ -476,11 +514,38 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         Telemetry.shared.track(TelemetryEvent.DescriptionLength(_state.value.description.length))
     }
 
+    /**
+     * No telemetry of any kind. The event allowlist names no free-text field
+     * (data/relay-events.json) and this is the most personal thing the app
+     * holds, so not even its length travels — a length is a small thing to
+     * know about an address and there is no question it would answer.
+     */
+    fun onEmailChange(text: String) {
+        _state.update { it.copy(email = text, emailValid = ContactDetails.isValid(text)) }
+    }
+
+    /**
+     * Leaves the one-time onboarding screen for the camera, having written the
+     * address down. No telemetry: see OnboardingScreen for why the event
+     * allowlist is deliberately not extended for this.
+     */
+    fun completeOnboarding() {
+        val s = _state.value
+        if (!ContactDetails.isValid(s.email)) return
+        val email = ContactDetails.normalise(s.email)
+        runCatching { ContactDetails.write(getApplication(), email) }
+        _state.update { it.copy(email = email, screen = Screen.Camera) }
+    }
+
     fun continueToSummary() {
         val s = _state.value
         val category = facts?.categories?.firstOrNull { it.slug == s.selectedSlug } ?: return
         val coord = s.coordinate ?: return
         if (s.description.isBlank()) return
+        // Required by us, not by the city (#163). Refused here rather than at
+        // the send, so nobody reaches a summary screen for a report that
+        // cannot go out.
+        if (!ContactDetails.isValid(s.email)) return
         val f = facts ?: return
         val outside = coord.lat < f.map.bounds.south || coord.lat > f.map.bounds.north ||
             coord.lng < f.map.bounds.west || coord.lng > f.map.bounds.east
@@ -489,7 +554,12 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         // it gets its id (#88). Generated once and kept until the walk starts
         // over, so a second press carries the same one.
         currentReportId = newReportId()
-        _state.update { it.copy(screen = Screen.Summary, outOfBounds = outside) }
+        // Written down now rather than after a successful send: the address is
+        // the device's, and a walk that fails to send should still not make
+        // the next one retype it.
+        val email = ContactDetails.normalise(s.email)
+        runCatching { ContactDetails.write(getApplication(), email) }
+        _state.update { it.copy(email = email, screen = Screen.Summary, outOfBounds = outside) }
     }
 
     fun startOver() {
@@ -504,6 +574,10 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 categoryDisplay = it.categoryDisplay,
                 categoryHelp = it.categoryHelp,
                 descriptionMaxLength = it.descriptionMaxLength,
+                // The address survives a new report: it belongs to the phone,
+                // not to the ábending that was just filed (#163).
+                email = it.email,
+                emailValid = it.emailValid,
             )
         }
     }
@@ -607,6 +681,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             longitude = coord.lng,
             description = s.description,
             photos = listOfNotNull(s.photo),
+            email = ContactDetails.normalise(s.email).ifEmpty { null },
             reportId = currentReportId,
         )
     }

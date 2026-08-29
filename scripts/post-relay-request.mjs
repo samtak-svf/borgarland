@@ -28,6 +28,10 @@ const VALUES = {
   latitude: '64.14658919',
   longitude: '-21.93279823',
   description: 'Full ruslafata við stíginn',
+  // Where the city sends its confirmation (#163). Required by the contract, so
+  // the loop below refuses to build a request without it — exactly as the app
+  // does. The app reads this from the phone; here it is a stand-in.
+  email: 'prufa@example.is',
 }
 
 function photoBytes() {
@@ -79,13 +83,26 @@ async function main() {
     partsLabel = 'type, category, summary, lat, lng, description, files'
   } else {
     // The request the app builds now: the contract's field names, in its order.
-    for (const name of Object.keys(contract.fields)) {
+    for (const [name, spec] of Object.entries(contract.fields)) {
       if (name === 'photo') {
         photo('photo')
-      } else {
-        const value = VALUES[name]
-        if (value !== undefined) field(name, value)
+        continue
       }
+      const value = VALUES[name]
+      // The app's own refusal, mirrored: a required part it cannot fill stops
+      // the request before a byte of body exists (RelayClient.kt, and
+      // MultipartBodyBuilder.swift). Without this the loop SILENTLY omitted a
+      // field it had no value for, so this script could keep claiming to build
+      // "the request the app builds" while building one the app would refuse —
+      // which is what it did for as long as it took to notice, when email
+      // became required.
+      if (spec.required && value === undefined) {
+        throw new Error(
+          `relay contract field '${name}' is required and this script has no value for it; ` +
+            'add one to VALUES rather than letting the part be dropped',
+        )
+      }
+      if (value !== undefined) field(name, value)
     }
     partsLabel = Object.keys(contract.fields).join(', ')
   }

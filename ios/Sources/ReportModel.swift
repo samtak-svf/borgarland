@@ -8,6 +8,11 @@ import BorgarlandCore
 /// this as a sealed interface; the Swift equivalent is an enum, and the app
 /// switches on it exactly as MainActivity does a `when`.
 enum Screen {
+    /// Shown once, on the first launch, and never again once the phone holds
+    /// an address (#163). Not on the path to a report: the report flow still
+    /// opens on the camera, which is what AGENTS.md means by the camera being
+    /// the entry point.
+    case onboarding
     case camera
     case details
     case summary
@@ -65,6 +70,14 @@ struct ReportUiState {
     var locationError: String? = nil
     var selectedSlug: String? = nil
     var description: String = ""
+    /// Where the city will send its confirmation (#163). Read from the device
+    /// at startup, so somebody who has filed before finds it already there.
+    var email: String = ""
+    /// Whether that address is one we will send with. Resolved here rather
+    /// than on the screen for the same reason `categoryDisplay` is: the rule
+    /// lives in `ContactDetails`, and a screen that re-implemented it would be
+    /// a second rule that can disagree with the first.
+    var emailValid: Bool = false
     var outOfBounds: Bool = false
     var sending: Bool = false
     var sendOutcome: SendOutcome? = nil
@@ -113,6 +126,10 @@ final class ReportModel: ObservableObject {
     /// person files goes in here BEFORE it is sent, so losing the network
     /// cannot lose the report.
     private let queue = ReportQueue.applicationDefault()
+
+    /// The address the city answers to, on this phone (#163). Beside the
+    /// queue, and read once at startup rather than on every screen.
+    private let contact = ContactDetails.applicationDefault()
 
     /// The one delivery in flight, or nil. One at a time, always: it is what
     /// keeps a queued report from being sent twice, and it is why the send
@@ -192,6 +209,18 @@ final class ReportModel: ObservableObject {
             )
         }
 
+        // The address the city answers to, from the last time somebody typed
+        // one on this phone (#163). Absent on a fresh install, which is the
+        // one walk where it has to be asked for.
+        if let storedEmail = contact.read() {
+            state.email = storedEmail
+            state.emailValid = ContactDetails.isValid(storedEmail)
+        } else {
+            // A phone with no address is a phone that has not been asked yet.
+            // Everything else starts where it always did.
+            state.screen = .onboarding
+        }
+
         // The telemetry channel is fire-and-forget by contract
         // (data/relay-events.json): it must never affect the report. One
         // instance per launch, configured at the single place the app starts,
@@ -241,6 +270,12 @@ final class ReportModel: ObservableObject {
         state.coordinate = Coordinate(latitude: 64.14658919, longitude: -21.93279823)
         state.locationSource = "UI test"
         state.selectedSlug = first.slug
+        // Seeded like the photo and the coordinate: the details screen's
+        // control is enabled only with an address (#163), and a UI test about
+        // the KEYBOARD covering that control must not be measuring a button
+        // disabled for an unrelated reason. Never reachable outside DEBUG.
+        state.email = "uitest@example.is"
+        state.emailValid = ContactDetails.isValid(state.email)
         state.screen = .details
     }
     #endif
@@ -424,12 +459,40 @@ final class ReportModel: ObservableObject {
         Telemetry.shared.track(.descriptionLength(length: state.description.count))
     }
 
+    /// Leaves the one-time onboarding screen for the camera, having written
+    /// the address down. No telemetry: see OnboardingScreen for why the event
+    /// allowlist is deliberately not extended for this.
+    func completeOnboarding() {
+        guard ContactDetails.isValid(state.email) else { return }
+        let email = ContactDetails.normalise(state.email)
+        contact.write(email)
+        update { state in
+            state.email = email
+            state.screen = .camera
+        }
+    }
+
+    /// No telemetry of any kind. The event allowlist names no free-text field
+    /// (data/relay-events.json) and this is the most personal thing the app
+    /// holds, so not even its length travels — a length is a small thing to
+    /// know about an address and there is no question it would answer.
+    func onEmailChange(_ text: String) {
+        update { state in
+            state.email = text
+            state.emailValid = ContactDetails.isValid(text)
+        }
+    }
+
     func continueToSummary() {
         let s = state
         guard let facts,
               facts.categories.contains(where: { $0.slug == s.selectedSlug }),
               let coord = s.coordinate,
-              !s.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+              !s.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              // Required by us, not by the city (#163). Refused here rather
+              // than at the send, so nobody reaches a summary screen for a
+              // report that cannot go out.
+              ContactDetails.isValid(s.email)
         else { return }
         // The city's own map bounds are for its form's map view and cover
         // more than the municipality; the registry check that would tell a
@@ -438,7 +501,13 @@ final class ReportModel: ObservableObject {
         let outside = coord.latitude < facts.map.bounds.south || coord.latitude > facts.map.bounds.north
             || coord.longitude < facts.map.bounds.west || coord.longitude > facts.map.bounds.east
         Telemetry.shared.track(.screenLeft(screen: .details, completed: true))
+        // Written down now rather than after a successful send: the address is
+        // the device's, and a walk that fails to send should still not make
+        // the next one retype it.
+        let email = ContactDetails.normalise(s.email)
+        contact.write(email)
         update { state in
+            state.email = email
             state.screen = .summary
             state.outOfBounds = outside
         }
@@ -458,11 +527,17 @@ final class ReportModel: ObservableObject {
         let descriptionMaxLength = state.descriptionMaxLength
         let queuedCount = state.queuedCount
         let sending = state.sending
+        // The address survives a new report: it belongs to the phone, not to
+        // the ábending that was just filed (#163).
+        let email = state.email
+        let emailValid = state.emailValid
         state = ReportUiState(
             categories: categories,
             categoryDisplay: categoryDisplay,
             categoryHelp: categoryHelp,
             descriptionMaxLength: descriptionMaxLength,
+            email: email,
+            emailValid: emailValid,
             sending: sending,
             queuedCount: queuedCount
         )
@@ -601,7 +676,10 @@ final class ReportModel: ObservableObject {
 
             let payload: Payload
             do {
-                payload = try queue.payload(for: report)
+                // The address comes from the phone, not from the record:
+                // a report that waited goes out to the address the phone
+                // holds now (#163).
+                payload = try queue.payload(for: report, email: emailToSend())
             } catch {
                 // The bytes are gone, so this entry can never be built. Left
                 // alone it would sit at the head of the queue and stop every
@@ -660,6 +738,7 @@ final class ReportModel: ObservableObject {
             longitude: unidentified.longitude,
             description: unidentified.description,
             photos: unidentified.photos,
+            email: unidentified.email,
             reportId: token
         )
         update { state in state.sending = true }
@@ -764,6 +843,14 @@ final class ReportModel: ObservableObject {
         }
     }
 
+    /// The address as it goes on the wire, or nil when there is none. One
+    /// accessor rather than the same trim-and-nil expression at each call
+    /// site, so a report and a queued retry cannot disagree about it.
+    private func emailToSend() -> String? {
+        let value = ContactDetails.normalise(state.email)
+        return value.isEmpty ? nil : value
+    }
+
     func payload() -> Payload? {
         let s = state
         guard let category = facts?.categories.first(where: { $0.slug == s.selectedSlug }),
@@ -773,7 +860,8 @@ final class ReportModel: ObservableObject {
             latitude: coord.latitude,
             longitude: coord.longitude,
             description: s.description,
-            photos: s.photo.map { [$0] } ?? []
+            photos: s.photo.map { [$0] } ?? [],
+            email: emailToSend()
         )
     }
 }

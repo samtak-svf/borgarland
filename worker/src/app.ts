@@ -329,7 +329,8 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       latitude,
       longitude,
       description: draft.description,
-      email,
+      // No email. It is on the draft above, bound for the city, and the row
+      // deliberately has nowhere to put it (#163, migration 0004).
       photoCount: photos.length,
       photoBytes: photos.reduce((sum, p) => sum + p.size, 0),
       createdAt,

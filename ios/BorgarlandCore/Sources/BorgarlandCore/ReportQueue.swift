@@ -319,7 +319,14 @@ public final class ReportQueue {
     /// `missingPhoto` when the bytes are gone, which the caller must treat as
     /// unsendable rather than as a failure to retry: an entry that can never be
     /// built would otherwise sit at the head of the queue forever.
-    public func payload(for report: QueuedReport) throws -> Payload {
+    ///
+    /// `email` is passed in rather than read back off the record because the
+    /// address belongs to the phone, not to the report (#163). A report that
+    /// waited three days in here goes out to whatever address the phone holds
+    /// NOW, which is the right answer for somebody who corrected a typo in the
+    /// meantime — and it keeps the persisted format untouched, so every record
+    /// written by an earlier build still decodes.
+    public func payload(for report: QueuedReport, email: String?) throws -> Payload {
         lock.lock()
         defer { lock.unlock() }
         let directory = root.appendingPathComponent(report.id, isDirectory: true)
@@ -338,6 +345,7 @@ public final class ReportQueue {
             longitude: report.longitude,
             description: report.description,
             photos: photos,
+            email: email,
             // The queue's id IS the report's id on the wire (#88). Without this
             // line a retry of a report the relay already stored becomes a
             // second row, which is the whole thing the id exists to prevent.

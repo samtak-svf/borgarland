@@ -28,6 +28,12 @@ export interface ReportDraft {
   latitude: number
   longitude: number
   description: string
+  /**
+   * Where the city sends its confirmation, and the only channel it has back to
+   * the person who filed (#163). It lives on the DRAFT and never on the
+   * record: it is forwarded to the city and kept nowhere, the same rule the
+   * photo bytes have.
+   */
   email: string | null
   photos: PhotoPart[]
 }
@@ -42,7 +48,6 @@ export interface ReportRecord {
   latitude: number
   longitude: number
   description: string
-  email: string | null
   photoCount: number
   photoBytes: number
   /** True when the city POST was skipped (the safe default). */

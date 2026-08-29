@@ -76,7 +76,10 @@ public enum MultipartBodyBuilder {
         case "latitude": return payload.latitudeText
         case "longitude": return payload.longitudeText
         case "description": return payload.description
-        case "email": return nil // never collected; a part appears only if a value ever exists
+        // Where the city sends its confirmation (#163). Required by the
+        // contract, so a nil here is refused by the loop above rather than
+        // quietly dropping the one channel the reporter has back.
+        case "email": return payload.email
         case "photo": return nil // handled as parts above
         default: return nil // a role we do not know cannot be filled
         }

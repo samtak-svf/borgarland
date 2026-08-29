@@ -8,11 +8,17 @@ import BorgarlandCore
 struct DetailsScreen: View {
     @ObservedObject var model: ReportModel
 
-    /// Whether the description field holds the keyboard. Without a focus to
-    /// take away there was no way to put the keyboard down at all (#79): the
-    /// screen had no scroll-to-dismiss, no focus state and no keyboard toolbar,
-    /// so it went away only if the system happened to take it.
-    @FocusState private var descriptionFocused: Bool
+    /// Which field holds the keyboard, or none. Without a focus to take away
+    /// there was no way to put the keyboard down at all (#79): the screen had
+    /// no scroll-to-dismiss, no focus state and no keyboard toolbar, so it
+    /// went away only if the system happened to take it.
+    ///
+    /// An enum rather than a Bool since #163 added a second field. The
+    /// toolbar's way down has to work from whichever field is up, and a
+    /// per-field Bool is how one of them quietly stops having one.
+    @FocusState private var focused: Field?
+
+    private enum Field { case description, email }
 
     /// The title, pinned above the scroll view rather than carried inside it.
     ///
@@ -110,7 +116,7 @@ struct DetailsScreen: View {
                     axis: .vertical
                 )
                 .lineLimit(4...10)
-                .focused($descriptionFocused)
+                .focused($focused, equals: .description)
                 // Named for the UI test that asserts the control below stays
                 // hittable with the keyboard up (#110, #125). A SwiftUI
                 // TextField with `axis: .vertical` is a text VIEW to XCUITest
@@ -127,6 +133,37 @@ struct DetailsScreen: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .padding(.top, 2)
 
+                // The city answers a report by email and by nothing else, so a
+                // report without one is filed into silence (#163). Asked for
+                // here, once per phone: the model prefills it from the device
+                // and writes it back when this screen is left, so a second
+                // walk finds it already filled.
+                TextField(
+                    "Netfang",
+                    text: Binding(
+                        get: { model.state.email },
+                        set: { model.onEmailChange($0) }
+                    )
+                )
+                .keyboardType(.emailAddress)
+                .textContentType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($focused, equals: .email)
+                .accessibilityIdentifier("email-field")
+                .padding(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(emailLooksWrong(state) ? Color.red : Color(.systemGray4))
+                )
+                .padding(.top, 12)
+
+                Text("Borgin sendir staðfestingu og tilvísunarnúmer á þetta netfang. Það er eina leiðin sem þú heyrir frá henni.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
+
                 Button {
                     model.continueToSummary()
                 } label: {
@@ -135,13 +172,13 @@ struct DetailsScreen: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 16)
-                .disabled(state.selectedSlug == nil || descriptionIsBlank(state))
+                .disabled(state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid)
                 // The control #110 was about: the keyboard covered it, and a
                 // compile cannot see that.
                 .accessibilityIdentifier("continue-button")
 
-                if state.selectedSlug == nil || descriptionIsBlank(state) {
-                    Text("Veldu flokk og skrifaðu lýsingu til að halda áfram. Borgin krefst lýsingar.")
+                if state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid {
+                    Text("Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.")
                         .font(.caption)
                         .padding(.top, 4)
                 }
@@ -155,7 +192,7 @@ struct DetailsScreen: View {
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Loka lyklaborði") { descriptionFocused = false }
+                Button("Loka lyklaborði") { focused = nil }
             }
         }
     }
@@ -165,5 +202,13 @@ struct DetailsScreen: View {
     /// field.
     private func descriptionIsBlank(_ state: ReportUiState) -> Bool {
         state.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Red only once there is something to be wrong ABOUT. An empty field on a
+    /// fresh install is not an error, it is a field nobody has reached yet, and
+    /// marking it red before the first keystroke tells somebody they have made
+    /// a mistake by opening the app.
+    private func emailLooksWrong(_ state: ReportUiState) -> Bool {
+        !state.email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !state.emailValid
     }
 }

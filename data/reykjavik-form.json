@@ -70,6 +70,10 @@
       "required": false,
       "source": "user",
       "repeated": true,
+      "maxCountClient": 5,
+      "maxCountClientNotes": "measured 2026-08-29 by handing the picker six files over CDP: five reached the submitted field, the counter read 5/5, and the sixth was dropped with NO error text anywhere on the page. So it is a real cap and a silent one — somebody who selects six photographs is told about five. It is the CLIENT's cap: the submitted input carries no limit of its own and the server's file count is still unknown.",
+      "acceptLivesOnThePicker": "the accept list is an attribute of the hidden picker input (opacity 0, the one the dropzone clicks), NOT of the input named `files` that goes on the wire — that one has no accept attribute at all. So the MIME allowlist is a browser-side courtesy and a direct POST is not held to it, which is consistent with the city validating only `description`. Measured 2026-08-29.",
+      "noUploadOnSelect": "choosing a file sends nothing. Measured 2026-08-29 with every non-GET failed at the browser and watched: attaching six photographs produced zero blocked requests, so the bytes travel only with the submit.",
       "accept": [
         "image/jpeg",
         "image/png",
@@ -80,7 +84,9 @@
     "email": {
       "required": false,
       "source": "user",
-      "notes": "the only way the reporter hears anything back"
+      "clientValidation": "none. Measured 2026-08-29 from the DOM: the field is type=\"text\" (not type=\"email\"), with no `required` and no `pattern`. Nothing in the browser checks it, so a typo is accepted silently and the confirmation simply never arrives — which is why our own rule is in the app (#163, decision 0015).",
+      "notes": "the only way the reporter hears anything back. The form asks for it under \"Viltu fylgjast me\u00f0 \u00e1bendingunni \u00feinni?\" and offers no other channel: there is no phone field anywhere on the form, so an address is the whole of what the city can answer to. Confirmed from the rendered form on 2026-08-29 as well as from the element list.",
+      "ourRule": "required by us \u2014 see validation.onlyDescriptionIsEnforced. A report with no address reaches the queue and its reporter is never told anything by the city; report 110474 got a reply, and a request number, only because a human had typed one in (docs/incidents/2026-08-21-filed-a-real-report.md). Enforced in the apps, not yet in the relay (#163)."
     }
   },
   "validation": {
@@ -96,6 +102,14 @@
       "evidence": "a nonsense slug returns 400 with an empty body; an English slug on the Icelandic path returns 400 with a page titled 'Síða fannst ekki (404)'; an empty slug returns 405",
       "consequence": "status alone cannot distinguish a typo'd category from a missing description; the discriminator is 'Missing required fields' plus the category hidden field being re-rendered",
       "verifiedAt": "2026-08-21"
+    },
+    "theSubmitButtonIsNeverDisabled": {
+      "value": true,
+      "evidence": "measured 2026-08-29 from the DOM, with every non-GET failed at the browser: on an EMPTY form the Senda ábendingu button reports disabled=false, and with description and email filled while lat and lng are still empty strings it reports disabled=false and aria-disabled=null, on a form that is not noValidate. The description textarea is not marked required either.",
+      "corrects": "docs/research/payload-map.md said lat and lng 'appear to be enforced in the browser only, by the map picker refusing to submit without a marker'. The picker does not refuse via the button, so whatever that sentence described is not the disabled state.",
+      "notTested": "whether an onSubmit handler would refuse the send anyway — establishing that means pressing the button, which is decision 0006. So this narrows where the guard is NOT; it does not prove there is none.",
+      "consequence": "nothing observable in the browser stops a report with no coordinate, and the server does not either. Our relay is the only thing that does.",
+      "verifiedAt": "2026-08-29"
     },
     "noAddressFieldInPayload": {
       "value": true,
@@ -255,7 +269,7 @@
     "verifiedAt": "2026-08-21"
   },
   "unknown": [
-    "maximum upload size and file count — the client sets no maxSize, so the limit is the server's and finding it means uploading until something breaks",
+    "maximum upload SIZE — the client sets no maxSize, so the limit is the server's and finding it means uploading until something breaks. The file COUNT is no longer wholly unknown: the client caps at five (fields.files.maxCountClient, measured 2026-08-29), though the server's own limit is still untested",
     "for scale rather than as an answer: real captures measured 2026-08-22 were 1.1 MB from a Galaxy A71 and 2.66 MB from a Galaxy S23 Ultra, so three photos from a recent phone approach 8 MB and the unknown limit is not academic",
     "an iPhone 13 original measured 2026-08-22 was 4.14 MB as HEIC, 4.78 MB transcoded to JPEG at quality 90 and 3.30 MB at quality 80, so two iPhone photos at a faithful quality already pass 8 MB and the transcode setting decides whether a report fits"
   ],

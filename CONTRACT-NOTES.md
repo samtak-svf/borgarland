@@ -37,7 +37,8 @@ The field keys are the wire names, in the order the app writes them:
 - `latitude` / `longitude` — WGS84 decimal degrees, dot separator.
 - `description` — required, `maxLength` restated from the city facts and
   pinned to them by the check.
-- `email` — optional; the POC never collects it.
+- `email` — required of the APP, though the relay still accepts a report
+  without one and the city treats it as optional (#163, decision 0015).
 - `photo` — optional, repeated; `accept` restated from the city facts and
   pinned by the check.
 
@@ -134,9 +135,14 @@ copy going stale, or the app and relay re-disagreeing on any part name.
   general/specific distinction as a label (`Almenn ábending` / `Sérstök
   ábending`) from the facts asset; it is never sent. `summary` was dropped
   from the model entirely — nothing uses it anymore.
-- **Email is in the contract but never sent.** The relay forwards it when
-  present; the POC has no email field, and `RelayRequestTest` pins that the
-  app omits the part.
+- ~~**Email is in the contract but never sent.**~~ — no longer true as of
+  #163. Both apps now ask for an address, keep it on the device and send it
+  with every report; the city's confirmation mail is the only channel the
+  reporter has back, and there is no phone field on the city's form to be an
+  alternative. `RelayRequestTest` pins the opposite of what it used to: a
+  payload without an address cannot be built at all. The relay is deliberately
+  NOT tightened to match — see decision 0015 for why that asymmetry is the
+  safe direction.
 
 ## Re-running the verification
 

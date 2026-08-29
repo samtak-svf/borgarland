@@ -187,9 +187,11 @@ object RelayClient {
             "latitude" -> payload.latitudeText
             "longitude" -> payload.longitudeText
             "description" -> payload.description
-            // Optional roles the POC never fills; written only when the
-            // contract names them and a value exists.
-            "email" -> null
+            // Where the city sends its confirmation (#163). Required by the
+            // contract, so a null here is refused by the loop below rather
+            // than quietly dropping the one channel the reporter has back.
+            "email" -> payload.email
+            // Written as parts below, never as text.
             "photo" -> null
             else -> null
         }

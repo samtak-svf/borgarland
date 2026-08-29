@@ -55,6 +55,16 @@ final class DetailsKeyboardTest: XCTestCase {
             .matching(identifier: "continue-button").firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 5), "the continue button is not on the screen")
 
+        // Neither is `isEnabled`, but it has to hold for the next assertion to
+        // mean anything: a control disabled for an unrelated reason could
+        // report whatever it liked about hittability and the test would still
+        // pass. The address the screen now requires (#163) is seeded by the
+        // -uiTestDetailsScreen seam for exactly this reason.
+        XCTAssertTrue(
+            button.isEnabled,
+            "the continue button is disabled, so this run cannot say anything about #110"
+        )
+
         // `exists` is not the assertion. #110's button existed the whole time;
         // it was underneath the keyboard, which is what isHittable answers and
         // nothing else in this repository does.

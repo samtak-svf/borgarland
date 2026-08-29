@@ -42,7 +42,11 @@ class RelayRequestTest {
         assertTrue(contract.fields.getValue("latitude").required)
         assertTrue(contract.fields.getValue("longitude").required)
         assertTrue(contract.fields.getValue("description").required)
-        assertFalse(contract.fields.getValue("email").required)
+        // Required of the APP, not of the relay (#163). The Worker still
+        // accepts a report without an address, because builds 6 and 7 send
+        // none; worker/tests/contract.test.ts pins that half. This is the one
+        // field where the two sides differ on purpose.
+        assertTrue(contract.fields.getValue("email").required)
         assertFalse(contract.fields.getValue("photo").required)
     }
 
@@ -67,6 +71,7 @@ class RelayRequestTest {
             longitude = -21.93279823,
             description = "Full ruslafata við stíginn",
             photos = listOf(Photo(byteArrayOf(1, 2, 3), "mynd.jpg", "image/jpeg", 0)),
+            email = "nafn@example.is",
         )
 
         val boundary = "----boundary"
@@ -91,17 +96,18 @@ class RelayRequestTest {
             )
         }
 
-        // The four required text parts plus the photo, in contract order.
+        // The five required text parts plus the photo, in contract order.
         assertEquals(
-            listOf("category", "latitude", "longitude", "description", "photo"),
+            listOf("category", "latitude", "longitude", "description", "email", "photo"),
             parts.map { it.name },
         )
         assertEquals("ruslafotur", parts[0].value)
         assertEquals("64.14658919", parts[1].value)
         assertEquals("-21.93279823", parts[2].value)
         assertEquals("Full ruslafata við stíginn", parts[3].value)
-        assertEquals("mynd.jpg", parts[4].filename)
-        assertEquals("image/jpeg", parts[4].contentType)
+        assertEquals("nafn@example.is", parts[4].value)
+        assertEquals("mynd.jpg", parts[5].filename)
+        assertEquals("image/jpeg", parts[5].contentType)
 
         // The city's vocabulary never reaches the wire: not as a part name,
         // not as a value.
@@ -117,15 +123,32 @@ class RelayRequestTest {
     @Test
     fun optionalAbsentFieldsAreOmitted() {
         val contract = RelayRequest.parse(contractText)
-        val payload = Payload("ruslafotur", 64.14658919, -21.93279823, "lýsing", emptyList())
+        val payload = Payload(
+            "ruslafotur", 64.14658919, -21.93279823, "lýsing", emptyList(),
+            email = "nafn@example.is",
+        )
 
         val body = RelayClient.buildBody(payload, contract, "----b").toString(Charsets.UTF_8)
 
-        // email is optional and the POC never collects it; photo is optional
-        // and this payload has none. Neither part may appear.
-        assertFalse(body.contains("name=\"email\""))
+        // photo is optional and this payload has none, so the part may not
+        // appear. reportId is optional too and this payload carries none.
         assertFalse(body.contains("name=\"photo\""))
+        assertFalse(body.contains("name=\"reportId\""))
         assertTrue(body.contains("name=\"category\""))
+    }
+
+    @Test
+    fun aReportWithNoAddressCannotBeBuilt() {
+        // The city answers a report by email and by nothing else, so we
+        // require one though the city does not (#163). The refusal lives in
+        // the same loop that refuses any missing required part — one gate, not
+        // a second rule beside the UI's.
+        val contract = RelayRequest.parse(contractText)
+        val payload = Payload("ruslafotur", 64.14658919, -21.93279823, "lýsing", emptyList())
+
+        assertThrows(IllegalStateException::class.java) {
+            RelayClient.buildBody(payload, contract, "----b")
+        }
     }
 
     @Test

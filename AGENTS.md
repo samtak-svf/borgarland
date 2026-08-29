@@ -86,6 +86,26 @@ double press the same harmless thing, which neither side can otherwise tell
 apart. The queue refuses when it is full instead of evicting: every other policy
 throws away something somebody filed, silently.
 
+**A report carries the address the city will answer to, and the phone keeps
+it.** The city's form has exactly one field that gives the reporter anything
+back — no phone number, no account, no ticket handle in the app — and both apps
+skipped it until #163, so every report filed from a phone was anonymous to the
+city and its author heard nothing from anyone but us. It is now **required by
+us and optional to the city**, the same override the coordinate gets and for
+the same reason. The address belongs to the DEVICE rather than to the report:
+typed once, kept beside the queue and the follow-ups, prefilled, and read at
+send time — so a report that waited in the queue goes out to whatever address
+the phone holds now, and `QueuedReport`'s persisted format is untouched.
+
+**The relay is deliberately NOT tightened to match, and that asymmetry is the
+ordering rule pointing the other way.** `required` in `data/relay-request.json`
+is read by the two apps; the Worker reads that file for the unknown-field
+allowlist alone and still parses the email as optional. Builds 6 and 7 are on
+testers' phones and send no address, so a relay that required one would answer
+400 to every report they file — and unlike the app, those phones cannot be
+fixed by a deploy. Decision 0015, and `worker/tests/contract.test.ts` names
+itself as the test to delete when the relay does follow.
+
 **Deploy the relay before shipping an app that uses a new part of the request.**
 The Worker rejects any part `data/relay-request.json` does not name, which is
 the guard that makes a stale app fail loudly — and it points both ways. A build

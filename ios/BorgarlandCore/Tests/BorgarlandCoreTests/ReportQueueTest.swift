@@ -61,7 +61,7 @@ final class ReportQueueTest: XCTestCase {
         XCTAssertEqual(reread.first?.queuedAt, Date(timeIntervalSince1970: 1_700))
 
         let first = try XCTUnwrap(reread.first)
-        let restored = try ReportQueue(root: root).payload(for: first)
+        let restored = try ReportQueue(root: root).payload(for: first, email: "nafn@example.is")
         XCTAssertEqual(restored.photos.count, 1)
         XCTAssertEqual(restored.photos.first?.bytes, bytes, "the photograph must come back byte for byte")
         XCTAssertEqual(restored.photos.first?.name, "mynd.jpg")
@@ -71,7 +71,7 @@ final class ReportQueueTest: XCTestCase {
 
     /// #88's integration, which nothing pinned: the builder test supplies its
     /// own id, and the round-trip test checked every field except the one that
-    /// travels. Deleting `reportId: report.id` from `payload(for:)` left the
+    /// travels. Deleting `reportId: report.id` from `payload(for:email:)` left the
     /// whole suite green.
     func testTheQueuesOwnIdIsWhatTheReportCarriesToTheRelay() throws {
         let queue = makeQueue(ids: ["a1b2c3d4e5f60718293a4b5c6d7e8f90"])
@@ -81,7 +81,7 @@ final class ReportQueueTest: XCTestCase {
         // the one still in hand: a retry after a relaunch is the case that
         // matters.
         let reread = try XCTUnwrap(ReportQueue(root: root).pending().first)
-        let restored = try ReportQueue(root: root).payload(for: reread)
+        let restored = try ReportQueue(root: root).payload(for: reread, email: "nafn@example.is")
         XCTAssertEqual(restored.reportId, queued.id)
         XCTAssertEqual(restored.reportId, "a1b2c3d4e5f60718293a4b5c6d7e8f90")
     }
@@ -122,7 +122,7 @@ final class ReportQueueTest: XCTestCase {
     func testAReportWithNoPhotographIsStillAReport() throws {
         let queue = makeQueue()
         let queued = try queue.enqueue(payload(photo: nil))
-        XCTAssertEqual(try queue.payload(for: queued).photos.count, 0)
+        XCTAssertEqual(try queue.payload(for: queued, email: "nafn@example.is").photos.count, 0)
     }
 
     // MARK: - Order
@@ -275,7 +275,7 @@ final class ReportQueueTest: XCTestCase {
             at: root.appendingPathComponent("broken", isDirectory: true).appendingPathComponent("photo-0")
         )
 
-        XCTAssertThrowsError(try queue.payload(for: queued)) { error in
+        XCTAssertThrowsError(try queue.payload(for: queued, email: "nafn@example.is")) { error in
             XCTAssertEqual(error as? ReportQueue.QueueError, .missingPhoto("photo-0"))
         }
     }
