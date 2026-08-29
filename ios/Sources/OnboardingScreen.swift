@@ -62,24 +62,20 @@ struct OnboardingScreen: View {
                         .stroke(looksWrong ? Color.red : Color(.systemGray4))
                 )
 
-                Button {
-                    model.completeOnboarding()
-                } label: {
-                    Text("Áfram").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!model.state.emailValid)
-                .accessibilityIdentifier("onboarding-continue-button")
-
-                if !model.state.emailValid {
-                    Text("Sláðu inn netfang til að halda áfram. Þú getur breytt því síðar á skjánum þar sem ábendingin er skrifuð.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Pinned, not scrolled to — the same fix the details screen needed on
+        // the first CI run after #163 (see DetailsScreen). This screen carries
+        // MORE prose than that one and has one field and one button, which is
+        // exactly #110's shape, and unlike the details screen it has no
+        // simulator test to catch it. Applied here on the strength of the
+        // measurement rather than waiting for somebody to meet it: on Android
+        // the equivalent control cleared the keyboard by 277 px on a 2316-tall
+        // display, which is room on a large phone and not obviously room on a
+        // small one.
+        .safeAreaInset(edge: .bottom, spacing: 0) { footer }
         // The same two ways down the details screen has (#79): a gesture, and
         // a control somebody can see.
         .scrollDismissesKeyboard(.interactively)
@@ -89,6 +85,31 @@ struct OnboardingScreen: View {
                 Button("Loka lyklaborði") { emailFocused = false }
             }
         }
+    }
+
+    /// The button that leaves this screen, plus the line saying why it is
+    /// refused. Opaque, because the content scrolls underneath it.
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                model.completeOnboarding()
+            } label: {
+                Text("Áfram").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!model.state.emailValid)
+            .accessibilityIdentifier("onboarding-continue-button")
+
+            if !model.state.emailValid {
+                Text("Sláðu inn netfang til að halda áfram. Þú getur breytt því síðar á skjánum þar sem ábendingin er skrifuð.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemBackground))
     }
 
     /// Red only once there is something to be wrong ABOUT — an untouched field

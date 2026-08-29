@@ -3182,8 +3182,8 @@
           "how": "inference from the code path, not an observation of the wire: the relay does not log the address and the row has no column for it since migration 0004. The only place it was visible is the response the phone received."
         },
         {
-          "what": "photo-captured bytes 1865003 equals the stored row's photo_bytes, and description-length 10 equals the stored description 'yfirfullt ' — nine characters and a trailing space.",
-          "how": "two independent sources compared, per AGENTS.md step 3; neither read off a screen."
+          "what": "photo-captured bytes 1865003 equals the stored row's photo_bytes, and description-length 10 equals the TYPED text 'yfirfullt ' — nine characters and a trailing space.",
+          "how": "two independent sources compared, per AGENTS.md step 3; neither read off a screen. One correction to an earlier version of this sentence, which said the length equalled 'the stored description': it does not and cannot. The relay composes what it stores — composeDescription appends '\\n\\nNæsta skráða heimilisfang: …' whenever the jurisdiction lookup found an address, which acceptance requires — so the row holds about 65 characters, not 10. The event measures what the person typed; the row holds what the relay sent. The comparison is against the typed prefix, and the appended line being present in the row is itself the evidence that the local relay was running this branch's worker."
         },
         {
           "what": "The capture path takes its coordinate from the device, not from EXIF: location-failed reason=no-exif, then location-resolved source=device accuracyM=53.",
@@ -3215,7 +3215,9 @@
         "Anything about iOS. There is no Mac here, the iOS half of #163 is unbuilt locally, and CI is the only compiler.",
         "Why the camera permission was refused at 29.31 s and granted at 38.27 s. Two camera-permission events, false then true, are in the timeline; the cause is not established and the tester's answer did not settle it. Recorded as observed rather than explained.",
         "The offline queue, which Android does not have (data/platform-parity.json, offline-queue is ios-only).",
-        "Whether the onboarding screen behaves the same on a short display. It was measured on a 2316-tall phone, where there is room to spare; a smaller screen is where #110 actually bit."
+        "Whether the onboarding screen behaves the same on a short display. It was measured on a 2316-tall phone, where there is room to spare; a smaller screen is where #110 actually bit.",
+        "Anything about the DETAILS screen with the keyboard up, which is the screen #110 actually bit and the one this change gave a second text field immediately above the same control. Only the new onboarding screen was measured here, on Android. That gap was not idle: the iOS simulator test failed on exactly it in the first CI run after this record was written — the address field had pushed the button under the keyboard — and the fix pins the control with safeAreaInset(edge: .bottom) rather than leaving it last inside the ScrollView. Android's details screen still has no equivalent measurement.",
+        "That the two platforms agree on what counts as an address. They did not: Java's Character.isWhitespace returns false for a non-breaking space and Swift's returns true, so 'nafn@example\\u00A0.is' was accepted on Android and refused on iOS, and neither test table carried a case that could tell them apart. Found by review after this walk, not by it. Both validators now use one explicit code-point table."
       ]
     }
   ]

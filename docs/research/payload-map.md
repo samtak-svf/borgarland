@@ -51,8 +51,21 @@ An empty POST returns `400` with:
 {"error": "Missing required fields", "inputErrors": {"description": ["Vinsamlegast skrifaðu lýsingu …"]}}
 ```
 
-`lat` and `lng` are **not** in `inputErrors`. They appear to be enforced in the
-browser only, by the map picker refusing to submit without a marker.
+`lat` and `lng` are **not** in `inputErrors`. This document used to say they
+"appear to be enforced in the browser only, by the map picker refusing to submit
+without a marker" — a guess, and measurement on 2026-08-29 did not support it.
+
+With the description and the email filled and `lat`/`lng` still empty strings,
+the **Senda ábendingu** button reports `disabled=false` and `aria-disabled=null`,
+on a form that is not `noValidate`; on a wholly empty form it is enabled too, and
+the description textarea is not even marked `required`. So the picker does not
+refuse through the button.
+
+That narrows where the guard is not; it does not prove there is none, because an
+`onSubmit` handler could still refuse — and finding out means pressing the
+button, which is [decision 0006](../../decisions/0006-never-press-submit.md).
+What can be said is that **nothing observable stops a report with no coordinate,
+on either side.**
 
 Whether a report with a description and no coordinate is actually accepted was
 **not tested and must not be** — a request that passes validation creates a real
@@ -280,7 +293,15 @@ the page. The legacy host `abendingar.reykjavik.is` now 301s to
 
 ## Unknowns
 
-- **Maximum upload size and file count.** The client uses react-dropzone with no
-  configured `maxSize`, so the limit is whatever the server enforces, and finding
-  it means uploading until something breaks. Treat it as unknown and downscale
+- **Maximum upload SIZE.** The client uses react-dropzone with no configured
+  `maxSize`, so the limit is whatever the server enforces, and finding it means
+  uploading until something breaks. Treat it as unknown and downscale
   aggressively.
+- ~~**and file count**~~ — no longer wholly unknown. Measured 2026-08-29 by
+  handing the picker six files: **five** reach the submitted field, the counter
+  reads `5/5`, and the sixth is dropped with no error text anywhere on the page.
+  A real cap and a silent one. It is the CLIENT's, though: the input named
+  `files` that goes on the wire carries no limit and no `accept` attribute
+  either — both live on the hidden picker input the dropzone clicks — so a
+  direct POST is held to neither. The server's own file count is still
+  untested. `data/reykjavik-form.json` `fields.files.maxCountClient`.

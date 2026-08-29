@@ -60,7 +60,7 @@ public struct ContactDetails {
     public func read() -> String? {
         guard let data = try? Data(contentsOf: url),
               let stored = try? JSONDecoder().decode(Stored.self, from: data) else { return nil }
-        let email = stored.email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = Self.normalise(stored.email)
         return email.isEmpty ? nil : email
     }
 
@@ -68,7 +68,7 @@ public struct ContactDetails {
     /// retyping and nothing else, so no caller has to treat it as fatal.
     @discardableResult
     public func write(_ email: String?) -> Bool {
-        let value = (email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = Self.normalise(email ?? "")
         guard let data = try? JSONEncoder().encode(Stored(email: value)) else { return false }
         // Atomic, so a process death mid-write cannot leave truncated JSON
         // that reads back as "no address" and quietly loses it.
@@ -95,9 +95,42 @@ public struct ContactDetails {
     /// of letting an odd-looking address through is a bounce we never see.
     /// What it does catch is the typo that loses the confirmation silently —
     /// `nafn@`, `nafn`, a stray space, a domain with no dot.
+    /// Scalars an address may not contain, enumerated BY CODE POINT rather
+    /// than by asking the platform what whitespace is (#163, found by review).
+    ///
+    /// The two platforms disagree about that question and the disagreement is
+    /// silent. Java's `Character.isWhitespace` returns FALSE for the
+    /// non-breaking spaces U+00A0, U+2007 and U+202F — its own javadoc says so
+    /// — while Swift's `Character.isWhitespace` implements the Unicode
+    /// White_Space property, which includes all three. It also runs the other
+    /// way: Java returns true for the C0 separators U+001C-U+001F, which are
+    /// not White_Space and which Swift would let through.
+    ///
+    /// So `nafn@example\u{00A0}.is`, the shape a copy-pasted address arrives
+    /// in, was VALID on Android and INVALID here. Nothing caught it: the relay
+    /// does no format check, the city does none either, and the confirmation
+    /// simply bounces — the silent silence this whole feature exists to end.
+    ///
+    /// An explicit table is the fix. Two platform predicates that look alike
+    /// are two rules, and the test tables that claimed to be identical carried
+    /// no case that could tell them apart. This table is the same one
+    /// `data/ContactDetails.kt` carries; change one, change both.
+    private static let blocked: Set<UInt32> = {
+        var set = Set<UInt32>(0x00...0x20)          // C0 controls and the space
+        set.insert(0x7F)                             // DEL
+        set.formUnion([0x85, 0xA0, 0x1680])          // NEL, NBSP, Ogham space
+        set.formUnion(0x2000...0x200D)               // en/em spaces, and the zero-width family
+        set.formUnion([0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0xFEFF])
+        return set
+    }()
+
+    private static func isBlocked(_ character: Character) -> Bool {
+        character.unicodeScalars.contains { blocked.contains($0.value) }
+    }
+
     public static func isValid(_ raw: String) -> Bool {
-        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if value.isEmpty || value.contains(where: { $0.isWhitespace }) { return false }
+        let value = normalise(raw)
+        if value.isEmpty || value.contains(where: { isBlocked($0) }) { return false }
         let parts = value.split(separator: "@", omittingEmptySubsequences: false)
         guard parts.count == 2, !parts[0].isEmpty else { return false }
         let domain = parts[1]
@@ -107,8 +140,13 @@ public struct ContactDetails {
     }
 
     /// Stored and sent with the surrounding whitespace gone, never otherwise
-    /// altered.
+    /// altered — trimming the SAME explicit table `isBlocked` uses, because
+    /// `.whitespacesAndNewlines` removes a non-breaking space and Kotlin's
+    /// `trim()` does not, which is the same divergence one step earlier.
     public static func normalise(_ raw: String) -> String {
-        raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var chars = Array(raw)
+        while let first = chars.first, isBlocked(first) { chars.removeFirst() }
+        while let last = chars.last, isBlocked(last) { chars.removeLast() }
+        return String(chars)
     }
 }

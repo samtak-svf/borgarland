@@ -164,28 +164,25 @@ struct DetailsScreen: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 2)
 
-                Button {
-                    model.continueToSummary()
-                } label: {
-                    Text("Áfram")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 16)
-                .disabled(state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid)
-                // The control #110 was about: the keyboard covered it, and a
-                // compile cannot see that.
-                .accessibilityIdentifier("continue-button")
-
-                if state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid {
-                    Text("Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.")
-                        .font(.caption)
-                        .padding(.top, 4)
-                }
             }
             .padding(16)
         }
         .safeAreaInset(edge: .top, spacing: 0) { header("Skrá ábendingu") }
+        // The control that ends the screen is PINNED, not scrolled to (#110,
+        // again). It used to be the last thing inside the ScrollView, and that
+        // held only because the content above it happened to be short enough:
+        // adding the address field and its caption (#163) pushed it under the
+        // keyboard, and the simulator test caught it on the first CI run — the
+        // regression a compile cannot see, which is why that test exists.
+        //
+        // safeAreaInset(edge: .bottom) makes the button part of the scroll
+        // view's safe area instead of its content, so it sits ABOVE the
+        // keyboard rather than behind it, and the scrollable content is inset
+        // to match. That is the same modifier already holding the title still
+        // at the top, used for the same reason at the other end — and it is
+        // now independent of how much this screen grows, which the previous
+        // arrangement never was.
+        .safeAreaInset(edge: .bottom, spacing: 0) { footer(state) }
         // Two ways down, because one is a gesture nobody is told about and the
         // other is a control somebody can see (#79).
         .scrollDismissesKeyboard(.interactively)
@@ -195,6 +192,35 @@ struct DetailsScreen: View {
                 Button("Loka lyklaborði") { focused = nil }
             }
         }
+    }
+
+    /// The button that ends the screen, plus the line saying why it is refused.
+    /// Pinned to the bottom rather than carried in the scroll view — see the
+    /// safeAreaInset above. Opaque, because the content scrolls underneath it.
+    private func footer(_ state: ReportUiState) -> some View {
+        let blocked = state.selectedSlug == nil || descriptionIsBlank(state) || !state.emailValid
+        return VStack(alignment: .leading, spacing: 4) {
+            Button {
+                model.continueToSummary()
+            } label: {
+                Text("Áfram")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(blocked)
+            // The control #110 was about: the keyboard covered it, and a
+            // compile cannot see that.
+            .accessibilityIdentifier("continue-button")
+
+            if blocked {
+                Text("Veldu flokk, skrifaðu lýsingu og settu inn netfang til að halda áfram. Borgin krefst lýsingar; netfangið krefjumst við, svo svarið rati til þín.")
+                    .font(.caption)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemBackground))
     }
 
     /// The Kotlin's `isNotBlank()`: whitespace-only text does not count as a
