@@ -33,6 +33,17 @@ final class ContactDetailsTest: XCTestCase {
             // A trailing byte-order mark, which normalise strips like any
             // other member of the table. An address is recovered, not refused.
             "nafn@example.is\u{FEFF}",
+            // The other half of the boundary: a blocked scalar at the edge IS
+            // trimmed, and the non-blocked one behind it survives. Both
+            // platforms must keep the combining acute rather than swallow the
+            // letter it belongs to.
+            "\u{00A0}\u{0301}nafn@a.is",
+            // An `@` followed by a combining mark. One grapheme, two scalars —
+            // a cluster-wise scan would not find the `@` at all.
+            "nafn@\u{0301}a.is",
+            // Above the BMP: two surrogates on one side, one scalar on the
+            // other, and nothing in the table either way.
+            "nafn@a.is\u{1F600}",
         ]
         for value in accepted {
             XCTAssertTrue(ContactDetails.isValid(value), "should accept '\(value)'")
@@ -53,6 +64,16 @@ final class ContactDetailsTest: XCTestCase {
             "nafn@@example.is",
             "nafn@example.is nafn2@example.is",
             "nafn @example.is",
+            // BOUNDARY cases, which the first version of this table lacked and
+            // which is exactly why a real divergence survived it. Kotlin walks
+            // UTF-16 code units and Swift walked grapheme CLUSTERS, so a
+            // blocked scalar glued to the edge of a cluster behaved
+            // differently: `s` + ZWJ + combining acute is one cluster, and
+            // trimming it on iOS returned "nafn@a.i" — a valid-looking address
+            // with the last letter of the domain eaten. Both sides now trim
+            // scalar by scalar, and these are the cases that say so.
+            "x\u{200D}nafn@a.is",
+            "nafn@a.is\u{200D}\u{0301}",
             // The case that told the two platforms apart, and that neither
             // table carried until a review found it (#163). Java's
             // Character.isWhitespace says FALSE for a non-breaking space and
