@@ -48,16 +48,21 @@ what is built on top of it is:
   a grep of the thing it describes; see **When new test data arrives** in
   `AGENTS.md`, which exists because of exactly this.
 
-**Nothing in this repository has reached the city, and the relay cannot reach it
-by accident.** Forwarding requires two separate things and has neither: the
-committed `LIVE_SEND` switch turned on, and the `CITY_SEND_KEY` secret, which
-does not exist. Doing nothing leaves dry run
-([decision 0002](decisions/0002-relay-not-direct-post.md)), and which way the
-switch is set is readable from outside, at `GET /api/health`, without listing
-anyone's secrets ([decision 0016](decisions/0016-the-live-send-gate-is-a-switch-you-can-see.md)).
-And when it is armed, the relay files exactly one report and refuses the second,
-because [decision 0006](decisions/0006-never-press-submit.md)'s "one" is
-enforced in code rather than remembered.
+**One report has reached the city, on purpose, and no second one can.** On
+2026-08-30 the project filed its one deliberate real ábending — a grass strip in
+Grafarvogur — and Reykjavíkurborg answered with reference 110759. That was
+always the plan ([decision 0006](decisions/0006-never-press-submit.md)), and the
+"one" is a row in D1 rather than a promise: a second live report is now refused
+whatever anyone configures.
+
+Everything else this repository has ever done was a dry run, and still is. The
+relay went back to dry run minutes after that report and cannot leave it by
+accident: forwarding needs two separate things and has neither armed — the
+committed `LIVE_SEND` switch turned on, and the `CITY_SEND_KEY` secret. Doing
+nothing leaves dry run ([decision 0002](decisions/0002-relay-not-direct-post.md)),
+and which way the switch is set is readable from outside at `GET /api/health`,
+without listing anyone's secrets
+([decision 0016](decisions/0016-the-live-send-gate-is-a-switch-you-can-see.md)).
 
 The short version: Reykjavík publishes no API, and no Icelandic municipality
 implements Open311 — but the city's own form endpoint accepts an anonymous

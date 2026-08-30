@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. A `docs/research/` write-up of a test should cite the id here, and so should a decision a test caused; none does yet, because no test has produced one yet.",
-  "verifiedAt": "2026-08-29",
+  "verifiedAt": "2026-08-30",
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
     "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
@@ -3392,6 +3392,310 @@
         "Anything about iOS. This build is Android, and the iOS half of #163 has been compiled by CI and run by nobody.",
         "Whether the keyboard covers the control on either screen of THIS build. The onboarding measurement in the previous entry was taken on the same handset and the same Android layout, which is unchanged since; this walk did not re-measure it, and a 2316-tall display is where there is most room to spare.",
         "Anything about a phone that is not this one. One handset, one Android version, one screen size."
+      ]
+    },
+    {
+      "id": "2026-08-30-android-the-one-real-submission",
+      "date": "2026-08-30",
+      "platform": "android",
+      "what": "Decision 0006's one real submission, taken on purpose: a grass strip in Grafarvogur photographed at 01:17 and filed to Reykjavíkurborg through the armed relay. The city answered 200 with reference 110759 and its confirmation email arrived at gudrodur@gmail.com at 01:18:02Z. This is the only path in the relay that had never been exercised (#56), and it is now spent — reserveLiveReport's row is claimed, so a second live report is refused whatever the switch says.",
+      "device": {
+        "model": "Samsung SM-S918B (Galaxy S23 Ultra), 1080x2316",
+        "note": "Known because the phone is on a cable here, NOT from the telemetry, which names no device — and since #128 not from the User-Agent either."
+      },
+      "build": {
+        "variant": "release, upload-signed locally and installed over adb; NOT from CI and not on any track",
+        "appVersion": "0.1.0 (7)",
+        "relayHost": "https://borgarland.samtak.is",
+        "installedAt": "2026-08-29T23:38:17Z, read from `adb shell dumpsys package is.borgarland` rather than remembered",
+        "note": "The SAME build and the SAME process as the 2026-08-29 walk. The session id is identical and at_ms continues from it: that entry ends at 45,223 ms and this one begins at 5,556,968 ms, so the app had been alive 99 minutes and was never relaunched. A session is per launch by design, and two field tests sharing one is a first — read the two entries as one process, not two."
+      },
+      "relay": {
+        "dryRun": false,
+        "citySendKeySet": true,
+        "liveSend": {
+          "state": "armed",
+          "switch": "on",
+          "key": "valid"
+        },
+        "workerVersion": "eea06861-56a0-4113-b64c-fbdc2444bab8",
+        "registryRows": 139360,
+        "armedWindow": "armed at 01:0x by deploying LIVE_SEND=\"on\" (#174) and disarmed at 01:2x by deploying \"off\" (#175). The window was minutes, deliberately: an armed relay does not file a second real report — reserveLiveReport refuses that — but it answers 409 live-send-already-used to any tester who walks, which is a worse failure than a dry run.",
+        "note": "The FIRST field test in this file with dryRun false. Every other entry says the city could not have been reached; this one says it was."
+      },
+      "session": "106716c5c70b54d97420e7ffce5a6b1d",
+      "method": "Timeline, delivery boundaries and report row transcribed from the deployed D1 by query on 2026-08-30, unedited. The city's reference number is read from its confirmation email, kept out of this repository in private/city-correspondence/ because it is addressed mail; only the facts it establishes are here and in data/reykjavik-form.json.",
+      "timeline": [
+        {
+          "atMs": 5556968,
+          "name": "screen-left",
+          "fields": {
+            "screen": "confirm",
+            "completed": false
+          }
+        },
+        {
+          "atMs": 5556998,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5559493,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 365,
+            "bytes": 2835223,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 5559493,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 5559786,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5559791,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 299,
+            "source": "device",
+            "accuracyM": 39
+          }
+        },
+        {
+          "atMs": 5559791,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 5561143,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 1651,
+            "slug": "gotusopun"
+          }
+        },
+        {
+          "atMs": 5572834,
+          "name": "description-length",
+          "fields": {
+            "length": 11
+          }
+        },
+        {
+          "atMs": 5576886,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 5718199,
+          "name": "screen-left",
+          "fields": {
+            "screen": "confirm",
+            "completed": false
+          }
+        },
+        {
+          "atMs": 5718219,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5806763,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 546,
+            "bytes": 4898189,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 5806764,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 2,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 5807065,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5807069,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 307,
+            "source": "device",
+            "accuracyM": 100
+          }
+        },
+        {
+          "atMs": 5807069,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 5822036,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 15274,
+            "slug": "gras-og-grodur"
+          }
+        },
+        {
+          "atMs": 5924190,
+          "name": "description-length",
+          "fields": {
+            "length": 136
+          }
+        },
+        {
+          "atMs": 5929748,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 5932255,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 5939404,
+          "name": "screen-left",
+          "fields": {
+            "screen": "confirm",
+            "completed": false
+          }
+        },
+        {
+          "atMs": 5939423,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 5943367,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 11112,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "events": 10,
+          "receivedAt": "2026-08-30T01:12:43.816Z",
+          "firstAtMs": 5556968,
+          "lastAtMs": 5576886,
+          "note": "The abandoned attempt's ten events. What flushed them is not determinable from this record — there was no send, and the batch is under the twenty-event threshold — so the likeliest reading is the app going to the background at 01:12:43, which is also where the timeline shows him leaving the confirm screen."
+        },
+        {
+          "events": 2,
+          "receivedAt": "2026-08-30T01:14:29.830Z",
+          "firstAtMs": 5718199,
+          "lastAtMs": 5718219,
+          "note": "Two events, same reading: he left the confirm screen and returned to the camera, and the batch went out 1 m 46 s after the previous one."
+        },
+        {
+          "events": 11,
+          "receivedAt": "2026-08-30T01:18:02.960Z",
+          "firstAtMs": 5806763,
+          "lastAtMs": 5939423,
+          "note": "Eleven events, sent while the city POST was still in flight — this batch is stamped 921 ms BEFORE the relay recorded the city's 200. The events endpoint and the report endpoint are separate handlers (worker/src/app.ts), which is exactly why one can overtake the other."
+        },
+        {
+          "events": 1,
+          "receivedAt": "2026-08-30T01:18:04.116Z",
+          "firstAtMs": 5943367,
+          "lastAtMs": 5943367,
+          "note": "send-result alone, 235 ms after the relay finished. The send-result flush, arriving in its own batch because the event that triggers it is the last one in it."
+        }
+      ],
+      "report": {
+        "id": "de1eec5690759a72a0660ee67c677fb3",
+        "categorySlug": "gras-og-grodur",
+        "latitude": 64.1486462,
+        "longitude": -21.7808955,
+        "nearestAddress": "Gullengi 39, 112 Reykjavík",
+        "photoCount": 1,
+        "photoBytes": 4898189,
+        "dryRun": false,
+        "createdAt": "2026-08-30T01:17:54.777Z",
+        "sentAt": "2026-08-30T01:18:03.881Z",
+        "cityStatus": 200,
+        "cityReference": 110759,
+        "rejection": null,
+        "outcome": null
+      },
+      "confirmed": [
+        "The address does what #163 assumed. The previous entry's notFoundHere said the confirmation email 'is settled only by the one deliberate real submission' — this is that submission, and the mail arrived at the address the app sent, from no-reply@reykjavik.is, carrying the reference number in three languages.",
+        "The adapter's category mapping round-trips. The app sent the slug gras-og-grodur; the city's confirmation subject names 'Gras og gróður', which is the display name worker/src/adapters/reykjavik.ts derives from the facts file. Nothing else in this project could have checked that.",
+        "The photo is transcoded by nobody and accepted at 4,898,189 bytes. photo-captured's byte count and the row's photo_bytes agree exactly, so the bytes the camera produced are the bytes the city received.",
+        "description-length 136 equals the length of what was TYPED, not of what was stored: the row holds 178 characters because the relay appends the nearest-address line. The two numbers disagreeing is the contract working, and an earlier entry got this backwards."
+      ],
+      "findings": [
+        {
+          "issue": 56,
+          "what": "The live path works end to end and took 9.104 s inside the relay (created_at to sent_at) to POST 4.9 MB and read the city's 200. The app measured 11.112 s for the whole send, so ~2.0 s is the upload to the relay plus validation plus the 139,360-row jurisdiction scan. Both numbers are firsts; nothing before this had a real city response to time against."
+        },
+        {
+          "issue": 31,
+          "what": "The coordinate that was filed carries accuracyM 100 — the coarsest fix in this whole file, and four times worse than the abandoned attempt's 39 five minutes earlier at the same place. The report was accepted anyway, because neither the city nor the relay looks at accuracy. A 100 m radius in Grafarvogur is most of a block, and the crew is being sent to it with no idea how loose it is. This is the concrete cost of #31."
+        },
+        {
+          "issue": 61,
+          "what": "4,898,189 bytes reached the city and were accepted. That is a FLOOR on the upload limit, not the limit — it says the ceiling is above 4.9 MB and nothing more, and the only way to find the ceiling is to exceed it, which now costs a code change because the gate is spent."
+        },
+        {
+          "issue": 57,
+          "what": "There is now, for the first time, a real report whose follow-through can be measured: reference 110759, with the city promising an answer or a hand-off 'within the next weekday'. The outcome endpoint still has no caller, so nothing will record what actually happens unless somebody does it by hand."
+        },
+        {
+          "issue": 164,
+          "what": "An attempt was composed and abandoned at 01:12 — photo 2,835,223 bytes, category gotusopun, an 11-character description, details screen left completed — and then no send-started. Nothing in the telemetry says why it was abandoned, and the walk photographs itself nowhere, which is #164 exactly. Recorded as observed."
+        }
+      ],
+      "notFoundHere": [
+        "Anything about a SECOND real submission. The gate is spent, and the 409 live-send-already-used path has still never been answered to a real client — only to tests.",
+        "The city's ANSWER, as opposed to its receipt. The confirmation is automatic and arrived in one second; whether a crew reads it, acts on it, or finds the grass strip from a 100 m coordinate is unmeasured and is #57.",
+        "Whether the coordinate was good enough. It was accepted, which says only that nothing checks it. Nobody has stood where a crew would stand.",
+        "The upload ceiling. See the #61 finding: this is a floor.",
+        "Anything about iOS. This is Android, and the iOS half has been compiled by CI and has never filed a real report.",
+        "Why the first attempt was abandoned. The record shows that it was, not what happened.",
+        "Anything about a phone that is not this one, or a session that was relaunched. This walk shares a process with the 2026-08-29 entry, so it says nothing about a cold start."
       ]
     }
   ]

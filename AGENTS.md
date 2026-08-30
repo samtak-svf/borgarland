@@ -376,7 +376,11 @@ What is allowed instead:
   constructing. It is static and already downloaded; reading it cannot send.
 - **One real submission, once, deliberately**, at the end of a build, with a real
   problem at a real location. That is a decision to take on purpose, never a step
-  in a test.
+  in a test. **It was taken on 2026-08-30** — reference 110759, a grass strip in
+  Grafarvogur — so this line is now a record and not a permission. There is no
+  second one to spend: `reserveLiveReport`'s row is claimed and the relay refuses
+  another whatever the switch says. Filing one more is a code change in its own
+  PR, argued for on its own merits, and #6 is where that argument belongs.
 
 `scripts/send-report.mjs` will not send without `--send` for the same reason.
 Do not add a shortcut around that flag.
@@ -398,6 +402,7 @@ which is what a count in prose does the third time the list grows.
 | [`data/platform-parity.json`](data/platform-parity.json) | **Facts** about which capabilities each app has, and the INTENT for each: parity, one-sided with a written reason, or neither-yet. `scripts/check-parity.mjs` detects the truth from the source and fails CI when it disagrees. The file does not assert what exists; that is the point. |
 | [`data/field-tests.json`](data/field-tests.json) | **Observations** from a build in a hand, on a real device, against the live relay. Each entry keeps what was OBSERVED apart from what was CONCLUDED: the timeline and the report row are transcribed from D1 and must not be edited to fit a later understanding, while `findings` is interpretation and may be revised. `scripts/check-field-tests.mjs` validates every timeline against the event allowlist, because an event that could not cross the wire cannot have been observed. The defects that reach this file are the ones no test and no CI run can see. |
 | `private/testers.json` **(gitignored, not in this repo)** | **People.** Who has been asked to test, on which channel, what they were told and what happened, plus `howToInvite` — the invite-flow traps, each one written the day somebody hit it. It is gitignored because it holds real names, addresses and chat identifiers and this repository is public. It is listed here anyway, because a file a future session does not know about gets re-derived from chat scrollback, and that is how a person gets asked twice or forgotten. Its `screenshots` index is reconciled against `private/screenshots` by `scripts/check-private-index.mjs`, which is the one gate in this table that CANNOT run in CI and must not: the data is real names and real addresses. See **When new test data arrives**. |
+| `private/city-correspondence/` **(gitignored, not in this repo)** | **Mail from the city**, kept as received. Two messages so far, the confirmations for reports 110474 and 110759. It is addressed mail carrying a real address, so it is gitignored for the same reason `private/testers.json` is — and listed here for the same reason too: the facts it establishes are in `data/reykjavik-form.json` under `fields.email.confirmationEmail` and `measurement.reportVolume`, and a future session that does not know the originals exist will re-derive them from memory or not at all. |
 | [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
 | [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
 
