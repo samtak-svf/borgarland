@@ -121,10 +121,16 @@ final class DeviceFix: NSObject, CLLocationManagerDelegate {
             // as #76 and #86, and the guard forty lines below already gets it
             // right for the delegate path.
             //
-            // Nothing is lost by waiting. iOS shows this dialog once in the
-            // life of an install, so there is no second prompt to protect and
-            // nothing to give up on; `locationManagerDidChangeAuthorization`
-            // resumes whenever the answer comes. Android has never had a bound
+            // Nothing is lost by waiting. An earlier version of this comment
+            // justified that with "iOS shows this dialog once in the life of an
+            // install", which is false in exactly the case #147 turns on: Allow
+            // Once returns the status to `.notDetermined`, so the dialog comes
+            // back at the next launch. The conclusion survives the correction on
+            // a better reason -- a second prompt can only exist in a LATER
+            // launch, never alongside this one, because the alert is modal and
+            // this process is suspended behind it. There is nothing concurrent
+            // to protect, and `locationManagerDidChangeAuthorization` resumes
+            // whenever the answer comes. Android has never had a bound
             // here either -- its launcher callback simply fires when the person
             // answers -- so removing it closes a divergence rather than opening
             // one. If somebody never answers at all, every waiter stays
