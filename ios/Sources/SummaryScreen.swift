@@ -45,6 +45,12 @@ struct SummaryScreen: View {
                         .padding(.top, 8)
                 }
 
+                // The Kotlin's ordering and its reason: first in
+                // data/relay-request.json, and the one field here that
+                // identifies this report rather than describing it. The screen
+                // is headed "what would be sent" and was omitting a part that
+                // is sent.
+                FieldRow(label: "reportId", value: payload.reportId ?? "—")
                 FieldRow(label: "category", value: payload.categorySlug)
                 FieldRow(label: "latitude", value: payload.latitudeText)
                 FieldRow(label: "longitude", value: payload.longitudeText)
