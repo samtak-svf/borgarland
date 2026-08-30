@@ -41,8 +41,14 @@
   // and only alongside the CITY_SEND_KEY secret. Changing this to "on" is a
   // commit, a review and a deploy, which is what decision 0006 wants going live
   // to cost.
+  //
+  // ARMED 2026-08-30 for the one deliberate real submission (decision 0006).
+  // This must go back to "off" in its own PR the moment that report is filed:
+  // the one-submission gate refuses a SECOND live report, so an armed relay
+  // left standing does not file two — it answers 409 to every tester who walks,
+  // which is a different failure and not a better one.
   "vars": {
-    "LIVE_SEND": "off"
+    "LIVE_SEND": "on"
   },
 
   "routes": [
