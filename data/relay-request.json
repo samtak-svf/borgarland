@@ -6,7 +6,7 @@
     "path": "/api/reports",
     "method": "POST",
     "contentType": "multipart/form-data",
-    "notes": "the apps reach this on the relay's host, which is per build type and lives in BuildConfig.RELAY_BASE_URL on Android and BorgarlandCore.RelayEndpoint on iOS, never as a literal at the call site: the deployed https host for a release, and 127.0.0.1:8787 via adb reverse for development. The city is never on this path. The relay is in dry run by default (src/config.ts) and forwards nothing unless BOTH the committed LIVE_SEND switch is on and the deliberate CITY_SEND_KEY secret is in place."
+    "notes": "the apps reach this on the relay's host, which is per build type and lives in BuildConfig.RELAY_BASE_URL on Android and BorgarlandCore.RelayEndpoint on iOS, never as a literal at the call site: the deployed https host for a release, and 127.0.0.1:8787 via adb reverse for development. The city is never on this path. The relay stores a report arriving on this path as a dry run ALWAYS and forwards nothing from it, whatever is configured (decision 0017): the city is reached only by an operator promoting a stored report, behind a credential no app holds."
   },
   "fields": {
     "reportId": {

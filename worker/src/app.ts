@@ -9,11 +9,19 @@
 //   3. jurisdiction: nearest registered address → SVFNR; anything but 0
 //      (Reykjavíkurborg) is refused, never filed
 //   4. compose the description we send (nearest address line for the crew)
-//   5. dry run (the default, see config.ts): build the would-be payload, record
-//      the row marked dry_run, return it. No city POST.
-//   6. live (only with the LIVE_SEND switch on AND the CITY_SEND_KEY secret —
-//      both, see config.ts): POST to the city, record what came back, return
-//      our report id either way.
+//   5. build the would-be payload, store the photographs, record the row
+//      marked dry_run, and return the payload. ALWAYS. There is no sixth step
+//      and no branch: a report cannot reach the city by arriving, whatever the
+//      configuration says (decision 0017).
+//
+// The city is reached by one path, which is not this one:
+//
+//   POST /api/reports/:id/promote   Authorization: Bearer <CITY_SEND_KEY>
+//
+// an operator act on a report that is already stored. This header said
+// otherwise for three hours after #182 removed the branch it described — the
+// body comments were updated and the header above them was not, in the same
+// file, by the same change.
 
 import type { Env } from './env'
 import type { NewReport } from './db'
