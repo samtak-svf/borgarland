@@ -85,8 +85,25 @@
       "required": false,
       "source": "user",
       "clientValidation": "none. Measured 2026-08-29 from the DOM: the field is type=\"text\" (not type=\"email\"), with no `required` and no `pattern`. Nothing in the browser checks it, so a typo is accepted silently and the confirmation simply never arrives — which is why our own rule is in the app (#163, decision 0015).",
-      "notes": "the only way the reporter hears anything back. The form asks for it under \"Viltu fylgjast me\u00f0 \u00e1bendingunni \u00feinni?\" and offers no other channel: there is no phone field anywhere on the form, so an address is the whole of what the city can answer to. Confirmed from the rendered form on 2026-08-29 as well as from the element list.",
-      "ourRule": "required by us \u2014 see validation.onlyDescriptionIsEnforced. A report with no address reaches the queue and its reporter is never told anything by the city; report 110474 got a reply, and a request number, only because a human had typed one in (docs/incidents/2026-08-21-filed-a-real-report.md). Enforced in the apps, not yet in the relay (#163)."
+      "notes": "the only way the reporter hears anything back. The form asks for it under \"Viltu fylgjast með ábendingunni þinni?\" and offers no other channel: there is no phone field anywhere on the form, so an address is the whole of what the city can answer to. Confirmed from the rendered form on 2026-08-29 as well as from the element list.",
+      "ourRule": "required by us — see validation.onlyDescriptionIsEnforced. A report with no address reaches the queue and its reporter is never told anything by the city; report 110474 got a reply, and a request number, only because a human had typed one in (docs/incidents/2026-08-21-filed-a-real-report.md). Enforced in the apps, not yet in the relay (#163).",
+      "confirmationEmail": {
+        "establishedAt": "2026-08-30",
+        "how": "received, and kept as a file, for the project's one deliberate real submission (decision 0006, reference 110759). The 2026-08-21 accidental report 110474 produced an identical message, so both samples are held and the format is stable across nine days.",
+        "from": "no-reply@reykjavik.is",
+        "returnPath": "vefur@reykjavik.is",
+        "subject": "Takk fyrir að senda ábendinguna <category display name> til Reykjavíkurborgar.",
+        "carriesReferenceNumber": true,
+        "languages": [
+          "is",
+          "en",
+          "pl"
+        ],
+        "echoesCategoryDisplayName": "the subject and all three bodies name the CATEGORY the report was filed under, in the city's own display form — so the confirmation is the one place a reporter could notice a category chosen wrongly.",
+        "statedServiceTarget": "answer the report, or forward it to the right specialist, within the next working day. A second email is promised when an answer exists.",
+        "timing": "stamped 01:18:02Z, which is 1.9 s BEFORE the relay finished reading the city's 200 at 01:18:03.881Z. So the mail is queued while the submission is still being processed rather than after it is answered — OR the two clocks differ, which a Date header with second granularity cannot rule out. A draft of this line read the pair as 'sent as the form answers, not later', which is a causal claim the timestamps do not support in that direction; what they do support is that the confirmation is not sent later.",
+        "notes": "this is the direct proof of what fields.email.notes previously argued from one accidental report. The address is the whole of the channel back, and it works."
+      }
     }
   },
   "validation": {
@@ -284,6 +301,28 @@
   "measurement": {
     "$comment": "The follow-through half of the project. The city publishes no report volume and no response times.",
     "referenceNumberIsACounter": "each number a real user's report comes back with is a free sample of the city's total volume; two samples spaced in time give the rate",
-    "requiresNoTestSubmissions": true
+    "requiresNoTestSubmissions": true,
+    "reportVolume": {
+      "establishedAt": "2026-08-30",
+      "method": "the two reference numbers this project has legitimately caused, differenced over the time between them — exactly the free sample referenceNumberIsACounter describes.",
+      "samples": [
+        {
+          "reference": 110474,
+          "at": "2026-08-21T20:18:45Z",
+          "note": "the accidental real report (docs/incidents/2026-08-21-filed-a-real-report.md), withdrawn the same evening"
+        },
+        {
+          "reference": 110759,
+          "at": "2026-08-30T01:18:02Z",
+          "note": "decision 0006's one deliberate submission"
+        }
+      ],
+      "spanDays": 8.2078,
+      "delta": 285,
+      "perDay": 34.7,
+      "perYearExtrapolated": 12674,
+      "confidence": "two points, so this is a rate and not a trend: it cannot see weekday/weekend shape, seasonality, or a burst. Both samples also sit at the same clock position by accident (20:18 and 01:18), which nothing about them makes meaningful.",
+      "assumption": "that the number is a single global sequence, incremented once per report, with no gaps and no other consumer. Two samples cannot distinguish that from a counter shared with another system, and there is no way to check without more numbers — which we cannot generate, because generating one means filing a real report."
+    }
   }
 }

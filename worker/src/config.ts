@@ -21,9 +21,19 @@
 //     `wrangler secret put CITY_SEND_KEY` against a specific account.
 //
 // Both are required. That is why a committed var is safe here in a way an
-// earlier version of this file argued it would not be: a stray "on" reaching
-// another environment finds no key there and arms nothing, and — the part that
-// matters — it says so, as `key-missing`, instead of looking like off.
+// earlier version of this file argued it would not be: a stray "on" reaching an
+// environment with no key arms nothing, and — the part that matters — it says
+// so, as `key-missing`, instead of looking like off.
+//
+// Read that as narrowly as it is written. It is a statement about a KEYLESS
+// environment, and production is not one: the secret put for the 2026-08-30
+// submission is still there, so in production the switch is the ONLY thing
+// standing between a deploy and an armed relay. What limits the damage there is
+// the other gate entirely — reserveLiveReport's row is spent, so an armed
+// production relay files nothing and answers 409 to everyone. An earlier version
+// of this comment stated the keyless protection without the qualifier, which
+// read as a guarantee about the one environment it does not cover (found by
+// review, 2026-08-30).
 //
 // Which is the whole point of resolving to a NAMED STATE rather than a boolean.
 // The old gate had three states and could only report two: a CITY_SEND_KEY that

@@ -86,3 +86,38 @@ will be (#6) — delete that block then, deliberately, in its own PR.
 - The deeper lesson is not in the rule: the endpoint had already been fully
   mapped by reversible means, and the browser was chosen anyway. Prefer the method
   whose failure costs nothing.
+
+## The one was spent on 2026-08-30
+
+Recorded here rather than left to be reconstructed, because this decision's
+whole subject is a thing that can happen exactly once and it has now happened.
+
+A grass strip in Grafarvogur, photographed at 01:17 and filed from the phone
+through the armed relay. The city answered **200** with reference **110759**,
+and its confirmation email reached the reporter one second later. The walk is
+[`2026-08-30-android-the-one-real-submission`](../data/field-tests.json); the
+report row is `de1eec5690759a72a0660ee67c677fb3`.
+
+**The decision is unchanged and is now enforced by something other than itself.**
+`reserveLiveReport`'s row is claimed, so a second live report is refused whatever
+the switch says — the gate above is no longer a promise about the future but a
+fact about the database. Lifting it is still a code change in its own PR.
+
+Three things this makes concrete that the decision could only argue:
+
+- **The safeguard was watched.** The gate was armed for minutes and disarmed
+  immediately after, both by a deploy, both visible at `GET /api/health`. That
+  is the two-part switch of [decision 0016](0016-the-live-send-gate-is-a-switch-you-can-see.md)
+  doing the job it was built for four hours earlier, and it is the direct answer
+  to the consequence above: a mechanism nobody has seen fire is not a mechanism.
+- **The reversible method came first.** The whole request was validated against
+  the production relay in dry run — jurisdiction, format, size, the exact
+  `cityPayload` — before anything was armed. Nothing about the live send was
+  discovered by sending it.
+- **Report 110474 has a sibling now, and the pair is a measurement.** The two
+  reference numbers this project has legitimately caused are 285 apart over 8.21
+  days, which is the city's report volume at roughly 35 a day — recorded in
+  `data/reykjavik-form.json` under `measurement.reportVolume`. The first of those
+  numbers came from the incident this decision was written about. The second was
+  taken on purpose, and it is the difference between the two that is worth
+  anything.

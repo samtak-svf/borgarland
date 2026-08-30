@@ -3,8 +3,9 @@
 A single-screen Android proof of concept for the citizen-report (ábending) app:
 camera first, a coordinate the flow refuses to proceed without, category and
 description chosen by a person, and the exact payload displayed. It posts to our
-own relay, which is in dry run unless someone deliberately hands it a key, and it
-has no way to reach the city.
+own relay, which is in dry run unless BOTH the committed `LIVE_SEND` switch is on
+and the `CITY_SEND_KEY` secret is in place (#168), and it has no way to reach the
+city itself.
 
 Two sentences of this summary outlived the code. It said the coordinate comes
 from EXIF with the device fix as a fallback, and that the app sends nothing and
@@ -130,10 +131,18 @@ the manifest.
 - **The suggestion slot** is an empty placeholder card. No model produces
   suggestions; per decisions/0008 where the model runs is deliberately open.
 - ~~**The relay** does not exist here~~ — it does. The worker landed in #22 and
-  the app has posted to it since #23. What is still absent is the deployment:
-  no D1 exists, nothing is deployed, and the relay is in dry run unless a key is
-  deliberately supplied, so nothing has reached the city and follow-through is
-  still unmeasured.
+  the app has posted to it since #23. ~~What is still absent is the deployment:
+  no D1 exists, nothing is deployed~~ — both landed on 2026-08-23. The relay runs
+  at `borgarland.samtak.is` backed by a D1 created with an EU jurisdiction, and
+  it is in dry run only because the two-part gate is off (#168). **One report has
+  reached the city**, deliberately, on 2026-08-30: reference 110759, decision
+  0006's one and only. Follow-through is still unmeasured, which is #57 and the
+  one part of this bullet that was never wrong.
+
+  This is the third correction to this file's account of the relay, and the
+  second time the summary at the top had to be corrected with it. The pattern is
+  the one the header already confesses: a bullet that describes the state of the
+  world ages, and nothing fails when it does.
 - **Reverse geocoding and the address registry** (iceaddr-ts) are not shipped.
   The city's payload has no address field anyway
   (`validation.noAddressFieldInPayload`), so the final screen is faithful
