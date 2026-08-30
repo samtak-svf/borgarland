@@ -124,29 +124,65 @@ public struct ContactDetails {
         return set
     }()
 
-    private static func isBlocked(_ character: Character) -> Bool {
-        character.unicodeScalars.contains { blocked.contains($0.value) }
+    /// Everything below works on Unicode SCALARS, and that is the second half
+    /// of the fix rather than a detail (#163, found by the review of the first
+    /// half).
+    ///
+    /// Replacing the platform whitespace predicates with one table closed the
+    /// disagreement in the middle of a string and opened a new one at its
+    /// EDGES, because the two languages iterate different units. Kotlin's
+    /// `Char` is a UTF-16 code unit; Swift's `Character` is a grapheme
+    /// cluster, and a cluster swallows what follows it. `U+200D` is in the
+    /// table and `U+0301` is not, but `s` + ZWJ + combining acute is ONE
+    /// Character — so a `Character`-based trim of
+    /// `nafn@a.is\u{200D}\u{0301}` removed the whole cluster and returned
+    /// `nafn@a.i`, eating the last letter of the domain and calling the result
+    /// valid. Android refused the same input. An address that bounces, sent
+    /// from one platform and refused by the other, is precisely the failure
+    /// this feature exists to end — reintroduced by the fix for it.
+    ///
+    /// Every entry in the table is BMP, so a scalar and a UTF-16 code unit are
+    /// the same thing for anything the table names, and scalar-wise Swift and
+    /// Char-wise Kotlin now agree by construction. The `@` scan is scalar-wise
+    /// for the same reason: `@` followed by a combining mark is one Character,
+    /// so a Character-wise `split(separator: "@")` would not find it while
+    /// Kotlin's `indexOf('@')` would.
+    private static func isValidScalars(_ scalars: [Unicode.Scalar]) -> Bool {
+        if scalars.isEmpty { return false }
+        if scalars.contains(where: { blocked.contains($0.value) }) { return false }
+        guard let at = scalars.firstIndex(of: "@"),
+              at > 0,
+              scalars.lastIndex(of: "@") == at else { return false }
+        let domain = scalars[scalars.index(after: at)...]
+        guard domain.contains(".") else { return false }
+        // No empty label: `a@.is`, `a@b..is` and `a@b.` are all typos. Counted
+        // rather than split, so the two platforms cannot disagree about what an
+        // empty subsequence is.
+        var label = 0
+        for scalar in domain {
+            if scalar == "." {
+                if label == 0 { return false }
+                label = 0
+            } else {
+                label += 1
+            }
+        }
+        return label > 0
     }
 
     public static func isValid(_ raw: String) -> Bool {
-        let value = normalise(raw)
-        if value.isEmpty || value.contains(where: { isBlocked($0) }) { return false }
-        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2, !parts[0].isEmpty else { return false }
-        let domain = parts[1]
-        guard domain.contains(".") else { return false }
-        // No empty label: `a@.is`, `a@b..is` and `a@b.` are all typos.
-        return !domain.split(separator: ".", omittingEmptySubsequences: false).contains(where: { $0.isEmpty })
+        isValidScalars(Array(normalise(raw).unicodeScalars))
     }
 
     /// Stored and sent with the surrounding whitespace gone, never otherwise
-    /// altered — trimming the SAME explicit table `isBlocked` uses, because
-    /// `.whitespacesAndNewlines` removes a non-breaking space and Kotlin's
-    /// `trim()` does not, which is the same divergence one step earlier.
+    /// altered — trimming the same table, one SCALAR at a time. A grapheme
+    /// cluster is the wrong unit here: it takes its base character with it.
     public static func normalise(_ raw: String) -> String {
-        var chars = Array(raw)
-        while let first = chars.first, isBlocked(first) { chars.removeFirst() }
-        while let last = chars.last, isBlocked(last) { chars.removeLast() }
-        return String(chars)
+        var scalars = Array(raw.unicodeScalars)
+        while let first = scalars.first, blocked.contains(first.value) { scalars.removeFirst() }
+        while let last = scalars.last, blocked.contains(last.value) { scalars.removeLast() }
+        var view = String.UnicodeScalarView()
+        view.append(contentsOf: scalars)
+        return String(view)
     }
 }

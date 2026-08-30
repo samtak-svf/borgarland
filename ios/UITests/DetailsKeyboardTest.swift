@@ -94,6 +94,14 @@ final class DetailsKeyboardTest: XCTestCase {
         // `exists` is not the assertion. #110's button existed the whole time;
         // it was underneath the keyboard, which is what isHittable answers and
         // nothing else in this repository does.
+        //
+        // One limit of this test, noted rather than fixed because there is
+        // nothing to fix yet: its power depends on the details screen having
+        // enough content above the button that an UNPINNED one would fall
+        // under the keyboard. If this screen ever got much shorter, the test
+        // could pass without the pinning doing anything. It is not
+        // hypothetical that the current content is long enough — that is the
+        // regression it caught on its first run after #163.
         XCTAssertTrue(
             button.isHittable,
             "#110: the continue button is on screen but not hittable with the keyboard up"

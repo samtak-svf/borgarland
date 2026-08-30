@@ -46,6 +46,16 @@ object ContactDetails {
      * An explicit table is the fix. Two platform predicates that look alike
      * are two rules, and the test tables that claimed to be identical carried
      * no case that could tell them apart.
+     *
+     * A table alone was not enough, and the second half is why the Swift side
+     * looks the way it does. This code walks `Char`, a UTF-16 code UNIT; Swift
+     * first walked `Character`, a grapheme CLUSTER, and a cluster takes its
+     * base character with it. U+200D is in the table and U+0301 is not, but
+     * `s` + ZWJ + combining acute is one cluster — so trimming it there
+     * returned `nafn@a.i` from `nafn@a.is\u200D\u0301`, ate the last letter of
+     * the domain, and called the result valid while this side refused it. The
+     * Swift validator is now scalar-wise throughout, which is the same unit as
+     * this one for everything the table names, since every entry is BMP.
      */
     private val BLOCKED = buildSet {
         for (cp in 0x00..0x20) add(cp) // C0 controls and the space
