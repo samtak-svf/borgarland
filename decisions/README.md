@@ -40,3 +40,4 @@ is the main thing a decision log is for.
 | [0013](0013-the-follow-up-asks-the-phone-not-the-person.md) | The follow-up asks the phone, not the person | Accepted |
 | [0014](0014-a-simulator-checks-behaviour-not-pixels.md) | A simulator checks behaviour, not pixels | Accepted |
 | [0015](0015-the-address-is-required-by-us-and-lives-on-the-phone.md) | The reporter's address is required by us, and lives on the phone | Accepted |
+| [0016](0016-the-live-send-gate-is-a-switch-you-can-see.md) | The live-send gate is a switch you can see, and it has two halves | Accepted |

@@ -49,12 +49,15 @@ what is built on top of it is:
   `AGENTS.md`, which exists because of exactly this.
 
 **Nothing in this repository has reached the city, and the relay cannot reach it
-by accident.** Forwarding requires the deliberate `CITY_SEND_KEY` secret, which
-does not exist; doing nothing leaves dry run
-([decision 0002](decisions/0002-relay-not-direct-post.md)). And when it is
-armed, the relay files exactly one report and refuses the second, because
-[decision 0006](decisions/0006-one-real-submission.md)'s "one" is enforced in
-code rather than remembered.
+by accident.** Forwarding requires two separate things and has neither: the
+committed `LIVE_SEND` switch turned on, and the `CITY_SEND_KEY` secret, which
+does not exist. Doing nothing leaves dry run
+([decision 0002](decisions/0002-relay-not-direct-post.md)), and which way the
+switch is set is readable from outside, at `GET /api/health`, without listing
+anyone's secrets ([decision 0016](decisions/0016-the-live-send-gate-is-a-switch-you-can-see.md)).
+And when it is armed, the relay files exactly one report and refuses the second,
+because [decision 0006](decisions/0006-never-press-submit.md)'s "one" is
+enforced in code rather than remembered.
 
 The short version: Reykjavík publishes no API, and no Icelandic municipality
 implements Open311 — but the city's own form endpoint accepts an anonymous

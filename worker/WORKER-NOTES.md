@@ -19,7 +19,7 @@ src/index.ts                  Worker entry: wires env into the app.
 src/app.ts                    Routing + the create/read/outcome flows.
 src/domain.ts                 Our vocabulary, the coordinate guard, description rules.
 src/config.ts                 The dry-run gate (the one safety-critical file).
-src/env.ts                    Env bindings: DB, CITY_SEND_KEY.
+src/env.ts                    Env bindings: DB, LIVE_SEND, CITY_SEND_KEY.
 src/registry.ts               In-memory address index + nearest + display line.
 src/jurisdiction.ts           SVFNR check: 0000 is Reykjavíkurborg, else refuse.
 src/adapters/reykjavik.ts     THE adapter: city field names, slugs, URL. Only here.
@@ -232,9 +232,30 @@ one-off smoke test. `scripts/send-report.mjs` in the repo root was not run.
 One gate, one place: `src/config.ts`.
 
 ```ts
-isLiveSendEnabled(env)  // true only if env.CITY_SEND_KEY matches /^[A-Za-z0-9_-]{32,}$/
+resolveLiveSend(env)    // { state, switch, key } — the whole gate, named
+isLiveSendEnabled(env)  // resolveLiveSend(env).state === 'armed'
 isDryRun(env)           // !isLiveSendEnabled(env)
 ```
+
+The gate is two bindings and neither is sufficient (#168):
+
+| Binding | Kind | Arms when | Answers |
+|---|---|---|---|
+| `LIVE_SEND` | plain var, committed as `"off"` | trimmed, lower-cased, exactly `on` | are reports MEANT to reach the city |
+| `CITY_SEND_KEY` | secret binding | matches `/^[A-Za-z0-9_-]{32,}$/` | MAY they |
+
+`state` is one of four, and the last two exist because they used to be silent:
+
+| `state` | Means |
+|---|---|
+| `off` | the switch is not on. Whatever the key is in, nothing sends |
+| `armed` | switch on, key valid. The only state that POSTs |
+| `key-refused` | switch on, but the secret fails the shape check |
+| `key-missing` | switch on, but there is no secret at all |
+
+`switch` and `key` are reported alongside `state`, so a secret that cannot arm
+is legible while the switch is still off — rather than at the moment somebody
+flips it and nothing happens.
 
 `src/app.ts` calls `isDryRun(env)` at the top of the create-report flow. If dry
 run: it validates, jurisdiction-checks, builds the would-be payload, inserts a
@@ -242,29 +263,36 @@ run: it validates, jurisdiction-checks, builds the would-be payload, inserts a
 reached. If not dry run: it calls the adapter's `submitCityPayload`, which is
 the only function in the tree that performs the POST.
 
-The default is the safe path: doing nothing. `wrangler.jsonc` contains no
-variable that flips it. Going live requires, deliberately:
+The default is the safe path: doing nothing. Going live requires, deliberately,
+BOTH of:
 
 1. Generating a strong token (≥32 chars of `[A-Za-z0-9_-]`, e.g.
-   `openssl rand -hex 32`), and
-2. Putting it as a **secret binding** with `wrangler secret put CITY_SEND_KEY`
-   against a specific account and environment.
+   `openssl rand -hex 32`) and putting it as a **secret binding** with
+   `wrangler secret put CITY_SEND_KEY` against a specific account and
+   environment, and
+2. Changing `"LIVE_SEND": "off"` to `"on"` in `wrangler.jsonc` and deploying —
+   a commit and a review, on a public repo.
 
 Why this cannot be bypassed by accident:
 
-- **No committed variable.** A plain `DRY_RUN=false` var lives in
+- **The committed variable cannot do it alone.** `LIVE_SEND` lives in
   `wrangler.jsonc`, which is committed and easy to flip or copy between
-  environments. Secrets cannot live in committed config; they require the
-  deliberate `wrangler secret put` command with account access.
-- **Fail-closed on shape.** Any value that does not match the pattern —
-  `"false"`, `"1"`, `""`, a typo, a copied short string — keeps the relay in
-  dry run. You cannot typo your way to live.
+  environments — and that is now safe, because flipping it without the secret
+  produces `key-missing`, not a send. What the var buys is the property a
+  secret cannot have: anybody can read the file and see which way the switch is
+  set. The secret remains the thing no edit to committed config can supply.
+- **Fail-closed on shape, both halves.** Any key that does not match the
+  pattern — `"false"`, `"1"`, `""`, a typo, a copied short string — keeps the
+  relay in dry run, and so does any switch value that is not exactly `on`.
+  `"true"` and `"yes"` do not arm it; they read as `unrecognised`, so a typo is
+  visible rather than looking like a deliberate off.
 - **No per-request opt-out.** A buggy or malicious app cannot force a live
-  send; only the operator's secret can.
-- **The tests pin the behavior.** Dry-run tests assert the injected city fetch
-  is never called; the live test proves a secret of the right shape produces
-  exactly one POST. A future change that moved the submit call above the gate
-  would fail the dry-run tests.
+  send; only the operator's own configuration can.
+- **The tests pin the behavior.** `tests/config.test.ts` covers all four states
+  and asserts that a strong secret with the switch off is dry run — the exact
+  environment that used to send. Dry-run tests assert the injected city fetch is
+  never called; the live test proves the armed gate produces exactly one POST. A
+  future change that moved the submit call above the gate would fail them.
 
 ## The API the app talks to
 
@@ -281,7 +309,11 @@ All bodies are JSON except `POST /api/reports`, which is multipart (photos).
   whole of issue #57: the instrument that measures the city's follow-through is
   built and attached to nothing.
 - `GET /api/health` — operational readout, not part of the app contract.
-  `{ status, dryRun, registry: { rows, snapshotAt, ageDays, seededRows } }`.
+  `{ status, dryRun, liveSend: { state, switch, key }, registry: { rows,
+  snapshotAt, ageDays, seededRows } }`. `dryRun` is the consequence and
+  `liveSend` is the control that produced it; it names conditions only and
+  never echoes either binding's value. It answers on the 503 too, because that
+  is when somebody is debugging.
   `200` when the registry is loaded, **`503`** when it is empty, for the same
   reason a report gets 503 then: the relay refuses every submission in that
   state, so it is not healthy. `rows` is the live `COUNT(*)` and `seededRows` is
@@ -373,8 +405,9 @@ its own stored row if it is the same report twice.
    subset elsewhere describes what a phone COULD carry; decision 0009 keeps the
    registry here instead, and no app ships one.
 6. **The dry-run gate shape.** The repo requires the safe default and a
-   deliberate act to go live, but not the mechanism. Chosen: the
-   `CITY_SEND_KEY` secret with a shape check, above.
+   deliberate act to go live, but not the mechanism. Chosen: a committed
+   `LIVE_SEND` switch AND the `CITY_SEND_KEY` secret with a shape check, both
+   required — decision 0016, and the tables above.
 7. **Photo handling.** The repo lists the city's upload limit as unknown and
    says finding it means uploading until something breaks. The relay forwards
    photo parts as-is (MIME-allowlisted from data/relay-request.json, which

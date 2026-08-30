@@ -12,10 +12,16 @@
 // `wrangler d1 create` succeeds, behaves identically and silently drops the
 // guarantee.
 //
-// There is deliberately NO variable here that takes the relay out of dry run.
-// Live sending requires the CITY_SEND_KEY secret binding, created with
-// `wrangler secret put CITY_SEND_KEY` — see src/config.ts. Doing nothing leaves
-// the relay in dry run, which is the point.
+// The live-send switch IS here, and is committed as "off" (#168). It used to
+// be absent on purpose, on the argument that a variable is one typo away from a
+// live deploy — but that argument assumed the variable was the whole gate. It
+// is half of one: LIVE_SEND says whether reports are meant to reach the city,
+// and the CITY_SEND_KEY secret is the capability that lets them, so a stray
+// "on" arms nothing on its own. What the var buys is the thing a secret cannot
+// give: anybody can read this file and see which way the switch is set, and
+// flipping it is the same edit in both directions.
+//
+// Doing nothing leaves the relay in dry run, which is still the point.
 
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -31,6 +37,14 @@
   // borgarland.is is unregistered as of 2026-08-22 (ISNIC). If it is ever
   // taken, it can be added here as a second route to this same Worker and
   // every installed app keeps working.
+  // The live-send switch (#168). "off" or absent → dry run; only "on" arms it,
+  // and only alongside the CITY_SEND_KEY secret. Changing this to "on" is a
+  // commit, a review and a deploy, which is what decision 0006 wants going live
+  // to cost.
+  "vars": {
+    "LIVE_SEND": "off"
+  },
+
   "routes": [
     {
       "pattern": "borgarland.samtak.is",
