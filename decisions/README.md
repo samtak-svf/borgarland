@@ -41,3 +41,4 @@ is the main thing a decision log is for.
 | [0014](0014-a-simulator-checks-behaviour-not-pixels.md) | A simulator checks behaviour, not pixels | Accepted |
 | [0015](0015-the-address-is-required-by-us-and-lives-on-the-phone.md) | The reporter's address is required by us, and lives on the phone | Accepted |
 | [0016](0016-the-live-send-gate-is-a-switch-you-can-see.md) | The live-send gate is a switch you can see, and it has two halves | Accepted |
+| [0017](0017-the-live-send-is-an-operator-act-not-a-request.md) | The live send is an operator act, not something a request can cause | Accepted |

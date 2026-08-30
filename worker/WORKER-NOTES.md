@@ -257,11 +257,26 @@ The gate is two bindings and neither is sufficient (#168):
 is legible while the switch is still off — rather than at the moment somebody
 flips it and nothing happens.
 
-`src/app.ts` calls `isDryRun(env)` at the top of the create-report flow. If dry
-run: it validates, jurisdiction-checks, builds the would-be payload, inserts a
-`dry_run = 1` row, and returns the payload — the city POST function is never
-reached. If not dry run: it calls the adapter's `submitCityPayload`, which is
-the only function in the tree that performs the POST.
+**A report can no longer reach the city by arriving (#181, decision 0017).**
+`createReport` consults no gate: it validates, jurisdiction-checks, builds the
+would-be payload, stores the photographs, inserts a `dry_run = 1` row and
+returns the payload. There is no live branch on that path to reach, whatever the
+configuration says — so nothing a client sends can cause a city POST.
+
+The city is reached by exactly one path:
+
+```
+POST /api/reports/:id/promote     Authorization: Bearer <CITY_SEND_KEY>
+GET  /api/reports/:id/photo/:n    Authorization: Bearer <CITY_SEND_KEY>
+```
+
+Promote needs the switch on AND the key, loads the stored row, reads its
+photographs back from R2, takes the address from its own multipart body (the row
+has nowhere to put one — migration 0004), claims decision 0006's one with a
+conditional UPDATE, and calls the adapter's `submitCityPayload`, which is still
+the only function in the tree that performs the POST. The photo endpoint exists
+because promotion is a judgement about a report, and that judgement cannot be
+made from a category and a coordinate.
 
 The default is the safe path: doing nothing. Going live requires, deliberately,
 BOTH of:
@@ -308,9 +323,20 @@ All bodies are JSON except `POST /api/reports`, which is multipart (photos).
   `200 { report }`, `400`, or `404`. **Nothing calls this yet**, which is the
   whole of issue #57: the instrument that measures the city's follow-through is
   built and attached to nothing.
+- `POST /api/reports/:id/promote` — **the operator path** (decision 0017).
+  Bearer `CITY_SEND_KEY`, multipart with `email`. `200 { report }` on a city
+  2xx, `200 { report, alreadyLive: true }` for a repeat, `502` when the city
+  refuses or cannot be reached, `409 live-send-already-used` once the one is
+  spent, `409 live-send-not-armed` with the switch off, `410 photo-expired`
+  once the bucket has expired the evidence, `401 not-the-operator`.
+- `GET /api/reports/:id/photo/:n` — the stored photograph, same credential.
+  `404` for an index never stored or already expired.
 - `GET /api/health` — operational readout, not part of the app contract.
-  `{ status, dryRun, liveSend: { state, switch, key }, registry: { rows,
-  snapshotAt, ageDays, seededRows } }`. `dryRun` is the consequence and
+  `{ status, dryRun, liveSend: { state, switch, key }, oneSubmission: { claimed,
+  cityReference }, registry: { rows, snapshotAt, ageDays, seededRows } }`.
+  `oneSubmission` is the state health could not see before #181: it reported
+  `armed` while the row was already claimed, which is a relay that would refuse
+  everything it received. `dryRun` is the consequence and
   `liveSend` is the control that produced it; it names conditions only and
   never echoes either binding's value. It answers on the 503 too, because that
   is when somebody is debugging.

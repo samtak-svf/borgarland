@@ -12,6 +12,15 @@
 
 export interface Env {
   DB: D1Database
+  /**
+   * Photographs, kept for 30 days by a lifecycle rule on the bucket itself.
+   *
+   * They are kept so a report can be REVIEWED before it is promoted (#181):
+   * the operator deciding whether an ábending is worth filing for real cannot
+   * make that call from a category and a coordinate. Nothing else reads them,
+   * and the relay still stores no address.
+   */
+  PHOTOS: R2Bucket
   /** Plain var. `"on"` arms the switch; absent, `"off"` or anything else does not. */
   LIVE_SEND?: string
   /** Secret binding. Absent or weak → the relay stays in dry run. */

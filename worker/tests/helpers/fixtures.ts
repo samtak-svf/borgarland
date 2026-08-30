@@ -112,6 +112,74 @@ export interface TestApp {
   cityFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 }
 
+/**
+ * The photo store, in memory.
+ *
+ * Only the four things the Worker actually uses: put, get, the content type and
+ * the custom metadata. Deliberately not a general R2 — a fake that implements
+ * more than the code calls is a fake that can pass a test the real binding
+ * would fail.
+ */
+class FakeR2 {
+  private readonly objects = new Map<
+    string,
+    { bytes: Uint8Array; contentType?: string; custom?: Record<string, string> }
+  >()
+
+  put(
+    key: string,
+    value: Uint8Array,
+    options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> },
+  ) {
+    this.objects.set(key, {
+      bytes: new Uint8Array(value),
+      contentType: options?.httpMetadata?.contentType,
+      custom: options?.customMetadata,
+    })
+    return Promise.resolve({ key })
+  }
+
+  get(key: string) {
+    const object = this.objects.get(key)
+    if (object === undefined) return Promise.resolve(null)
+    return Promise.resolve({
+      body: object.bytes,
+      arrayBuffer: () => Promise.resolve(object.bytes.buffer.slice(0)),
+      httpMetadata: { contentType: object.contentType },
+      customMetadata: object.custom,
+    })
+  }
+
+  /** Test-only: forget an object, so the photo-expired path can be driven. */
+  forget(key: string) {
+    this.objects.delete(key)
+  }
+}
+
+/**
+ * The operator promoting a stored report (#181). Multipart, because the real
+ * one is: the address is supplied here and nowhere else.
+ */
+export function promoteReport(
+  app: TestApp['app'],
+  id: string,
+  options: { email?: string; key?: string | null } = {},
+) {
+  const fd = new FormData()
+  if (options.email !== null) fd.append('email', options.email ?? 'prufa@example.is')
+  const headers: Record<string, string> = {}
+  const key = options.key === undefined ? TEST_LIVE_KEY : options.key
+  if (key !== null) headers.Authorization = `Bearer ${key}`
+  return app(new Request(`https://relay.local/api/reports/${id}/promote`, { method: 'POST', body: fd, headers }))
+}
+
+/** Reading a stored photograph back, as the operator. */
+export function getPhoto(app: TestApp['app'], id: string, index: number, key: string | null = TEST_LIVE_KEY) {
+  const headers: Record<string, string> = {}
+  if (key !== null) headers.Authorization = `Bearer ${key}`
+  return app(new Request(`https://relay.local/api/reports/${id}/photo/${index}`, { headers }))
+}
+
 export function createTestApp(options: TestAppOptions = {}): TestApp {
   const sqlite = new DatabaseSync(':memory:')
   sqlite.exec(MIGRATION_SQL)
@@ -125,6 +193,7 @@ export function createTestApp(options: TestAppOptions = {}): TestApp {
 
   const env: Env = {
     DB: db,
+    PHOTOS: new FakeR2() as unknown as R2Bucket,
     ...(options.live ? { LIVE_SEND: 'on', CITY_SEND_KEY: TEST_LIVE_KEY } : {}),
     ...('liveSend' in options ? { LIVE_SEND: options.liveSend } : {}),
     ...('citySendKey' in options ? { CITY_SEND_KEY: options.citySendKey } : {}),

@@ -31,14 +31,15 @@ import { postcodeLookup } from 'iceaddr-ts/postcodes'
 import { checkJurisdiction, MAX_NEAREST_ADDRESS_KM } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
-import { isDryRun, resolveLiveSend } from './config'
+import { isDryRun, isLiveSendEnabled, resolveLiveSend } from './config'
 import {
+  claimLiveReport,
   completeLiveReport,
   getReport,
-  reserveLiveReport,
   insertClientEvents,
   insertReport,
   isDuplicateKey,
+  readOneSubmission,
   setOutcome,
 } from './db'
 import { sniffImageFormat } from './image-format'
@@ -311,7 +312,18 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       })
     }
 
-    const dryRun = isDryRun(env)
+    // No gate is consulted here any more, and that is the point of #181.
+    //
+    // A report can no longer go to the city by arriving. It is stored, always,
+    // as a dry run; the live submission is an operator act on a stored row
+    // (POST /api/reports/:id/promote). So there is nothing in this request a
+    // buggy or malicious client could send to reach the city — not a field, not
+    // a header, not an id. The property config.ts has always claimed is now
+    // structural rather than argued.
+    //
+    // It also removes the failure #178 was filed about: an armed relay used to
+    // answer 409 live-send-already-used to every tester who walked once the one
+    // was spent. Everyone gets an ordinary dry run now, whatever the switch says.
     const draft: ReportDraft = {
       category,
       latitude,
@@ -339,7 +351,24 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
 
     const payload = buildCityPayload(draft)
 
-    if (dryRun) {
+    // Kept so the report can be REVIEWED before anybody decides it is worth
+    // filing for real (#181): a category and a coordinate are not enough to
+    // make that call. Written before the row, so a stored row never points at
+    // photographs that are not there.
+    //
+    // Thirty days, enforced by a lifecycle rule on the bucket rather than by
+    // code — see wrangler.jsonc. The address is still stored nowhere: it is
+    // supplied again at promote time, one value, for the one report.
+    await Promise.all(
+      photos.map((photo, index) =>
+        env.PHOTOS.put(`${base.id}/${index}`, photo.bytes, {
+          httpMetadata: { contentType: photo.mime },
+          customMetadata: { name: photo.name, reportId: base.id },
+        }),
+      ),
+    )
+
+    {
       let record
       try {
         record = await insertReport(db, {
@@ -382,37 +411,138 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       )
     }
 
-    // ---------------------------------------------------------------------
-    // Decision 0006 says ONE real submission, ever, taken on purpose. This is
-    // that "one", enforced rather than remembered.
-    //
-    // The gate arms every request for as long as it is open, so between
-    // flipping LIVE_SEND on and flipping it back a stray curl, a second tap on
-    // the send button or a tester opening the app at the wrong moment files a
-    // real ábending into a real work queue. Being careful is exactly the safeguard
-    // that failed on 2026-08-21 and put report 110474 in front of a crew
-    // (docs/incidents/2026-08-21-filed-a-real-report.md).
-    //
-    // Deliberately hard-coded, not a variable and not a configurable limit: a
-    // variable is one typo away from being raised, and lifting this gate should
-    // cost a code change and a review — which is precisely what going live for
-    // real will be (#6). Delete this block then, on purpose, in its own PR.
-    //
-    // The gate is a row in D1, because that is the only thing that survives a
-    // deploy, a fresh isolate and a re-set secret. It is claimed by WRITING
-    // that row, in one statement, BEFORE the city is posted to (#98). Reading
-    // a count and writing the row afterwards is two statements, and two
-    // requests in flight at once both read zero and both reached the city.
-    const reservation = await reserveLiveReport(db, {
-      ...base,
-      dryRun: false,
-      sentAt: null,
-      cityStatus: null,
-      cityReference: null,
-      rejection: null,
+  }
+
+  /**
+   * The operator, or nobody. Constant-time, because a compare that returns
+   * early leaks the prefix one request at a time.
+   *
+   * BOTH halves of the gate are required, exactly as they were when a report
+   * could go live on arrival: the switch says whether this relay is meant to
+   * reach the city at all, and the key is the capability. A key on its own
+   * promotes nothing, so leaving the secret in place between occasions is not
+   * an armed relay.
+   */
+  function requireOperator(request: Request): void {
+    if (!isLiveSendEnabled(env)) {
+      throw new HttpError(409, 'live-send-not-armed', {
+        reason:
+          'the LIVE_SEND switch is off or the CITY_SEND_KEY is missing or malformed; ' +
+          'GET /api/health reports which',
+      })
+    }
+    const header = request.headers.get('Authorization') ?? ''
+    const offered = header.startsWith('Bearer ') ? header.slice(7) : ''
+    const expected = env.CITY_SEND_KEY ?? ''
+    let mismatch = offered.length === expected.length ? 0 : 1
+    for (let i = 0; i < Math.max(offered.length, expected.length); i++) {
+      mismatch |= offered.charCodeAt(i % (offered.length || 1)) ^ expected.charCodeAt(i % (expected.length || 1))
+    }
+    if (mismatch !== 0) throw new HttpError(401, 'not-the-operator')
+  }
+
+  /**
+   * Look at a stored photograph, as the operator.
+   *
+   * Promotion is a judgement about whether an ábending is worth filing with the
+   * city, and that judgement cannot be made from a category and a coordinate.
+   * This is the only way to see the evidence, and it is behind the operator
+   * credential: the photographs are other people's.
+   */
+  async function handlePhoto(id: string, index: string, request: Request): Promise<Response> {
+    requireOperator(request)
+    const object = await env.PHOTOS.get(`${id}/${index}`)
+    if (object === null) throw new HttpError(404, 'photo-not-found')
+    return new Response(object.body, {
+      headers: {
+        'content-type': object.httpMetadata?.contentType ?? 'application/octet-stream',
+        'cache-control': 'no-store',
+      },
+    })
+  }
+
+  /**
+   * Decision 0006's one real submission, taken on purpose, on a report that is
+   * already stored (#181).
+   *
+   * This is the ONLY path in the relay that posts to the city. It is not
+   * reachable by anything a reporting client sends: it needs a credential no
+   * app holds and cannot read, on a report that already exists. That is the
+   * difference from every scoping design considered before it — an identity in
+   * the request, however unguessable, is still a value the client carries, and
+   * on an unauthenticated endpoint carrying a value and claiming it are the
+   * same bytes.
+   *
+   * The address is supplied here rather than read from the row, because the row
+   * deliberately has nowhere to put one (#163, migration 0004, decision 0015).
+   * One value, typed once, for the one report — the relay still holds no
+   * register of addresses. The photographs come from R2, because they cannot be
+   * typed.
+   */
+  async function handlePromote(id: string, request: Request): Promise<Response> {
+    requireOperator(request)
+
+    const stored = await getReport(db, id)
+    if (stored === null) throw new HttpError(404, 'not-found')
+    if (!stored.dryRun) {
+      // Already the one. Answering with the row rather than refusing: promoting
+      // the same report twice is a finger slipping, not a second submission.
+      return json({ report: stored, alreadyLive: true }, 200)
+    }
+
+    let form: FormData
+    try {
+      form = await request.formData()
+    } catch {
+      throw new HttpError(400, 'invalid-multipart', { reason: 'the promote body is not multipart form data' })
+    }
+    const emailValue = form.get('email')
+    const email = typeof emailValue === 'string' ? emailValue.trim() : ''
+    if (email === '') {
+      throw new HttpError(400, 'email-required', {
+        reason:
+          'the city answers a report by email and by nothing else, and the relay stores none — ' +
+          'supply the address the reporter filed with',
+      })
+    }
+
+    // The photographs the person actually took, read back from the store. Not
+    // re-supplied by the operator: a photograph that travelled through a chat
+    // app is re-encoded, and the city would then receive a different picture
+    // from the one the report was filed about.
+    const photos: ReportDraft['photos'] = []
+    for (let index = 0; index < stored.photoCount; index++) {
+      const object = await env.PHOTOS.get(`${id}/${index}`)
+      if (object === null) {
+        throw new HttpError(410, 'photo-expired', {
+          reason: `photograph ${index} is no longer stored; the bucket expires objects after 30 days`,
+          photoCount: stored.photoCount,
+        })
+      }
+      const bytes = new Uint8Array(await object.arrayBuffer())
+      photos.push({
+        name: object.customMetadata?.name ?? `mynd-${index}.jpg`,
+        mime: object.httpMetadata?.contentType ?? 'image/jpeg',
+        bytes,
+        size: bytes.byteLength,
+      })
+    }
+
+    const payload = buildCityPayload({
+      category: stored.category,
+      latitude: stored.latitude,
+      longitude: stored.longitude,
+      // Already composed when the report was filed, address line and all. Not
+      // recomposed here, or the crew's line would be appended twice.
+      description: stored.description,
+      email,
+      photos,
     })
 
-    if (reservation.status === 'gate-closed') {
+    const claim = await claimLiveReport(db, id)
+    if (claim.status === 'not-found') throw new HttpError(404, 'not-found')
+    if (claim.status === 'already-live') return json({ report: claim.report, alreadyLive: true }, 200)
+    if (claim.status === 'gate-closed') {
       throw new HttpError(409, 'live-send-already-used', {
         reason:
           'this relay has already made its one deliberate real submission (decision 0006); ' +
@@ -420,41 +550,38 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       })
     }
 
-    if (reservation.status === 'duplicate') {
-      // The same report arriving twice, close enough together that the lookup
-      // at the top of this handler found nothing. It already has the one, so
-      // the answer is its row rather than a second send.
-      logEvent({ kind: 'report', outcome: 'already-stored', id: base.id, raced: true })
-      return json({ report: reservation.report, duplicate: true }, 200)
-    }
-
     let outcome: CitySubmitOutcome
     try {
       outcome = await submitCityPayload(payload, doFetch)
     } catch {
-      // The city never answered: connection/DNS error or a thrown fetch. The
-      // row already exists, so this records the failure on it. The one stays
-      // spent, deliberately: a throw cannot distinguish a request that never
-      // left from one whose answer was lost.
-      const record = await completeLiveReport(db, base.id, {
+      // The one stays spent, deliberately: a throw cannot distinguish a request
+      // that never left from one whose answer was lost.
+      const record = await completeLiveReport(db, id, {
         sentAt: null,
         cityStatus: null,
         cityReference: null,
         rejection: 'error',
       })
+      logEvent({ kind: 'promote', outcome: 'city-unreachable', id })
       return json({ error: 'city-unreachable', report: record }, 502)
     }
 
-    const record = await completeLiveReport(db, base.id, {
+    const record = await completeLiveReport(db, id, {
       sentAt: now(),
       cityStatus: outcome.status === 'accepted' ? 200 : outcome.httpStatus,
       cityReference: outcome.status === 'accepted' ? outcome.reference : null,
       rejection: outcome.status === 'rejected' ? outcome.reason : outcome.status === 'error' ? 'error' : null,
     })
 
-    if (outcome.status === 'accepted') {
-      return json({ report: record }, 201)
-    }
+    logEvent({
+      kind: 'promote',
+      outcome: outcome.status,
+      id,
+      cityStatus: record.cityStatus,
+      cityReference: record.cityReference,
+    })
+
+    if (outcome.status === 'accepted') return json({ report: record }, 200)
     return json({ error: 'city-rejected', report: record }, 502)
   }
 
@@ -529,6 +656,11 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
         // either binding is echoed (#168).
         dryRun: isDryRun(env),
         liveSend: resolveLiveSend(env),
+        // The state health could not see until #181, and the one that made an
+        // armed relay look fine while it would have refused everything: whether
+        // decision 0006's one has been taken. `armed` says a promote is
+        // permitted; this says whether one would still succeed.
+        oneSubmission: await readOneSubmission(db),
         registry,
       },
       loaded ? 200 : 503,
@@ -570,6 +702,20 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       if (path === RELAY.endpoint.path) {
         kind = 'report'
         if (request.method === 'POST') return await createReport(request)
+        return json({ error: 'method-not-allowed' }, 405)
+      }
+
+      const promoteMatch = path.match(/^\/api\/reports\/([^/]+)\/promote$/)
+      if (promoteMatch) {
+        kind = 'promote'
+        if (request.method === 'POST') return await handlePromote(promoteMatch[1], request)
+        return json({ error: 'method-not-allowed' }, 405)
+      }
+
+      const photoMatch = path.match(/^\/api\/reports\/([^/]+)\/photo\/(\d+)$/)
+      if (photoMatch) {
+        kind = 'photo'
+        if (request.method === 'GET') return await handlePhoto(photoMatch[1], photoMatch[2], request)
         return json({ error: 'method-not-allowed' }, 405)
       }
 
