@@ -78,8 +78,20 @@ export const JPEG_BYTES = new Uint8Array([
 ])
 
 export interface TestAppOptions {
-  /** Give env a CITY_SEND_KEY so the relay attempts the live city POST. */
+  /**
+   * Arm the gate fully: the LIVE_SEND switch on AND a strong CITY_SEND_KEY, so
+   * the relay attempts the live city POST. Both halves, because either alone
+   * is dry run by design (#168) and a test that set only one would be testing
+   * the refusal it did not mean to.
+   */
   live?: boolean
+  /**
+   * Set the two halves independently, for the tests that are ABOUT the gate
+   * rather than about what happens past it. Either one overrides `live`; an
+   * explicit `undefined` leaves the binding absent.
+   */
+  liveSend?: string
+  citySendKey?: string
   registry?: Registry
   /** Throw from getRegistry (simulates an unseeded addresses table). */
   registryError?: boolean
@@ -113,7 +125,9 @@ export function createTestApp(options: TestAppOptions = {}): TestApp {
 
   const env: Env = {
     DB: db,
-    ...(options.live ? { CITY_SEND_KEY: TEST_LIVE_KEY } : {}),
+    ...(options.live ? { LIVE_SEND: 'on', CITY_SEND_KEY: TEST_LIVE_KEY } : {}),
+    ...('liveSend' in options ? { LIVE_SEND: options.liveSend } : {}),
+    ...('citySendKey' in options ? { CITY_SEND_KEY: options.citySendKey } : {}),
   }
 
   const app = createApp(env, {

@@ -102,11 +102,25 @@ describe('dry run is the default', () => {
   })
 })
 
-describe('live sending requires the deliberate secret', () => {
+describe('live sending requires both halves of the gate', () => {
   it('a weak or malformed CITY_SEND_KEY keeps the relay in dry run', async () => {
     // A secret that was set but does not pass the shape check must fail closed.
     const { app, env } = createTestApp()
+    env.LIVE_SEND = 'on'
     env.CITY_SEND_KEY = 'false'
+    const response = await postReport(app, reportForm())
+    expect(response.status).toBe(201)
+    expect((await json(response)).report).toMatchObject({ dryRun: true })
+  })
+
+  it('a strong CITY_SEND_KEY with the switch off keeps the relay in dry run', async () => {
+    // The behavioural half of #168, asserted here rather than only on the
+    // readout: a secret alone used to be the entire gate, and this environment
+    // therefore used to POST to the city. The absence of a cityFetch is a
+    // second assertion — the fixture throws on an unexpected city call, so a
+    // regression fails loudly rather than silently recording a dry run.
+    const { app, env } = createTestApp()
+    env.CITY_SEND_KEY = 'test-live-key-0123456789abcdef0123456789'
     const response = await postReport(app, reportForm())
     expect(response.status).toBe(201)
     expect((await json(response)).report).toMatchObject({ dryRun: true })

@@ -125,7 +125,7 @@ describe('the dry-run gate is readable', () => {
     expect(body.dryRun).toBe(true)
   })
 
-  it('reports live once the deliberate secret is in place', async () => {
+  it('reports live once both halves of the gate are in place', async () => {
     const { app, sqlite } = createTestApp({ live: true })
     seedAddresses(sqlite, 1)
     const body = await json(await getHealth(app))
@@ -137,6 +137,54 @@ describe('the dry-run gate is readable', () => {
     seedAddresses(sqlite, 1)
     const text = await (await getHealth(app)).text()
     expect(text).not.toContain('test-live-key')
+  })
+})
+
+// The switch's own readout (#168). dryRun says what the relay will do; this
+// says why, which is the thing that used to require reading source and listing
+// secrets to find out.
+describe('the switch is readable, not only its consequence', () => {
+  it('reports the control alongside the consequence, by default off', async () => {
+    const { app, sqlite } = createTestApp()
+    seedAddresses(sqlite, 1)
+    const body = await json(await getHealth(app))
+    expect(body.dryRun).toBe(true)
+    expect(body.liveSend).toEqual({ state: 'off', switch: 'off', key: 'absent' })
+  })
+
+  it('reports armed when both halves are in place', async () => {
+    const { app, sqlite } = createTestApp({ live: true })
+    seedAddresses(sqlite, 1)
+    const body = await json(await getHealth(app))
+    expect(body.liveSend).toEqual({ state: 'armed', switch: 'on', key: 'valid' })
+  })
+
+  it('distinguishes a secret that was refused from a relay that is simply off', async () => {
+    // The state the old readout could not express: `dryRun: true` was the whole
+    // answer, and it looked identical to nobody having configured anything.
+    const { app, sqlite } = createTestApp({ liveSend: 'on', citySendKey: 'true' })
+    seedAddresses(sqlite, 1)
+    const body = await json(await getHealth(app))
+    expect(body.dryRun).toBe(true)
+    expect(body.liveSend).toEqual({ state: 'key-refused', switch: 'on', key: 'refused' })
+  })
+
+  it('says the switch is on and the capability missing, rather than off', async () => {
+    const { app, sqlite } = createTestApp({ liveSend: 'on' })
+    seedAddresses(sqlite, 1)
+    const body = await json(await getHealth(app))
+    expect(body.dryRun).toBe(true)
+    expect(body.liveSend).toEqual({ state: 'key-missing', switch: 'on', key: 'absent' })
+  })
+
+  it('answers even when the registry is unhealthy, because that is when it is asked', async () => {
+    // A 503 is a moment somebody is debugging. Withholding the gate's state
+    // there would hide it exactly when it is being looked for.
+    const { app } = createTestApp({ liveSend: 'on', citySendKey: 'true' })
+    const response = await getHealth(app)
+    expect(response.status).toBe(503)
+    const body = await json(response)
+    expect((body.liveSend as Record<string, unknown>).state).toBe('key-refused')
   })
 })
 

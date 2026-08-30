@@ -11,8 +11,9 @@
 //   4. compose the description we send (nearest address line for the crew)
 //   5. dry run (the default, see config.ts): build the would-be payload, record
 //      the row marked dry_run, return it. No city POST.
-//   6. live (only with the deliberate CITY_SEND_KEY secret): POST to the city,
-//      record what came back, return our report id either way.
+//   6. live (only with the LIVE_SEND switch on AND the CITY_SEND_KEY secret —
+//      both, see config.ts): POST to the city, record what came back, return
+//      our report id either way.
 
 import type { Env } from './env'
 import type { NewReport } from './db'
@@ -30,7 +31,7 @@ import { postcodeLookup } from 'iceaddr-ts/postcodes'
 import { checkJurisdiction, MAX_NEAREST_ADDRESS_KM } from './jurisdiction'
 import type { CityPayload, CitySubmitOutcome } from './adapters/reykjavik'
 import { buildCityPayload, isKnownCategory, submitCityPayload } from './adapters/reykjavik'
-import { isDryRun } from './config'
+import { isDryRun, resolveLiveSend } from './config'
 import {
   completeLiveReport,
   getReport,
@@ -385,10 +386,10 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     // Decision 0006 says ONE real submission, ever, taken on purpose. This is
     // that "one", enforced rather than remembered.
     //
-    // The CITY_SEND_KEY secret arms every request for as long as it exists, so
-    // between putting it and deleting it a stray curl, a second tap on the send
-    // button or a tester opening the app at the wrong moment files a real
-    // ábending into a real work queue. Being careful is exactly the safeguard
+    // The gate arms every request for as long as it is open, so between
+    // flipping LIVE_SEND on and flipping it back a stray curl, a second tap on
+    // the send button or a tester opening the app at the wrong moment files a
+    // real ábending into a real work queue. Being careful is exactly the safeguard
     // that failed on 2026-08-21 and put report 110474 in front of a crew
     // (docs/incidents/2026-08-21-filed-a-real-report.md).
     //
@@ -520,9 +521,14 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     return json(
       {
         status: loaded ? 'ok' : 'registry-not-loaded',
-        // Whether the deliberate CITY_SEND_KEY secret is in place. Not a
-        // secret itself, and the one thing an operator most needs to know.
+        // The one thing an operator most needs to know, and the reason this
+        // endpoint is the switch's readout: dryRun is the consequence, and
+        // liveSend is the control that produced it — which way the switch is
+        // set, what condition the capability secret is in, and therefore
+        // whether "on" would actually send. Conditions only; no value of
+        // either binding is echoed (#168).
         dryRun: isDryRun(env),
+        liveSend: resolveLiveSend(env),
         registry,
       },
       loaded ? 200 : 503,
