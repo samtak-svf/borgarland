@@ -259,6 +259,7 @@ final class ReportModel: ObservableObject {
     /// not the picture. Nothing is ever sent — reaching the summary screen
     /// still requires the same guards it always did.
     private func applyUITestSeamIfAsked() {
+        applyOnboardingSeamIfAsked()
         guard ProcessInfo.processInfo.arguments.contains("-uiTestDetailsScreen") else { return }
         guard let first = state.categories.first else { return }
         state.photo = Photo(
@@ -277,6 +278,36 @@ final class ReportModel: ObservableObject {
         state.email = "uitest@example.is"
         state.emailValid = ContactDetails.isValid(state.email)
         state.screen = .details
+    }
+
+    /// A way onto the ONBOARDING screen for a UI test, and no way anywhere
+    /// else.
+    ///
+    /// It exists because that screen is otherwise unreachable to a test on the
+    /// second run. Onboarding is shown when the phone holds no address, and it
+    /// writes one the moment somebody leaves it — so a simulator, whose
+    /// container survives between runs, shows the screen once and the camera
+    /// forever after. A test that quietly starts on the camera would pass by
+    /// asserting nothing.
+    ///
+    /// So the seam CLEARS the stored address rather than just setting the
+    /// screen: the screen and the condition that produces it are made to agree,
+    /// which also means the run exercises the real startup rule instead of a
+    /// state fabricated around it.
+    ///
+    /// Inside `#if DEBUG` for the same reason the details seam is: an argument
+    /// that erases something a person typed must not exist in a build anybody
+    /// can install. `ios-release.yml` builds Release, where this is not
+    /// compiled at all.
+    private func applyOnboardingSeamIfAsked() {
+        guard ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingScreen") else { return }
+        contact.write(nil)
+        // Assigned directly, like the details seam above: this runs inside
+        // init, where `update`'s publish-on-change wrapper has no subscriber
+        // to notify yet.
+        state.email = ""
+        state.emailValid = false
+        state.screen = .onboarding
     }
     #endif
 

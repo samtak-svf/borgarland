@@ -79,12 +79,15 @@ struct OnboardingScreen: View {
         // Pinned, not scrolled to — the same fix the details screen needed on
         // the first CI run after #163 (see DetailsScreen). This screen carries
         // MORE prose than that one and has one field and one button, which is
-        // exactly #110's shape, and unlike the details screen it has no
-        // simulator test to catch it. Applied here on the strength of the
+        // exactly #110's shape. It was applied here on the strength of the
         // measurement rather than waiting for somebody to meet it: on Android
         // the equivalent control cleared the keyboard by 277 px on a 2316-tall
         // display, which is room on a large phone and not obviously room on a
         // small one.
+        //
+        // `OnboardingKeyboardTest` now watches it, which is the point: a
+        // precaution taken on an inference and never seen to fire is the shape
+        // of the safeguard in docs/incidents/2026-08-21-filed-a-real-report.md.
         .safeAreaInset(edge: .bottom, spacing: 0) { footer }
         // The same two ways down the details screen has (#79): a gesture, and
         // a control somebody can see.
