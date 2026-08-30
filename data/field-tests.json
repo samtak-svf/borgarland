@@ -3398,7 +3398,7 @@
       "id": "2026-08-30-android-the-one-real-submission",
       "date": "2026-08-30",
       "platform": "android",
-      "what": "Decision 0006's one real submission, taken on purpose: a grass strip in Grafarvogur photographed at 01:17 and filed to Reykjavíkurborg through the armed relay. The city answered 200 with reference 110759 and its confirmation email arrived at gudrodur@gmail.com at 01:18:02Z. This is the only path in the relay that had never been exercised (#56), and it is now spent — reserveLiveReport's row is claimed, so a second live report is refused whatever the switch says.",
+      "what": "Decision 0006's one real submission, taken on purpose: a grass strip in Grafarvogur photographed at 01:17 and filed to Reykjavíkurborg through the armed relay. The city answered 200 with reference 110759 and its confirmation email is stamped 01:18:02Z — 1.9 s BEFORE the relay finished reading that 200, which is discussed under the confirmationEmail facts and is not a typo. This is the only path in the relay that had never been exercised (#56), and it is now spent — reserveLiveReport's row is claimed, so a second live report is refused whatever the switch says.",
       "device": {
         "model": "Samsung SM-S918B (Galaxy S23 Ultra), 1080x2316",
         "note": "Known because the phone is on a cable here, NOT from the telemetry, which names no device — and since #128 not from the User-Agent either."
@@ -3408,7 +3408,7 @@
         "appVersion": "0.1.0 (7)",
         "relayHost": "https://borgarland.samtak.is",
         "installedAt": "2026-08-29T23:38:17Z, read from `adb shell dumpsys package is.borgarland` rather than remembered",
-        "note": "The SAME build and the SAME process as the 2026-08-29 walk. The session id is identical and at_ms continues from it: that entry ends at 45,223 ms and this one begins at 5,556,968 ms, so the app had been alive 99 minutes and was never relaunched. A session is per launch by design, and two field tests sharing one is a first — read the two entries as one process, not two."
+        "note": "The SAME build and the SAME process as the 2026-08-29 walk. The session id is identical and at_ms continues from it: that entry ends at 45,223 ms and this one begins at 5,556,968 ms — 92.6 minutes into the process — and runs to 5,943,367 ms, so the app had been alive 99 minutes by the time it sent and was never relaunched. A session is per launch by design, and two field tests sharing one is a first — read the two entries as one process, not two."
       },
       "relay": {
         "dryRun": false,
@@ -3664,7 +3664,7 @@
         "The address does what #163 assumed. The previous entry's notFoundHere said the confirmation email 'is settled only by the one deliberate real submission' — this is that submission, and the mail arrived at the address the app sent, from no-reply@reykjavik.is, carrying the reference number in three languages.",
         "The adapter's category mapping round-trips. The app sent the slug gras-og-grodur; the city's confirmation subject names 'Gras og gróður', which is the display name worker/src/adapters/reykjavik.ts derives from the facts file. Nothing else in this project could have checked that.",
         "The photo is transcoded by nobody and accepted at 4,898,189 bytes. photo-captured's byte count and the row's photo_bytes agree exactly, so the bytes the camera produced are the bytes the city received.",
-        "description-length 136 equals the length of what was TYPED, not of what was stored: the row holds 178 characters because the relay appends the nearest-address line. The two numbers disagreeing is the contract working, and an earlier entry got this backwards."
+        "description-length 136 equals the length of what was TYPED, not of what was stored: the row holds 191 because the relay appends a 55-character nearest-address line. The two numbers disagreeing is the contract working. 191 is `length(description)` read back from the row; a draft of this line said 178, which was arithmetic done in the head of the person writing a document about not doing that (found by review)."
       ],
       "findings": [
         {

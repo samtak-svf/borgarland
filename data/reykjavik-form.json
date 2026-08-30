@@ -101,7 +101,7 @@
         ],
         "echoesCategoryDisplayName": "the subject and all three bodies name the CATEGORY the report was filed under, in the city's own display form — so the confirmation is the one place a reporter could notice a category chosen wrongly.",
         "statedServiceTarget": "answer the report, or forward it to the right specialist, within the next working day. A second email is promised when an answer exists.",
-        "timing": "sent as the form answers, not later: 110759's message is stamped 01:18:02Z while the relay recorded the city's own 200 at 01:18:03.881Z.",
+        "timing": "stamped 01:18:02Z, which is 1.9 s BEFORE the relay finished reading the city's 200 at 01:18:03.881Z. So the mail is queued while the submission is still being processed rather than after it is answered — OR the two clocks differ, which a Date header with second granularity cannot rule out. A draft of this line read the pair as 'sent as the form answers, not later', which is a causal claim the timestamps do not support in that direction; what they do support is that the confirmation is not sent later.",
         "notes": "this is the direct proof of what fields.email.notes previously argued from one accidental report. The address is the whole of the channel back, and it works."
       }
     }

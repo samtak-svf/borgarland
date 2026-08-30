@@ -56,13 +56,18 @@ always the plan ([decision 0006](decisions/0006-never-press-submit.md)), and the
 whatever anyone configures.
 
 Everything else this repository has ever done was a dry run, and still is. The
-relay went back to dry run minutes after that report and cannot leave it by
-accident: forwarding needs two separate things and has neither armed — the
-committed `LIVE_SEND` switch turned on, and the `CITY_SEND_KEY` secret. Doing
-nothing leaves dry run ([decision 0002](decisions/0002-relay-not-direct-post.md)),
-and which way the switch is set is readable from outside at `GET /api/health`,
-without listing anyone's secrets
+relay went back to dry run minutes after that report. Forwarding needs two
+separate things — the committed `LIVE_SEND` switch turned on, and the
+`CITY_SEND_KEY` secret — and **exactly one of them is in place**: the secret
+survives from that evening, the switch is committed `"off"`.
+
+That is the two-part gate being useful rather than a caveat about it. The state
+is readable from outside at `GET /api/health`, which answers
+`{"state":"off","switch":"off","key":"valid"}` — the key's presence legible
+without listing anyone's secrets, and unable to arm anything on its own
 ([decision 0016](decisions/0016-the-live-send-gate-is-a-switch-you-can-see.md)).
+Doing nothing leaves dry run
+([decision 0002](decisions/0002-relay-not-direct-post.md)).
 
 The short version: Reykjavík publishes no API, and no Icelandic municipality
 implements Open311 — but the city's own form endpoint accepts an anonymous
