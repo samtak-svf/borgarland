@@ -42,13 +42,14 @@
   // commit, a review and a deploy, which is what decision 0006 wants going live
   // to cost.
   //
-  // ARMED 2026-08-30 for the one deliberate real submission (decision 0006).
-  // This must go back to "off" in its own PR the moment that report is filed:
-  // the one-submission gate refuses a SECOND live report, so an armed relay
-  // left standing does not file two — it answers 409 to every tester who walks,
-  // which is a different failure and not a better one.
+  // SPENT. The one deliberate real submission was filed 2026-08-30 at 01:18:03Z
+  // and the city answered 200 with reference 110759 (decision 0006). The switch
+  // is back off, and from here it is not the thing standing between this relay
+  // and the city: reserveLiveReport's row is claimed, so a second live report is
+  // refused whatever this says. Turning it back on would only answer 409 to a
+  // tester who walks.
   "vars": {
-    "LIVE_SEND": "on"
+    "LIVE_SEND": "off"
   },
 
   "routes": [
