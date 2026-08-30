@@ -3,9 +3,9 @@
 A single-screen Android proof of concept for the citizen-report (ábending) app:
 camera first, a coordinate the flow refuses to proceed without, category and
 description chosen by a person, and the exact payload displayed. It posts to our
-own relay, which is in dry run unless BOTH the committed `LIVE_SEND` switch is on
-and the `CITY_SEND_KEY` secret is in place (#168), and it has no way to reach the
-city itself.
+own relay, which stores it as a dry run **always** — decision 0017 removed the
+live path from the arrival route, so no configuration makes the app's POST reach
+the city. The city is reached only by an operator promoting a stored report.
 
 Two sentences of this summary outlived the code. It said the coordinate comes
 from EXIF with the device fix as a fallback, and that the app sends nothing and

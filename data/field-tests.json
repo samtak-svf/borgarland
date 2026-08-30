@@ -3420,7 +3420,7 @@
         },
         "workerVersion": "eea06861-56a0-4113-b64c-fbdc2444bab8",
         "registryRows": 139360,
-        "armedWindow": "armed at 01:0x by deploying LIVE_SEND=\"on\" (#174) and disarmed at 01:2x by deploying \"off\" (#175). The window was minutes, deliberately: an armed relay does not file a second real report — reserveLiveReport refuses that — but it answers 409 live-send-already-used to any tester who walks, which is a worse failure than a dry run.",
+        "armedWindow": "Production was armed for 6 minutes 42 seconds: deploy eea06861 at 01:13:21Z put LIVE_SEND=\"on\", deploy 29697fae at 01:20:03Z put it back. Read from the deployments API, not from memory — a first draft of this line masked the times as \"01:0x\" and \"01:2x\" and got the first one's tens digit wrong. main carried the armed value longer, 31 minutes (#174 merged 01:12:22Z, #175 merged 01:43:20Z), which is the more dangerous number: production was safe only because the disarm was deployed from an unmerged branch, and any wrangler deploy from main in that window would have re-armed it. The window was kept short deliberately: an armed relay did not file a second real report — reserveLiveReport refuses that — but it answered 409 live-send-already-used to any tester who walked, which is a worse failure than a dry run.",
         "note": "The FIRST field test in this file with dryRun false. Every other entry says the city could not have been reached; this one says it was."
       },
       "session": "106716c5c70b54d97420e7ffce5a6b1d",
