@@ -84,6 +84,17 @@ fun SummaryScreen(
             )
         }
 
+        // First, because it is first in data/relay-request.json and because it
+        // is the one field on this screen that identifies THIS report rather
+        // than describing it. The screen is headed "what would be sent" and had
+        // been omitting a part that is sent (#88 put it on the wire; nothing
+        // put it on the screen).
+        //
+        // Readable matters as well as present: the id is generated when this
+        // screen is reached and kept until the walk starts over, so it is the
+        // one value a person can read out BEFORE sending — which is what lets
+        // an operator authorise one specific report rather than one device.
+        FieldRow("reportId", payload.reportId ?: "—")
         FieldRow("category", payload.categorySlug)
         FieldRow("latitude", payload.latitudeText)
         FieldRow("longitude", payload.longitudeText)
