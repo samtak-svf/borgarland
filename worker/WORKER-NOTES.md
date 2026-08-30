@@ -295,11 +295,18 @@ All bodies are JSON except `POST /api/reports`, which is multipart (photos).
   photo even if an app tried.
 
 `report` fields: `id`, `category`, `latitude`, `longitude`, `description`,
-`email`, `photoCount`, `photoBytes`, `dryRun`, `createdAt`, `sentAt` (null in
+`photoCount`, `photoBytes`, `dryRun`, `createdAt`, `sentAt` (null in
 dry run and when the POST never delivered), `accepted` (null until the city
 answered; `true` = HTTP 200), `cityStatus`, `cityReference` (the number from
 `/done/{number}`, null if unknown), `rejection` (`validation` | `route` |
 `error` | null), `outcome`, `outcomeAt`.
+
+**No `email`.** It was in this list until #163 and migration 0004 dropped the
+column: the reporter's address is forwarded to the city and kept nowhere here,
+the same rule the photo bytes have had since the first schema. In dry run the
+answer's `cityPayload` echoes it back to the caller that sent it, which is the
+only place it is visible at all — the relay does not log it and the row cannot
+hold it. See [decision 0015](../decisions/0015-the-address-is-required-by-us-and-lives-on-the-phone.md).
 
 Error responses carry `{ "error": "<code>", ... }`:
 `invalid-multipart` (400), `unknown-category` (400), `invalid-coordinate`
