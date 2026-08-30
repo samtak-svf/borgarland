@@ -121,3 +121,20 @@ Three things this makes concrete that the decision could only argue:
   numbers came from the incident this decision was written about. The second was
   taken on purpose, and it is the difference between the two that is worth
   anything.
+
+## The "one" is one per DATABASE, not one per project
+
+Recorded 2026-08-30, after a design review of [#184](https://github.com/samtak-svf/borgarland/issues/184)
+read the mechanism rather than the claim.
+
+`claimLiveReport`'s condition is `WHERE NOT EXISTS (SELECT 1 FROM reports WHERE
+dry_run = 0)`, and it is scoped to the database it runs against. Today there is
+one D1, so the guarantee and the sentence above agree. **A second database would
+carry its own open budget** — an armed environment pointed at it could file
+without limit, and the city has no test mode to file into.
+
+This is not a defect to fix now; it is a claim that is wider than its mechanism,
+which is the shape of thing this project would rather write down than rediscover.
+Anything that adds a database inherits the obligation to say what stops it
+sending: a switch committed off, a `CITY_SEND_KEY` never put, and a health
+readout that names which environment is answering.

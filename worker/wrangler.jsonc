@@ -52,6 +52,20 @@
     "LIVE_SEND": "off"
   },
 
+  // ⚠ IF YOU EVER ADD AN ENVIRONMENT, GIVE IT `"routes": []`.
+  //
+  // Wrangler environments INHERIT this block. Its own dry-run warning, verbatim:
+  //
+  //   The "env.test" environment inherits the top-level `routes` configuration,
+  //   which includes the custom domain(s): borgarland.samtak.is. Deploying this
+  //   environment will reassign these custom domains away from the top-level
+  //   Worker.
+  //
+  // So a first `wrangler deploy --env <name>` without that key TAKES THIS
+  // DOMAIN FROM PRODUCTION, and every installed app stops working — silently,
+  // because nothing about the deploy fails. Found by design review for #184,
+  // and recorded here rather than only in that issue: this is the file somebody
+  // edits when they add the environment.
   "routes": [
     {
       "pattern": "borgarland.samtak.is",
