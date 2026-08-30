@@ -284,6 +284,70 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
 }
 
 /**
+ * Take decision 0006's one, for a report that is ALREADY stored as a dry run.
+ *
+ * The counterpart of `reserveLiveReport` for the promote path (#181), and the
+ * same guarantee in the other direction: reports now arrive as dry runs without
+ * exception, and the live submission is an operator act on a stored row rather
+ * than something a request can cause.
+ *
+ * One statement, for exactly the reason the INSERT is one statement: two
+ * promotes in flight at once must not both win. `dry_run = 1` in the WHERE is
+ * what makes the NOT EXISTS safe without an `id != ?` — the row being flipped is
+ * by definition not the live one, so it cannot exclude itself.
+ *
+ * Zero changes means one of three things and the caller is told which, because
+ * "nothing happened" is the answer an operator can do least with.
+ */
+export type PromotionResult =
+  | { status: 'claimed' }
+  | { status: 'gate-closed' }
+  | { status: 'already-live'; report: ReportRecord }
+  | { status: 'not-found' }
+
+export async function claimLiveReport(db: D1Database, id: string): Promise<PromotionResult> {
+  const result = await db
+    .prepare(
+      `UPDATE reports SET dry_run = 0
+       WHERE id = ?
+         AND dry_run = 1
+         AND NOT EXISTS (SELECT 1 FROM reports WHERE dry_run = 0)`,
+    )
+    .bind(id)
+    .run()
+
+  if (Number(result.meta?.changes ?? 0) > 0) return { status: 'claimed' }
+
+  const stored = await getReport(db, id)
+  if (stored === null) return { status: 'not-found' }
+  // Already live: this row IS the one. Answering with it rather than with
+  // gate-closed matters, because promoting the same report twice is the
+  // operator's finger slipping, not a second submission being attempted.
+  if (!stored.dryRun) return { status: 'already-live', report: stored }
+  return { status: 'gate-closed' }
+}
+
+/**
+ * Whether decision 0006's one has been taken, for GET /api/health.
+ *
+ * The state the health endpoint could not see until #181: it reported `armed`
+ * while the row was already claimed, which is a relay that would refuse every
+ * request it received. Returns the reference rather than the row — a city
+ * reference is a public identifier for a report we filed on purpose, and it is
+ * the one thing an operator actually needs to recognise.
+ */
+export async function readOneSubmission(
+  db: D1Database,
+): Promise<{ claimed: boolean; cityReference: string | null }> {
+  const row = await db
+    .prepare('SELECT city_reference FROM reports WHERE dry_run = 0 LIMIT 1')
+    .first<{ city_reference: string | null }>()
+  return row === null
+    ? { claimed: false, cityReference: null }
+    : { claimed: true, cityReference: row.city_reference }
+}
+
+/**
  * Fill in what the city said, on a row `reserveLiveReport` already wrote.
  *
  * Separate from the insert because the row has to exist BEFORE the city is

@@ -71,6 +71,23 @@
     "head_sampling_rate": 1
   },
 
+  // Photographs, kept so that a report can be reviewed and promoted after it was
+  // filed (#181). Created 2026-08-30 with `--jurisdiction eu`, the same
+  // guarantee the D1 has and for the same reason: a jurisdiction can only be
+  // set at creation and can never be added afterwards.
+  //
+  // A lifecycle rule on the bucket expires every object after 30 days. That is
+  // deliberately a property of the STORE rather than a line of code somebody
+  // has to remember to run: a deletion that depends on a cron nobody watches is
+  // a deletion that does not happen.
+  "r2_buckets": [
+    {
+      "binding": "PHOTOS",
+      "bucket_name": "borgarland-photos",
+      "jurisdiction": "eu"
+    }
+  ],
+
   "d1_databases": [
     {
       "binding": "DB",
