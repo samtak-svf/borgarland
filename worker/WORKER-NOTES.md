@@ -313,16 +313,20 @@ Why this cannot be bypassed by accident:
 
 All bodies are JSON except `POST /api/reports`, which is multipart (photos).
 
-- `POST /api/reports` — multipart fields: `category` (slug), `latitude`,
-  `longitude`, `description` (≤2500), `email` (optional), `photo` (repeated,
+- `POST /api/reports` — multipart fields: `reportId` (optional, #88),
+  `session` (optional, #186), `category` (slug), `latitude`,
+  `longitude`, `description` (≤2500), `email` (optional here and required by the
+  apps — decision 0015), `photo` (repeated,
   `image/jpeg` | `image/png` | `image/gif`). Returns `201 { report,
   cityPayload? }`. `cityPayload` is present only in dry run and is exactly what
   would have been sent (photo bytes summarized as name/type/size).
 - `GET /api/reports/:id` — `200 { report }` or `404`.
 - `POST /api/reports/:id/outcome` — JSON `{ "outcome": "fixed" | "not-fixed" }`.
-  `200 { report }`, `400`, or `404`. **Nothing calls this yet**, which is the
-  whole of issue #57: the instrument that measures the city's follow-through is
-  built and attached to nothing.
+  `200 { report }`, `400`, or `404`. ~~**Nothing calls this yet**~~ — both apps
+  do, and #57 is closed. Android has called it since #120 and iOS since decision
+  0013; the caller is the phone rather than the person, so the app asks whoever
+  is holding it fourteen days after a report was filed. The first answer this
+  can carry is therefore not before 2026-09-07.
 - `POST /api/reports/:id/promote` — **the operator path** (decision 0017).
   Bearer `CITY_SEND_KEY`, multipart with `email`. `200 { report }` on a city
   2xx, `200 { report, alreadyLive: true }` for a repeat, `502` when the city
