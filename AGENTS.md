@@ -277,10 +277,10 @@ product.
 
 The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
 here. As Biggi put it when the idea started: *the bin has no address, only the
-coordinate that came with the photo.* Testing on a real phone later changed
-where that coordinate is obtained from — the device, at the moment the photo is
-taken — while the principle the quote states, that an address is the wrong
-primitive, is exactly what held up. Three things must stay distinct. The GPS
+coordinate that came with the photo.* The coordinate is obtained from the
+device, at the moment the photo is taken, rather than from the picture as that
+wording suggests — while the principle the quote states, that an address is the
+wrong primitive, is exactly what held up. Three things must stay distinct. The GPS
 point comes from the device at capture time, and it is the only positional thing
 submitted to the city. The nearest registered address is a reverse lookup in the
 relay, appended to the description as a line for the crew — it is not the
