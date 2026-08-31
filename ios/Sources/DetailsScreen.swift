@@ -177,15 +177,24 @@ struct DetailsScreen: View {
                 ) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Vista mynd í myndasafni")
+                        let caption = galleryCaption(
+                            saveToGallery: model.state.saveToGallery,
+                            galleryBlocked: model.state.galleryBlocked
+                        )
                         Text(
-                            model.state.galleryBlocked
-                                ? "Borgarland hefur ekki leyfi til að vista í myndasafnið. Leyfið er opnað í stillingum símans."
-                                : "Myndin sem þú tekur er einnig vistuð í myndasafnið þitt, í möppunni Borgarland."
+                            {
+                                switch caption {
+                                case .blocked:
+                                    return "Borgarland hefur ekki leyfi til að vista í myndasafnið. Leyfið er opnað í stillingum símans."
+                                case .saving:
+                                    return "Myndin sem þú tekur er einnig vistuð í myndasafnið þitt, í möppunni Borgarland."
+                                case .notSaving:
+                                    return "Myndin er ekki vistuð í myndasafnið. Hún fer aðeins með ábendingunni."
+                                }
+                            }()
                         )
                         .font(.caption)
-                        .foregroundStyle(
-                            model.state.galleryBlocked ? Color.red : Color.secondary
-                        )
+                        .foregroundStyle(caption == .blocked ? Color.red : Color.secondary)
                     }
                 }
                 .padding(.top, 12)
