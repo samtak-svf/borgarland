@@ -68,8 +68,30 @@ settings:
     # -uiTestDetailsScreen launch argument under `#if DEBUG` so a simulator can
     # reach the details screen (#125); Release does not compile it, so it is
     # absent from this build and from every build anybody can install.
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: 7
+    #
+    # 8: the first build that asks for an address the city can answer to, and
+    # the first whose walk can be joined to its own report row. Builds 4
+    # through 7 filed every report anonymously, because the city's form has
+    # exactly one field that gives a reporter anything back and we never sent
+    # it (#165); this build asks once, keeps it on the device, and reads it at
+    # send time. The report also carries the session id of the launch that
+    # filed it (#186), so a timeline and a row join without hand-transcription.
+    # The photograph is saved to the phone's own gallery in an album named
+    # Borgarland, behind a toggle (#179), and it carries no EXIF GPS (decision
+    # 0018); a newly created album has no PHAssetCollection until the block
+    # commits, which is why the creation request carries the add itself. The
+    # follow-up loop has an iOS caller at last, so the outcome endpoint
+    # measures something instead of existing (#57, decision 0013). And the
+    # screen headed "what would be sent" now names a field that is sent (#180).
+    #
+    # MARKETING_VERSION moves to 0.1.1 with it, and so does versionName in
+    # android/app/build.gradle.kts. Android's next build is its first since
+    # 2026-08-24 and carries thirteen issues' worth of change; calling that
+    # 0.1.0 again would make the version string say two different binaries are
+    # the same one, which is the complaint data/field-tests.json already
+    # records against 0.1.0 (1).
+    MARKETING_VERSION: "0.1.1"
+    CURRENT_PROJECT_VERSION: 8
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
