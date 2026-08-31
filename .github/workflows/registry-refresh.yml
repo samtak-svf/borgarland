@@ -1,0 +1,68 @@
+name: registry-refresh
+
+# #49. The relay carries its own copy of Staðfangaskrá (139,360 rows in D1)
+# and upstream (HMS) updates at least daily; nothing refreshed ours, and the
+# only alarm was /api/health's ageDays — which nothing read on a schedule.
+#
+# The design follows the scheduled-workflow-verklag rules:
+#   - Rule 1 (runner fallback): not applicable — this repo is public and runs
+#     on GitHub-hosted runners by AGENTS.md; an offline self-hosted box is not
+#     a failure mode here.
+#   - Rule 2 (no silent skip): the CLOUDFLARE_API_TOKEN secret is provisioned,
+#     so there is deliberately NO warn-and-skip guard — a missing secret is a
+#     real failure and fails red.
+#   - Rule 3 (verify the artefact, not the exit code): after the apply, a
+#     separate step asserts the LIVE registry state via /api/health — rows ==
+#     seededRows and the snapshot fresh — because a d1 execute that exits 0
+#     while the seed did not land is the silent failure this issue exists to
+#     end.
+#
+# 03:17 UTC daily — off the hour to avoid the top-of-hour thundering herd of
+# every other cron on the platform, and early enough that a failed run is
+# visible the same morning.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      # Regenerate the seed from the HMS export. The script writes
+      # worker/data/addresses.seed.sql atomically (partial file, then rename), opens
+      # with DELETE FROM addresses and ends by updating registry_meta's
+      # snapshot_at and row_count — so the seed is idempotent and self-dating.
+      - name: Regenerate the seed
+        working-directory: worker
+        run: |
+          npm ci
+          npm run refresh:registry
+
+      # Apply it. The token is the D1-Edit one minted for this workflow
+      # (GCP Secret Manager: cloudflare-personal-d1-api-token); wrangler reads
+      # both env vars and needs no login.
+      - name: Apply the seed to the remote D1
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler d1 execute borgarland-relay --remote --file data/addresses.seed.sql
+
+      # Rule 3: the artefact, not the exit code. Fails red if the live
+      # registry is not fresh and complete.
+      - name: Verify the live registry is fresh and complete
+        working-directory: worker
+        run: node scripts/verify-registry-refresh.mjs
