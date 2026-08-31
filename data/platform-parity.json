@@ -27,6 +27,15 @@
       }
     },
     {
+      "name": "gallery-save",
+      "intent": "parity",
+      "what": "The captured photograph is also saved to the device gallery, into a named album (Borgarland), behind a toggle that defaults ON (#179). Device state — the relay learns nothing about it, and nothing enters data/relay-request.json. The saved copy is byte-faithful and carries no EXIF GPS (decision 0018).",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "GallerySaver" },
+        "ios": { "paths": ["ios/Sources"], "pattern": "PhotoLibrarySaver" }
+      }
+    },
+    {
       "name": "exif-gps-read",
       "intent": "parity",
       "what": "Reading the coordinate out of a photograph's EXIF block.",
