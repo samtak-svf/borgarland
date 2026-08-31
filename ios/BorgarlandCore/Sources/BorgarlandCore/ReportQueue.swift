@@ -54,6 +54,14 @@ public struct QueuedReport: Equatable, Codable {
     }
 
     public let id: String
+    /// Which launch of the app filed this report (#186). Persisted with the
+    /// record so a retry days later still joins to the walk that took the
+    /// photograph, not to whatever launch finally sends it — the queue's own
+    /// rule that the record is the report's, not the transport's. Optional
+    /// because a record written before the key existed decodes without it:
+    /// the synthesized Decodable reads a missing key as nil, so an old queue
+    /// entry is a report that simply cannot join.
+    public let session: String?
     public let categorySlug: String
     public let latitude: Double
     public let longitude: Double
@@ -255,6 +263,7 @@ public final class ReportQueue {
 
         let report = QueuedReport(
             id: id,
+            session: payload.session,
             categorySlug: payload.categorySlug,
             latitude: payload.latitude,
             longitude: payload.longitude,
@@ -346,6 +355,7 @@ public final class ReportQueue {
             description: report.description,
             photos: photos,
             email: email,
+            session: report.session,
             // The queue's id IS the report's id on the wire (#88). Without this
             // line a retry of a report the relay already stored becomes a
             // second row, which is the whole thing the id exists to prevent.

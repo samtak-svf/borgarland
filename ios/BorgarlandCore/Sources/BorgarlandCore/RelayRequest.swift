@@ -18,6 +18,7 @@ import Foundation
 public struct RelayRequestFile: Decodable, Equatable {
     public let endpoint: Endpoint
     public let reportId: FieldSpec
+    public let session: FieldSpec
     public let category: FieldSpec
     public let latitude: FieldSpec
     public let longitude: FieldSpec
@@ -27,6 +28,7 @@ public struct RelayRequestFile: Decodable, Equatable {
 
     public init(
         endpoint: Endpoint,
+        session: FieldSpec,
         category: FieldSpec,
         latitude: FieldSpec,
         longitude: FieldSpec,
@@ -37,6 +39,7 @@ public struct RelayRequestFile: Decodable, Equatable {
     ) {
         self.endpoint = endpoint
         self.reportId = reportId
+        self.session = session
         self.category = category
         self.latitude = latitude
         self.longitude = longitude
@@ -54,7 +57,7 @@ public struct RelayRequestFile: Decodable, Equatable {
     /// synthesized: a synthesized one would look for them at the top level and
     /// fail on the canonical contract.
     private enum FieldKeys: String, CodingKey {
-        case reportId, category, latitude, longitude, description, email, photo
+        case reportId, session, category, latitude, longitude, description, email, photo
     }
 
     public init(from decoder: Decoder) throws {
@@ -62,6 +65,7 @@ public struct RelayRequestFile: Decodable, Equatable {
         endpoint = try root.decode(Endpoint.self, forKey: .endpoint)
         let fields = try root.nestedContainer(keyedBy: FieldKeys.self, forKey: .fields)
         reportId = try fields.decode(FieldSpec.self, forKey: .reportId)
+        session = try fields.decode(FieldSpec.self, forKey: .session)
         category = try fields.decode(FieldSpec.self, forKey: .category)
         latitude = try fields.decode(FieldSpec.self, forKey: .latitude)
         longitude = try fields.decode(FieldSpec.self, forKey: .longitude)
@@ -74,6 +78,7 @@ public struct RelayRequestFile: Decodable, Equatable {
     public var fieldsInContractOrder: [(name: String, spec: FieldSpec)] {
         [
             ("reportId", reportId),
+            ("session", session),
             ("category", category),
             ("latitude", latitude),
             ("longitude", longitude),

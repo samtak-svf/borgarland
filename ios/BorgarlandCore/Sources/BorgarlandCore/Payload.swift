@@ -28,6 +28,12 @@ public struct Payload {
     /// row it already has. Optional because the relay generates one when the
     /// app sends none, which is what an older build does.
     public let reportId: String?
+    /// Which launch of the app filed this report (#186) — the same per-launch
+    /// session id the telemetry envelope carries, so the relay can join the
+    /// report row to the events of the walk that produced it. Optional
+    /// because the contract says so: a build that predates the field sends
+    /// none.
+    public let session: String?
     /// Category slug, one of the twelve in the facts file.
     public let categorySlug: String
     public let latitude: Double
@@ -52,9 +58,11 @@ public struct Payload {
         description: String,
         photos: [Photo],
         email: String? = nil,
-        reportId: String? = nil
+        reportId: String? = nil,
+        session: String? = nil
     ) {
         self.reportId = reportId
+        self.session = session
         self.categorySlug = categorySlug
         self.latitude = latitude
         self.longitude = longitude

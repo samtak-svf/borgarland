@@ -770,7 +770,8 @@ final class ReportModel: ObservableObject {
             description: unidentified.description,
             photos: unidentified.photos,
             email: unidentified.email,
-            reportId: token
+            reportId: token,
+            session: unidentified.session,
         )
         update { state in state.sending = true }
         delivery = Task { [weak self] in
@@ -892,7 +893,8 @@ final class ReportModel: ObservableObject {
             longitude: coord.longitude,
             description: s.description,
             photos: s.photo.map { [$0] } ?? [],
-            email: emailToSend()
+            email: emailToSend(),
+            session: Telemetry.shared.sessionID,
         )
     }
 }

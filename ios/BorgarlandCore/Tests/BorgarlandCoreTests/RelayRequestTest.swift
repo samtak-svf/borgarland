@@ -12,13 +12,13 @@ final class RelayRequestTest: XCTestCase {
     func testAssetParsesToTheDocumentedContract() throws {
         let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
 
-        // The seven field keys, in the file's order — the order the parts are
+        // The field keys, in the file's order — the order the parts are
         // written in. The check script asserts the same set on the relay
         // side. The fixed struct makes the order structural; this pins it to
         // the documented one so a reorder is a deliberate, reviewed change.
         XCTAssertEqual(
             contract.fieldsInContractOrder.map { $0.name },
-            ["reportId", "category", "latitude", "longitude", "description", "email", "photo"]
+            ["reportId", "session", "category", "latitude", "longitude", "description", "email", "photo"]
         )
         XCTAssertEqual(contract.endpoint.path, "/api/reports")
         XCTAssertEqual(contract.endpoint.method, "POST")
@@ -162,6 +162,50 @@ final class RelayRequestTest: XCTestCase {
         )
         let text = try XCTUnwrap(String(data: body, encoding: .utf8))
         XCTAssertFalse(text.contains("reportId"), "an optional part with no value is not written at all")
+    }
+    /// #186. The session joins the report to the walk's telemetry, so it sits
+    /// beside the id and is written only when the app has one — a build that
+    /// predates the field sends no part at all and the relay stores none.
+    func testTheSessionIsWrittenBesideTheIdWhenThereIsOne() throws {
+        let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
+        let session = "cafe0000000000000000000000000001"
+        let body = try MultipartBodyBuilder.buildBody(
+            payload: Payload(
+                categorySlug: "ruslafotur",
+                latitude: 64.14658919,
+                longitude: -21.93279823,
+                description: "lýsing",
+                photos: [],
+                email: "nafn@example.is",
+                reportId: "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+                session: session
+            ),
+            contract: contract,
+            boundary: "----boundary"
+        )
+        let text = try XCTUnwrap(String(data: body, encoding: .utf8))
+        XCTAssertTrue(text.contains("name=\"session\"\r\n\r\n\(session)\r\n"))
+        let sessionAt = try XCTUnwrap(text.range(of: "name=\"session\""))
+        let categoryAt = try XCTUnwrap(text.range(of: "name=\"category\""))
+        XCTAssertTrue(sessionAt.lowerBound < categoryAt.lowerBound, "the session joins the walk, so it sits with the id")
+    }
+
+    func testNoSessionMeansNoPart() throws {
+        let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
+        let body = try MultipartBodyBuilder.buildBody(
+            payload: Payload(
+                categorySlug: "ruslafotur",
+                latitude: 64.14658919,
+                longitude: -21.93279823,
+                description: "lýsing",
+                photos: [],
+                email: "nafn@example.is"
+            ),
+            contract: contract,
+            boundary: "----boundary"
+        )
+        let text = try XCTUnwrap(String(data: body, encoding: .utf8))
+        XCTAssertFalse(text.contains("session"), "an optional part with no value is not written at all")
     }
 
     func testAReportWithNoAddressCannotBeBuilt() throws {
