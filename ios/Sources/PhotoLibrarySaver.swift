@@ -61,12 +61,13 @@ enum PhotoLibrarySaver {
                     .addAssets([assetPlaceholder] as NSArray)
             } else {
                 // First save: create the album and add the photo to it in the
-                // same transaction, so the placeholder resolves.
+                // same transaction, so the placeholder resolves. The creation
+                // request IS a change request — a newly created album has no
+                // PHAssetCollection until the block commits, so there is
+                // nothing to look up; the request itself carries the add.
                 let albumChange = PHAssetCollectionChangeRequest
                     .creationRequestForAssetCollection(withTitle: albumName)
-                let albumPlaceholder = albumChange.placeholderForCreatedAssetCollection
-                PHAssetCollectionChangeRequest(for: albumPlaceholder)?
-                    .addAssets([assetPlaceholder] as NSArray)
+                albumChange.addAssets([assetPlaceholder] as NSArray)
             }
         }
     }
