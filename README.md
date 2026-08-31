@@ -32,9 +32,15 @@ what is built on top of it is:
   release — `0.1.0` went out that way on 2026-08-24
   ([#58](https://github.com/samtak-svf/borgarland/issues/58)), and `0.1.1`
   (versionCode 2) on 2026-08-31, carrying thirteen issues the first release
-  never had. **Play's internal track still holds versionCode 1**: the workflow
-  attaches the AAB to a GitHub release and the upload to Play is a separate,
-  manual act that has not happened yet.
+  never had. **Play's internal track holds `2 (0.1.1)` since 2026-08-31 21:40**,
+  available to the two testers on the `Borgarland Android prófarar` list.
+  Uploading is a separate manual act: the workflow only attaches the AAB to a
+  GitHub release. Internal testing publishes with no review, so there is no
+  waiting period between the upload and the phone.
+
+  R8 is visible in the size for the first time: 12.0 MB down to **2.18 MB**, a
+  9.82 MB drop against release 1, which is #124 arriving on a tester's phone
+  rather than in a build log.
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
   request contract the Android and Worker tests pin. Builds through `0.1.1 (8)`
