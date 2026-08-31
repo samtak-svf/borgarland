@@ -163,6 +163,32 @@ struct DetailsScreen: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 2)
+                // The gallery save toggle (#179). Device state, default ON —
+                // the surprising behaviour was the one that kept nothing — and
+                // it is not part of a report: the relay learns nothing about
+                // it. `galleryBlocked` is the add-only permission refused for
+                // good, which no switch can undo: the screen says so instead
+                // of sitting on "saving" while nothing is saved.
+                Toggle(
+                    isOn: Binding(
+                        get: { model.state.saveToGallery },
+                        set: { model.setSaveToGallery($0) }
+                    )
+                ) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Vista mynd í myndasafni")
+                        Text(
+                            model.state.galleryBlocked
+                                ? "Borgarland hefur ekki leyfi til að vista í myndasafnið. Leyfið er opnað í stillingum símans."
+                                : "Myndin sem þú tekur er einnig vistuð í myndasafnið þitt, í möppunni Borgarland."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(
+                            model.state.galleryBlocked ? Color.red : Color.secondary
+                        )
+                    }
+                }
+                .padding(.top, 12)
 
                 // The line saying why Áfram is refused. It lives HERE rather
                 // than in the pinned footer: every point the footer occupies is

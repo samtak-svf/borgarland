@@ -72,6 +72,7 @@ public enum MultipartBodyBuilder {
     private static func value(for name: String, payload: Payload) -> String? {
         switch name {
         case "reportId": return payload.reportId
+        case "session": return payload.session
         case "category": return payload.categorySlug
         case "latitude": return payload.latitudeText
         case "longitude": return payload.longitudeText

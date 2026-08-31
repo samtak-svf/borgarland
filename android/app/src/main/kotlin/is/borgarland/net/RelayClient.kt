@@ -183,6 +183,7 @@ object RelayClient {
 
         fun valueFor(name: String): String? = when (name) {
             "reportId" -> payload.reportId
+            "session" -> payload.session
             "category" -> payload.categorySlug
             "latitude" -> payload.latitudeText
             "longitude" -> payload.longitudeText

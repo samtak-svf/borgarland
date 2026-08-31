@@ -25,12 +25,13 @@ interface ReportRow {
   photo_mimes: string | null
   city_payload: string | null
   jurisdiction_km: number | null
+  session: string | null
 }
 
 const COLUMNS =
   'id, category_slug, latitude, longitude, description, photo_count, photo_bytes, ' +
   'dry_run, created_at, sent_at, city_status, city_reference, rejection, outcome, outcome_at, ' +
-  'app_version, photo_mimes, city_payload, jurisdiction_km'
+  'app_version, photo_mimes, city_payload, jurisdiction_km, session'
 
 export interface NewReport {
   id: string
@@ -54,13 +55,15 @@ export interface NewReport {
   cityPayload?: Record<string, unknown> | null
   /** How far the nearest registered address was, in kilometres (#186). */
   jurisdictionKm?: number | null
+  /** Which launch of the app filed this, joining the report to its telemetry walk (#186). */
+  session?: string | null
 }
 
 export async function insertReport(db: D1Database, report: NewReport): Promise<ReportRecord> {
   await db
     .prepare(
       `INSERT INTO reports (${COLUMNS})
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       report.id,
@@ -82,6 +85,7 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
       report.photoMimes ? JSON.stringify(report.photoMimes) : null,
       report.cityPayload ? JSON.stringify(report.cityPayload) : null,
       report.jurisdictionKm ?? null,
+      report.session ?? null,
     )
     .run()
   return {
@@ -105,6 +109,7 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
     photoMimes: report.photoMimes ?? null,
     cityPayload: report.cityPayload ?? null,
     jurisdictionKm: report.jurisdictionKm ?? null,
+    session: report.session ?? null,
   }
 }
 
@@ -165,6 +170,7 @@ function mapRow(row: ReportRow): ReportRecord {
       row.photo_mimes === null ? null : (JSON.parse(row.photo_mimes) as { declared: string; actual: string }[]),
     cityPayload: row.city_payload === null ? null : (JSON.parse(row.city_payload) as Record<string, unknown>),
     jurisdictionKm: row.jurisdiction_km,
+    session: row.session,
   }
 }
 
@@ -271,7 +277,7 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
     const result = await db
       .prepare(
         `INSERT INTO reports (${COLUMNS})
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
          WHERE NOT EXISTS (SELECT 1 FROM reports WHERE dry_run = 0)`,
       )
       .bind(
@@ -294,6 +300,7 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
         null, // photo_mimes
         null, // city_payload
         null, // jurisdiction_km
+        null, // session: a live reservation has no received request to read it from (#186)
       )
       .run()
     changes = Number(result.meta?.changes ?? 0)

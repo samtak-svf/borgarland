@@ -73,7 +73,36 @@ struct BorgarlandApp: App {
                     // And the way back from the Settings app, which is the only
                     // place a denied location permission can be opened (#76).
                     model.recheckLocationPermission()
+                    // The follow-up question (#57): asked on every foreground
+                    // so a report that passes its fourteenth day while the app
+                    // is backgrounded is not missed, and delivered answers
+                    // that failed to reach the relay are retried.
+                    model.refreshFollowUp()
+                    model.deliverOutcomes()
                 }
+            }
+            // The follow-up question, asked once about one report this phone
+            // filed a fortnight ago (#57, decision 0013). It sits over
+            // whatever screen is showing because it is not part of filing a
+            // report; it is a different conversation that happens to start
+            // when the app opens. ABOVE the factsError branch, so a missing
+            // facts file cannot swallow it (the Android shell says the same
+            // about its own overlay).
+            .alert(
+                "Var þetta lagað?",
+                isPresented: Binding(
+                    get: { model.state.followUp != nil },
+                    set: { if !$0 { model.dismissFollowUp() } }
+                ),
+                presenting: model.state.followUp
+            ) { pending in
+                Button("Já") { model.answerFollowUp(fixed: true) }
+                Button("Nei") { model.answerFollowUp(fixed: false) }
+                Button("Sleppa", role: .cancel) { model.dismissFollowUp() }
+            } message: { pending in
+                Text(
+                    "Þú sendir inn ábendingu um \(model.state.categoryDisplay[pending.categorySlug] ?? pending.categorySlug) fyrir tveimur vikum. Var vandamálið lagað?"
+                )
             }
         }
     }

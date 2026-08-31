@@ -129,4 +129,37 @@ enum RelayClient {
             return .other
         }
     }
+    /// The follow-up answer: was the thing fixed (#57, decision 0013).
+    ///
+    /// Deliberately NOT built from `data/relay-request.json`, exactly as the
+    /// Kotlin side is not: that contract describes the report the app files;
+    /// this is a different request to a different endpoint, and folding it in
+    /// would make the report contract describe two things.
+    ///
+    /// The id is one the app generated itself, so this request carries no
+    /// identifier of a person, a device or an account. It says one bit about
+    /// a row the relay already has.
+    static func postOutcome(reportId: String, fixed: Bool) async -> Result {
+        guard let url = URL(string: baseURL + "/api/reports/\(reportId)/outcome") else {
+            return Result(ok: false, status: 0, body: "ógilt vistfang", failure: .other)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data((fixed ? "{\"outcome\":\"fixed\"}" : "{\"outcome\":\"not-fixed\"}").utf8)
+        do {
+            let (data, response) = try await session.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let text = String(data: data, encoding: .utf8) ?? ""
+            return Result(ok: (200...299).contains(status), status: status, body: text, failure: nil)
+        } catch {
+            return Result(
+                ok: false,
+                status: 0,
+                body: error.localizedDescription,
+                failure: Self.classify(error)
+            )
+        }
+    }
 }

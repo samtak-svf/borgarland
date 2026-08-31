@@ -58,7 +58,12 @@ CREATE TABLE IF NOT EXISTS reports (
   app_version    TEXT,
   photo_mimes    TEXT,
   city_payload   TEXT,
-  jurisdiction_km REAL
+  jurisdiction_km REAL,
+  -- Which launch of the app filed it, joining the row to its telemetry walk
+  -- (#186, migration 0006): the same 32-hex per-launch session the events
+  -- envelope carries, so a report and the events around it stop being joined
+  -- by hand-transcription. Null for a build that predates the field.
+  session        TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at);

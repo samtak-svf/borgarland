@@ -144,6 +144,15 @@
       }
     },
     {
+      "name": "report-session-on-the-wire",
+      "intent": "parity",
+      "what": "Every report carries the session id of the launch that filed it (#186), the same 32-hex per-launch value the telemetry envelope carries — so a report row and the events of the walk that produced it join without hand-transcription. A queued iOS report keeps the session it was filed under, not the one of whatever launch finally sends it, because the record is the report's and the walk was when the photograph was taken.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "payload.session" },
+        "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "payload.session" }
+      }
+    },
+    {
       "name": "relay-answer-in-words",
       "intent": "parity",
       "what": "Every relay outcome is one sentence in Icelandic from data/relay-outcomes.json, with the relay's own body still reachable behind a control the person opens on purpose (#77). worker/tests/outcomes.test.ts holds that file to the relay's own source, so a code with no sentence fails the build rather than reaching somebody as raw JSON.",
@@ -172,9 +181,8 @@
     },
     {
       "name": "outcome-follow-up",
-      "intent": "android-only",
+      "intent": "parity",
       "what": "The app remembers the ids of reports it filed, and after fourteen days asks the person holding the phone whether the thing got fixed, posting the answer to POST /api/reports/:id/outcome. The endpoint had existed since the relay did and had never been called by anything.",
-      "reason": "#57 and decision 0013 — the follow-up asks the PHONE, not the person, which is what makes it possible at all: the report id is generated on the device (decision 0010), so nothing about the reporter has to be stored or collected to ask them later. Built on Android first because that is the platform attached to a cable here; iOS is a straight port with no new decision in it, and the relay side needs nothing.",
       "detect": {
         "android": { "paths": ["android/app"], "pattern": "FollowUps|answerFollowUp" },
         "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "FollowUps|postOutcome" }

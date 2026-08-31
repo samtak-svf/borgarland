@@ -71,6 +71,8 @@ export interface ReportRecord {
   cityPayload: Record<string, unknown> | null
   /** How far the nearest registered address was, in kilometres (#186). */
   jurisdictionKm: number | null
+  /** Which launch of the app filed this, joining the report to its telemetry walk (#186). Null for a row written before the column existed. */
+  session: string | null
 }
 
 /** An error the client can fix; mapped to a 4xx response with `code`. */

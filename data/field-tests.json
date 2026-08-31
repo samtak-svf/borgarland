@@ -1,6 +1,6 @@
 {
   "$comment": "Machine-readable record of every field test: a build in a hand, on a real device, against the live relay. This exists because the defects that reach this stage are the ones no test and no CI run can see — a ViewModel recreated by Android, a location provider that answers fast and coarse, an EXIF block that is simply absent. Each entry is what was OBSERVED, kept separate from what was CONCLUDED: `timeline` and `report` are transcribed from client_events and D1 and must never be edited to fit a later understanding, while `findings` is interpretation and may be revised. Written after the fact from the relay's own records, so a test that produced nothing to read produces no entry. A `docs/research/` write-up of a test should cite the id here, and so should a decision a test caused; none does yet, because no test has produced one yet.",
-  "verifiedAt": "2026-08-30",
+  "verifiedAt": "2026-08-31",
   "source": "D1 tables client_events and reports on the live relay, plus Cloudflare Workers Logs",
   "notes": [
     "Timelines are transcribed verbatim, including the events that record a mistake. A tester who changed their mind produced two category-chosen events; both stay. Trimming a timeline to the happy path destroys the only evidence of what the interaction actually felt like.",
@@ -3696,6 +3696,195 @@
         "Anything about iOS. This is Android, and the iOS half has been compiled by CI and has never filed a real report.",
         "Why the first attempt was abandoned. The record shows that it was, not what happened.",
         "Anything about a phone that is not this one, or a session that was relaunched. This walk shares a process with the 2026-08-29 entry, so it says nothing about a cold start."
+      ]
+    },
+    {
+      "id": "2026-08-31-android-gallery-save-and-the-session-join",
+      "date": "2026-08-31",
+      "platform": "android",
+      "what": "The #179 gallery save and the #186 session join, walked end to end on the connected A71 against a LOCAL relay (wrangler dev --remote, working-tree code) via adb reverse. First the save: a captured photo landed in MediaStore under Pictures/Borgarland/ with the toggle at its default ON, and with the toggle OFF a second capture wrote nothing. Then the full walk: capture, category, description, send — and the report row and the telemetry timeline carry the SAME session id, so the walk-to-report join that used to be hand-transcribed is now a query. The walk also demonstrated the deploy-before-ship rule live: the first send answered 500 (internal) because the remote D1 did not yet have the session column the working-tree worker SELECTs; migration 0006 was applied to the remote D1 mid-test, and the retry answered 201.",
+      "device": {
+        "model": "Samsung SM-A715F (Galaxy A71), 1080x2400, Android 13 (API 33)",
+        "note": "Known because the phone is on a cable here, NOT from the telemetry, which names no device."
+      },
+      "build": {
+        "version": "0.1.0 (1)",
+        "note": "The debug APK built from this branch. The events report it as '0.1.0 (1)'; the report row's appVersion reads '0.1.0 (Android)' because the User-Agent regex captures the platform tag the app appends."
+      },
+      "relay": {
+        "note": "LOCAL worker (wrangler dev --remote) on 127.0.0.1:8787 reached via adb reverse — the debug build's RELAY_BASE_URL. Remote D1 and R2 bindings, LIVE_SEND off. The migration 0006 was applied to the remote D1 during the walk (see `what`); the deployed relay does not yet carry session.",
+        "registryRows": 139360,
+        "dryRun": true,
+        "workerVersion": "working tree (not yet deployed)"
+      },
+      "session": "767daf437458b693bd4a1835c78efd92",
+      "method": "Timeline and report row transcribed from the remote D1 by query on 2026-08-31, unedited. Gallery state read off the device: MediaStore query + ls of /storage/emulated/0/Pictures/Borgarland/. The walk was driven over adb (taps + input text); the app UI confirmed the send outcome ('Sent — þjónustan tók við ábendingunni en sendi hana ekki áfram').",
+      "timeline": [
+        {
+          "atMs": 3,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 525,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 26477,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 693,
+            "bytes": 2268609,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 26478,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 1,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 26802,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 26809,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 332,
+            "source": "device",
+            "accuracyM": 100
+          }
+        },
+        {
+          "atMs": 26809,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 38698,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 12221,
+            "slug": "ruslafotur"
+          }
+        },
+        {
+          "atMs": 53954,
+          "name": "description-length",
+          "fields": {
+            "length": 42
+          }
+        },
+        {
+          "atMs": 64654,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 75149,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 75671,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 521,
+            "status": 500,
+            "ok": false
+          }
+        },
+        {
+          "atMs": 128544,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 130024,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 1479,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "receivedAt": "2026-08-31T13:06:38.849Z",
+          "events": 12,
+          "firstAtMs": 3,
+          "lastAtMs": 75671
+        },
+        {
+          "receivedAt": "2026-08-31T13:07:33.189Z",
+          "events": 2,
+          "firstAtMs": 128544,
+          "lastAtMs": 130024
+        }
+      ],
+      "report": {
+        "id": "3db6af809b22fbece01ccd56632eb0ec",
+        "categorySlug": "ruslafotur",
+        "latitude": 64.1486333,
+        "longitude": -21.7808784,
+        "nearestAddress": "Gullengi 39, 112 Reykjavík",
+        "photoCount": 1,
+        "photoBytes": 2268609,
+        "dryRun": true,
+        "session": "767daf437458b693bd4a1835c78efd92",
+        "appVersion": "0.1.0 (Android)",
+        "jurisdictionKm": 0.01,
+        "photoMimes": [
+          {
+            "declared": "image/jpeg",
+            "actual": "image/jpeg"
+          }
+        ],
+        "createdAt": "2026-08-31T13:07:32.434Z"
+      },
+      "confirmed": [
+        "The gallery save works with the toggle at its default ON: the captured photo appeared in MediaStore under Pictures/Borgarland/ (borgarland-1788181549478.jpg, 2,268,609 bytes — byte-for-byte the report's photoBytes), read off the device rather than inferred from the code (#179 acceptance).",
+        "The toggle OFF path writes nothing: after settings.json held saveToGallery:false, a fresh capture produced no new Borgarland file — and turning it back ON (the same gesture in reverse) restored the save on the next capture.",
+        "The toggle is device state: toggling wrote files/settings.json, and the save reads it at capture time, never at send.",
+        "The session join works end to end (#186): the report row 3db6af... and all 14 client_events carry session 767daf..., so which walk produced which report is now a D1 query instead of hand-transcription.",
+        "The address round-trips: the stored city_payload carries the composed description with 'Næsta skráða heimilisfang: Gullengi 39, 112 Reykjavík', and the jurisdiction check resolved at 0.01 km."
+      ],
+      "findings": [
+        {
+          "issue": 179,
+          "what": "The gallery save is verified on a real handset, both states: ON writes a MediaStore file in the named album whose byte count matches the report's photoBytes; OFF writes nothing. The API 29+ path (RELATIVE_PATH) is what the A71 exercised; the API 26–28 WRITE_EXTERNAL_STORAGE path and its refused-for-good UI are NOT exercised here (device is API 33) and stay code-reviewed only."
+        },
+        {
+          "issue": 186,
+          "what": "The session field is on the wire and on the row: the app sent Telemetry.sessionId, the relay stored it, and the telemetry timeline of the same launch joins to the report. The 500-then-201 pair is the deploy-before-ship rule demonstrated live: a worker whose code expects the session column fails against a D1 without it — which is why the relay deploy must precede any build that sends the field."
+        },
+        {
+          "issue": 57,
+          "what": "The walk left a real report row that the 14-day follow-up will be due about on 2026-09-14. It is a dry-run row, so an outcome answer would measure the reporter's belief about a report the city never saw — the known limit decision 0013 names, now with a concrete row to trip over it."
+        }
+      ],
+      "notFoundHere": [
+        "The refused-photo-permission UI: the A71 is API 33, where MediaStore inserts need no permission at all, so neither the Android 26–28 request flow nor the refused-for-good toggle state was exercised. That path is code-reviewed and unit-tested (StorageAsks marker + galleryBlocked), not device-verified.",
+        "The iOS gallery save: no iPhone is on a cable here. The iOS half (add-only auth, album) is built and compiles in CI but has not been walked.",
+        "Anything about the DEPLOYED relay accepting session: the walk hit the local worker. The deployed relay gets session only when #191 deploys, and no build that sends the field may reach TestFlight or Play before that.",
+        "The description typed on the walk: the adb text input escaped spaces as literal '%' characters ('Fieldtest walk through%the%app%gallery ave'), so the description is not what a human would have typed. It did not matter to this test, which was about the save and the join, but the field test record should not read as a measure of the description flow."
       ]
     }
   ]

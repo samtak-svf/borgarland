@@ -118,6 +118,27 @@ describe('the row keeps what a diagnosis needs (#186)', () => {
     const row = sqlite.prepare('SELECT app_version FROM reports').all()[0] as Record<string, unknown>
     expect(row.app_version).toBe('0.1.0 (7)')
   })
+  it('records which launch filed the report, from the session field', async () => {
+    const { app, sqlite } = createTestApp()
+    await postReport(app, reportForm({ session: 'cafe0000000000000000000000000001' }))
+    const row = sqlite.prepare('SELECT session FROM reports').all()[0] as Record<string, unknown>
+    expect(row.session).toBe('cafe0000000000000000000000000001')
+  })
+
+  it('a report without a session stores none', async () => {
+    const { app, sqlite } = createTestApp()
+    await postReport(app, reportForm())
+    const row = sqlite.prepare('SELECT session FROM reports').all()[0] as Record<string, unknown>
+    expect(row.session).toBeNull()
+  })
+
+  it('refuses a malformed session rather than storing one that cannot join', async () => {
+    const { app } = createTestApp()
+    const response = await postReport(app, reportForm({ session: 'not-hex' }))
+    expect(response.status).toBe(400)
+    const body = await json(response)
+    expect(body.error).toBe('invalid-session')
+  })
 
   it('a sender without the app UA stores no version', async () => {
     const { app, sqlite } = createTestApp()
@@ -179,6 +200,7 @@ describe('the row keeps what a diagnosis needs (#186)', () => {
     expect(report.jurisdictionKm).toBe(0)
     expect(report.photoMimes).toEqual([{ declared: 'image/jpeg', actual: 'image/jpeg' }])
     expect(report.cityPayload).toEqual(expect.any(Object))
+    expect(report.session).toBeNull()
   })
 
   it('a row written before these columns existed still reads back', async () => {
@@ -201,6 +223,7 @@ describe('the row keeps what a diagnosis needs (#186)', () => {
     expect(report.photoMimes).toBeNull()
     expect(report.cityPayload).toBeNull()
     expect(report.jurisdictionKm).toBeNull()
+    expect(report.session).toBeNull()
   })
 })
 
