@@ -103,6 +103,21 @@
         "statedServiceTarget": "answer the report, or forward it to the right specialist, within the next working day. A second email is promised when an answer exists.",
         "timing": "stamped 01:18:02Z, which is 1.9 s BEFORE the relay finished reading the city's 200 at 01:18:03.881Z. So the mail is queued while the submission is still being processed rather than after it is answered — OR the two clocks differ, which a Date header with second granularity cannot rule out. A draft of this line read the pair as 'sent as the form answers, not later', which is a causal claim the timestamps do not support in that direction; what they do support is that the confirmation is not sent later.",
         "notes": "this is the direct proof of what fields.email.notes previously argued from one accidental report. The address is the whole of the channel back, and it works."
+      },
+      "answerEmail": {
+        "establishedAt": "2026-08-31",
+        "how": "received, and kept as a file, for the project's one deliberate real submission (decision 0006, reference 110759) — the second email confirmationEmail.statedServiceTarget promises 'when an answer exists'. One sample so far, so the format is a shape, not a stable one.",
+        "from": "no-reply@reykjavik.is",
+        "returnPath": "vefur@reykjavik.is",
+        "subject": "\"Svar vegna ábendingar\" — constant, and unlike the confirmation it does NOT name the category, and carries no reference number.",
+        "carriesReferenceNumber": false,
+        "shape": "\"Takk aftur fyrir að senda ábendinguna <category display name> til Reykjavíkurborgar. Henni hefur nú verið lokað á eftirfarandi hátt:\" then the department's closing message, then the ábending quoted back (category + the description exactly as composed, including our nearest-address line), then the service phone 4 11 11 11.",
+        "languages": [
+          "is"
+        ],
+        "timing": "the answer to 110759 (filed 2026-08-30 01:18:03Z, a Sunday) is stamped 2026-08-31 10:58:00Z — 33.6 h later, the next working day, matching statedServiceTarget. The confirmation had promised exactly this cadence; this is the first measurement of it.",
+        "echoesOurDescription": "the quoted ábending carries the composed description including 'Næsta skráða heimilisfang: Gullengi 39, 112 Reykjavík' — proof the crew-facing address line (AGENTS.md) reaches the city as designed, and that the city stores the composed text rather than a stripped one.",
+        "outcomeSignal": "the answer for 110759 was a CLOSURE notice with a human hand-off message from Garðyrkja Reykjavíkurborgar ('Kem þessu á viðeigandi starfsmann og fæ viðkomandi til að meta fýsileika þess að planta þarna í') — the ticket was closed as handed-off for assessment, not as fixed. The distinction is the whole of #57's measurement question, and here is the city's own first answer to it."
       }
     }
   },
