@@ -1,9 +1,16 @@
 // GET /api/health — the operational readout.
 //
-// This endpoint exists for one reason, recorded in decision 0009: the registry
-// refresh is unowned, and a stale registry degrades the jurisdiction check
-// silently instead of failing it. Every test here is about making a state that
-// used to be invisible readable from outside.
+// This endpoint exists for one reason, recorded in decision 0009: a stale
+// registry degrades the jurisdiction check silently instead of failing it.
+// Every test here is about making a state that used to be invisible readable
+// from outside.
+//
+// The refresh is no longer unowned — #49 gave it a daily scheduled workflow on
+// 2026-08-31 — and this comment said it still was for the rest of that day.
+// The endpoint is not made redundant by that: a scheduled job is exactly the
+// kind of thing that stops running without telling anybody, so reading the
+// snapshot's own date is worth more now than it was when nothing refreshed it
+// at all.
 
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp, json } from './helpers/fixtures'

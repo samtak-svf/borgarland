@@ -24,9 +24,19 @@ enum PhotoLibrarySaver {
     /// only the system Settings app can change. Distinguishes refused from
     /// not-yet-asked, the #76 distinction applied to #179: a toggle in front
     /// of a permission that can never say yes must say so.
+    ///
+    /// `.limited` counts, and it counts because `save` below already refuses
+    /// to write under it. The two switches used to disagree: `save` treated
+    /// `.limited` as not-authorized and wrote nothing, while this returned
+    /// false, so the caption would have claimed the photograph was saved. That
+    /// is exactly the lie #201 fixed, surviving in the one status the pair had
+    /// not been checked against each other on. The add-only prompt is not
+    /// known to produce `.limited`, so this is unreachable rather than
+    /// observed — which is why it was worth closing on inspection rather than
+    /// waiting for somebody to meet it.
     static var isDeniedForGood: Bool {
         switch PHPhotoLibrary.authorizationStatus(for: .addOnly) {
-        case .denied, .restricted: return true
+        case .denied, .restricted, .limited: return true
         default: return false
         }
     }
