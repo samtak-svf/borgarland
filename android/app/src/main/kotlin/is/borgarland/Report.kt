@@ -46,6 +46,13 @@ data class Payload(
      * sends none, which is what an older build does.
      */
     val reportId: String? = null,
+    /**
+     * Which launch of the app filed this report (#186) — the same per-launch
+     * session id the telemetry envelope carries, so the relay can join the
+     * report row to the events of the walk that produced it. Optional because
+     * the contract says so: a build that predates the field sends none.
+     */
+    val session: String? = null,
 ) {
     /** Formatted the way send-report.mjs formats them: shortest round-trip decimal. */
     val latitudeText: String get() = latitude.toString()
