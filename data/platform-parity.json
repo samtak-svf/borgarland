@@ -181,9 +181,8 @@
     },
     {
       "name": "outcome-follow-up",
-      "intent": "android-only",
+      "intent": "parity",
       "what": "The app remembers the ids of reports it filed, and after fourteen days asks the person holding the phone whether the thing got fixed, posting the answer to POST /api/reports/:id/outcome. The endpoint had existed since the relay did and had never been called by anything.",
-      "reason": "#57 and decision 0013 — the follow-up asks the PHONE, not the person, which is what makes it possible at all: the report id is generated on the device (decision 0010), so nothing about the reporter has to be stored or collected to ask them later. Built on Android first because that is the platform attached to a cable here; iOS is a straight port with no new decision in it, and the relay side needs nothing.",
       "detect": {
         "android": { "paths": ["android/app"], "pattern": "FollowUps|answerFollowUp" },
         "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "FollowUps|postOutcome" }

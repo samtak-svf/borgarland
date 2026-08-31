@@ -87,6 +87,9 @@ struct ReportUiState {
     /// sitting on "saving" while nothing is saved (#76's distinction,
     /// applied to #179).
     var galleryBlocked: Bool = false
+    /// A report this phone filed long enough ago to ask about (#57, decision
+    /// 0013). Nil almost always: it is one question, once, about one report.
+    var followUp: FollowUps.Pending? = nil
     var outOfBounds: Bool = false
     var sending: Bool = false
     var sendOutcome: SendOutcome? = nil
@@ -142,6 +145,10 @@ final class ReportModel: ObservableObject {
     /// The device's preferences, kept beside the address (#179). Read at
     /// capture time, never sent anywhere.
     private let settings = Settings.applicationDefault()
+    /// The ids of reports this phone filed, so it can ask later whether they
+    /// got fixed (#57, decision 0013). Beside the queue, in Application
+    /// Support; it never leaves the device.
+    private let followUps = FollowUps.applicationDefault()
 
     /// The one delivery in flight, or nil. One at a time, always: it is what
     /// keeps a queued report from being sent twice, and it is why the send
@@ -842,6 +849,16 @@ final class ReportModel: ObservableObject {
         Telemetry.shared.flush()
 
         let disposition = Self.disposition(of: result)
+        // The relay accepted it, so this is a report worth asking about later
+        // (#57). The id was generated on this phone, so remembering it needs
+        // nothing at all about the person who filed it.
+        if disposition == .sent {
+            followUps.record(
+                id: reportID,
+                categorySlug: payload.categorySlug,
+                atMs: Int64(Date().timeIntervalSince1970 * 1000)
+            )
+        }
         show(result, disposition: disposition, for: reportID)
         return disposition
     }
@@ -914,6 +931,47 @@ final class ReportModel: ObservableObject {
         settings.setSaveToGallery(save)
         state.saveToGallery = save
         state.galleryBlocked = save && PhotoLibrarySaver.isDeniedForGood
+    }
+    // MARK: - The follow-up question (#57, decision 0013)
+
+    /// Ask, if there is a report old enough. Called on every foreground:
+    /// a ViewModel is not cleared between backgroundings, so without this a
+    /// report could pass the fourteenth day while the app sat in the
+    /// background and never be asked about (#129, the Android half).
+    func refreshFollowUp() {
+        state.followUp = followUps.due(nowMs: Int64(Date().timeIntervalSince1970 * 1000))
+    }
+
+    /// The person answered. Recorded BEFORE the post is attempted and kept
+    /// until the relay confirms, so a failed send is retried rather than lost
+    /// (#129).
+    func answerFollowUp(fixed: Bool) {
+        guard let pending = state.followUp else { return }
+        followUps.markAnswered(id: pending.id, fixed: fixed)
+        state.followUp = nil
+        deliverOutcomes()
+    }
+
+    /// Dismissed without answering. Asked, but there is nothing to deliver.
+    func dismissFollowUp() {
+        guard let pending = state.followUp else { return }
+        followUps.markDismissed(id: pending.id)
+        state.followUp = nil
+    }
+
+    /// Answers the relay has not accepted yet, oldest first, posted one at a
+    /// time and marked delivered only on a 2xx. The id is one the app
+    /// generated itself, so the request carries nothing about a person.
+    func deliverOutcomes() {
+        let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+        for pending in followUps.unposted() {
+            Task {
+                let result = await RelayClient.postOutcome(reportId: pending.id, fixed: pending.fixed)
+                if result.ok {
+                    followUps.markPosted(id: pending.id)
+                }
+            }
+        }
     }
 
     func payload() -> Payload? {
