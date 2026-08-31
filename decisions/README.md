@@ -43,3 +43,4 @@ is the main thing a decision log is for.
 | [0016](0016-the-live-send-gate-is-a-switch-you-can-see.md) | The live-send gate is a switch you can see, and it has two halves | Accepted |
 | [0017](0017-the-live-send-is-an-operator-act-not-a-request.md) | The live send is an operator act, not something a request can cause | Accepted |
 | [0018](0018-the-saved-copy-carries-no-exif-gps.md) | The saved copy carries no EXIF GPS | Accepted |
+| [0019](0019-a-capability-ships-when-android-is-device-verified.md) | A capability ships when Android is device-verified and iOS is CI-green | Accepted |
