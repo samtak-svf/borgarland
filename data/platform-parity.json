@@ -137,7 +137,7 @@
     {
       "name": "lint-in-ci",
       "intent": "android-only",
-      "reason": "#2 named ktlint and Android lint as an acceptance criterion; both now run in .github/workflows/android-ci.yml. iOS has no SwiftLint and no decision has been taken on adding one, so this is one-sided on purpose rather than by neglect. Tracked in #58. The parity check caught this the moment ktlint landed, which is the tool doing its job on its first real change.",
+      "reason": "#2 named ktlint and Android lint as an acceptance criterion; both now run in .github/workflows/android-ci.yml. iOS has no SwiftLint and no decision has been taken on adding one, so this is one-sided on purpose rather than by neglect. Tracked in #206; it said #58 until 2026-08-31, and #58 closing left the gap deliberate but untracked, which is the one thing this file is meant to make impossible. The parity check caught this the moment ktlint landed, which is the tool doing its job on its first real change.",
       "detect": {
         "android": { "paths": ["android", ".github/workflows"], "pattern": "ktlint|detekt" },
         "ios": { "paths": ["ios", ".github/workflows"], "pattern": "swiftlint|SwiftLint" }
@@ -201,7 +201,7 @@
       "name": "offline-queue",
       "intent": "ios-only",
       "what": "A report that cannot be sent is written to the phone before the attempt and retried when the app returns to the foreground or the network comes back, until it sends or a person discards it. Deliberately NOT a background upload: nothing here runs while the app is dead, which is why the detect pattern names our own type rather than BGTaskScheduler or a background URLSession. Those would be a different capability and a separate decision.",
-      "reason": "#73 — iOS is the platform in testers' hands, and the first field test lost a report to airplane mode. Android has not been observed failing this way and has no delivery pipeline at all (#58), so building it there now would be untested code on a platform nobody installs. The gap is #2's offline-queue criterion and stays open.",
+      "reason": "#73 — iOS is the platform in testers' hands, and the first field test lost a report to airplane mode. Android had not been observed failing this way, and when this was written it had no delivery pipeline at all, so building it there would have been untested code on a platform nobody installs. Half of that has since stopped being true: #58 is closed, Android ships signed releases and one reached Play's internal track on 2026-08-24. The observation half has not — no Android walk has yet lost a report to a dead network — so the intent stands and the reason no longer rests on delivery. The gap is #2's offline-queue criterion and stays open.",
       "detect": {
         "android": { "paths": ["android/app"], "pattern": "WorkManager|androidx.work|ReportQueue" },
         "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "ReportQueue" }

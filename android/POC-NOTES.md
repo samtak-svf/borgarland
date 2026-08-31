@@ -136,8 +136,12 @@ the manifest.
   at `borgarland.samtak.is` backed by a D1 created with an EU jurisdiction, and
   it is in dry run only because the two-part gate is off (#168). **One report has
   reached the city**, deliberately, on 2026-08-30: reference 110759, decision
-  0006's one and only. Follow-through is still unmeasured, which is #57 and the
-  one part of this bullet that was never wrong.
+  0006's one and only. ~~Follow-through is still unmeasured, which is #57 and
+  the one part of this bullet that was never wrong.~~ — it was wrong too, within
+  a day. #57 is closed: the outcome endpoint has had an Android caller since
+  #120 and an iOS one since decision 0013, and the city answered 110759 with a
+  closure notice the next working day (#190). That answer is the first
+  follow-through signal this project has ever held, and it is one sample.
 
   This is the third correction to this file's account of the relay, and the
   second time the summary at the top had to be corrected with it. The pattern is
