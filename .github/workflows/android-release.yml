@@ -23,9 +23,9 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'versionName for this build, e.g. 0.1.0'
+        description: 'versionName for this build, e.g. 0.1.1'
         required: true
-        default: '0.1.0'
+        default: '0.1.1'
         type: string
 
 permissions:

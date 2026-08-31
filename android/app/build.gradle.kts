@@ -59,7 +59,7 @@ android {
         // Driven by CI so a release never carries a placeholder. The skill's
         // rule: the hardcoded default must never reach a store.
         versionCode = (System.getenv("BORGARLAND_VERSION_CODE") ?: "1").toInt()
-        versionName = System.getenv("BORGARLAND_VERSION_NAME") ?: "0.1.0"
+        versionName = System.getenv("BORGARLAND_VERSION_NAME") ?: "0.1.1"
     }
 
     signingConfigs {
