@@ -63,6 +63,14 @@ export interface ReportRecord {
   rejection: Rejection | null
   outcome: Outcome | null
   outcomeAt: string | null
+  /** Which build filed the report, parsed from the app's User-Agent (#186). Null for a non-app sender. */
+  appVersion: string | null
+  /** Per photo: the declared MIME and the sniffed one (#186). Null for a row written before the columns existed. */
+  photoMimes: { declared: string; actual: string }[] | null
+  /** What would have gone over the wire, photos summarized and the email removed (#186). */
+  cityPayload: Record<string, unknown> | null
+  /** How far the nearest registered address was, in kilometres (#186). */
+  jurisdictionKm: number | null
 }
 
 /** An error the client can fix; mapped to a 4xx response with `code`. */

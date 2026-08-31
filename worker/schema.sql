@@ -48,7 +48,17 @@ CREATE TABLE IF NOT EXISTS reports (
   -- The reporter's later answer to whether it was fixed (POST
   -- /api/reports/:id/outcome).
   outcome       TEXT CHECK (outcome IN ('fixed', 'not-fixed')),
-  outcome_at    TEXT
+  outcome_at    TEXT,
+  -- Metadata a field-test diagnosis needs, added by migration 0005 (#186):
+  -- which build filed it (the app's version string, parsed from its
+  -- User-Agent — never the raw header, which would carry the device model),
+  -- per-photo declared-vs-sniffed MIME as JSON, the would-be city payload as
+  -- JSON (photos summarized, email removed), and how far the nearest
+  -- registered address was.
+  app_version    TEXT,
+  photo_mimes    TEXT,
+  city_payload   TEXT,
+  jurisdiction_km REAL
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at);
