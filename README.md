@@ -30,16 +30,25 @@ what is built on top of it is:
   releases: an `android-v*` tag builds a release APK and AAB, verifies the
   signature against a pinned upload certificate, and attaches both to a GitHub
   release — `0.1.0` went out that way on 2026-08-24
-  ([#58](https://github.com/samtak-svf/borgarland/issues/58)).
+  ([#58](https://github.com/samtak-svf/borgarland/issues/58)), and `0.1.1`
+  (versionCode 2) on 2026-08-31, carrying thirteen issues the first release
+  never had. **Play's internal track still holds versionCode 1**: the workflow
+  attaches the AAB to a GitHub release and the upload to Play is a separate,
+  manual act that has not happened yet.
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
-  request contract the Android and Worker tests pin. Builds through `0.1.0 (7)`
-  are in TestFlight, signed without a Mac. Build 4 was walked by two testers on
+  request contract the Android and Worker tests pin. Builds through `0.1.1 (8)`
+  are in TestFlight, signed without a Mac; build 8 went `VALID` at 21:29Z on
+  2026-08-31, read from the App Store Connect API rather than from the build
+  log. Build 4 was walked by two testers on
   2026-08-23; build 5 was installed by three testers on 2026-08-24, of whom the
   relay saw one walk; build 6 was walked twice the same evening, first 45
   minutes after it went VALID and again at 23:40, when a report filed from
-  Hveragerði was refused by the municipality check. As of 2026-08-25 those are
-  the last two runs. Every run is in
+  Hveragerði was refused by the municipality check. **Build 7's only recorded
+  run is not a walk**: it ran on a rented BrowserStack device on 2026-08-29 to
+  verify #126, and a rack device has no camera, so nothing past the first screen
+  was exercised. As of 2026-08-31 the last real iOS walk is still build 6's, on
+  2026-08-24. Every run is in
   [`data/field-tests.json`](data/field-tests.json).
 
   This line has been stale twice in two days, in the same way both times. It
