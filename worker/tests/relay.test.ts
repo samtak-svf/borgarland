@@ -104,6 +104,106 @@ describe('dry run is the default', () => {
   })
 })
 
+describe('the row keeps what a diagnosis needs (#186)', () => {
+  it('records which build filed the report, from the app User-Agent', async () => {
+    const { app, sqlite } = createTestApp()
+    const response = await app(
+      new Request('https://relay.local/api/reports', {
+        method: 'POST',
+        body: reportForm(),
+        headers: { 'user-agent': 'Borgarland/0.1.0 (7)' },
+      }),
+    )
+    expect(response.status).toBe(201)
+    const row = sqlite.prepare('SELECT app_version FROM reports').all()[0] as Record<string, unknown>
+    expect(row.app_version).toBe('0.1.0 (7)')
+  })
+
+  it('a sender without the app UA stores no version', async () => {
+    const { app, sqlite } = createTestApp()
+    await postReport(app, reportForm())
+    const row = sqlite.prepare('SELECT app_version FROM reports').all()[0] as Record<string, unknown>
+    expect(row.app_version).toBeNull()
+  })
+
+  it('records the declared and sniffed MIME of every photo', async () => {
+    const { app, sqlite } = createTestApp()
+    const fd = reportForm()
+    fd.append('photo', new File([JPEG_BYTES], 'two.jpg', { type: 'image/jpeg' }))
+    await postReport(app, fd)
+    const row = sqlite.prepare('SELECT photo_mimes FROM reports').all()[0] as Record<string, unknown>
+    expect(JSON.parse(row.photo_mimes as string)).toEqual([
+      { declared: 'image/jpeg', actual: 'image/jpeg' },
+      { declared: 'image/jpeg', actual: 'image/jpeg' },
+    ])
+  })
+
+  it('stores what would have gone to the city, without the email and without photo bytes', async () => {
+    const { app, sqlite } = createTestApp()
+    const fd = reportForm()
+    fd.set('email', 'prufa@example.is')
+    await postReport(app, fd)
+    const row = sqlite.prepare('SELECT city_payload FROM reports').all()[0] as Record<string, unknown>
+    const stored = JSON.parse(row.city_payload as string) as {
+      url: string
+      fields: Record<string, unknown>
+      photos: { name: string; mime: string; size: number; bytes?: unknown }[]
+    }
+    // The email is the one thing the relay keeps nowhere (0004, #163); a
+    // stored payload must not become a second store of it.
+    expect(stored.fields.email).toBeUndefined()
+    expect(stored.fields.description).toContain('Næsta skráða heimilisfang: Laugavegur 1, 101 Reykjavík')
+    expect(stored.photos).toEqual([{ name: 'bin.jpg', mime: 'image/jpeg', size: JPEG_BYTES.length }])
+    expect(stored.url).toContain('/senda-abendingu/')
+  })
+
+  it('records how far the nearest registered address was', async () => {
+    const { app, sqlite } = createTestApp()
+    await postReport(app, reportForm())
+    const row = sqlite.prepare('SELECT jurisdiction_km FROM reports').all()[0] as Record<string, unknown>
+    // REYKJAVIK_POINT is Laugavegur 1's own coordinate, so the distance is 0.
+    expect(row.jurisdiction_km).toBe(0)
+  })
+
+  it('the response carries the new fields too', async () => {
+    const { app } = createTestApp()
+    const response = await app(
+      new Request('https://relay.local/api/reports', {
+        method: 'POST',
+        body: reportForm(),
+        headers: { 'user-agent': 'Borgarland/0.1.0 (7)' },
+      }),
+    )
+    const report = (await json(response)).report as Record<string, unknown>
+    expect(report.appVersion).toBe('0.1.0 (7)')
+    expect(report.jurisdictionKm).toBe(0)
+    expect(report.photoMimes).toEqual([{ declared: 'image/jpeg', actual: 'image/jpeg' }])
+    expect(report.cityPayload).toEqual(expect.any(Object))
+  })
+
+  it('a row written before these columns existed still reads back', async () => {
+    // The pre-0005 shape: the original columns and nothing else. The migration
+    // adds the four new ones as nullable, so an old row must read back with
+    // nulls rather than failing — the promote and duplicate-check paths read
+    // rows written by older relays.
+    const { app, sqlite } = createTestApp()
+    sqlite
+      .prepare(
+        `INSERT INTO reports (id, category_slug, latitude, longitude, description, photo_count, photo_bytes, dry_run, created_at, sent_at, city_status, city_reference, rejection, outcome, outcome_at)
+         VALUES ('deadbeef000000000000000000000001', 'ruslafotur', 64.14658919, -21.93279823, 'gömul lýsing', 1, 44, 1, '2026-08-01T00:00:00.000Z', NULL, NULL, NULL, NULL, NULL, NULL)`,
+      )
+      .run()
+    const response = await app(new Request('https://relay.local/api/reports/deadbeef000000000000000000000001'))
+    expect(response.status).toBe(200)
+    const report = (await json(response)).report as Record<string, unknown>
+    expect(report.id).toBe('deadbeef000000000000000000000001')
+    expect(report.appVersion).toBeNull()
+    expect(report.photoMimes).toBeNull()
+    expect(report.cityPayload).toBeNull()
+    expect(report.jurisdictionKm).toBeNull()
+  })
+})
+
 describe('the coordinate guard', () => {
   it.each([
     ['missing latitude', { latitude: '__remove__' }],

@@ -249,6 +249,20 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     const emailValue = form.get('email')
     const email = typeof emailValue === 'string' && emailValue.trim() !== '' ? emailValue.trim() : null
 
+    // Which build filed this report, from the app's own User-Agent (#128) —
+    // deliberately not the raw header: a raw UA would carry the device model,
+    // which is exactly what #128 replaced, and the events contract records the
+    // version and nothing else. A sender that is not the app stores nothing
+    // (#186).
+    const userAgent = request.headers.get('User-Agent') ?? ''
+    const appVersion = /^Borgarland\/(.+)$/.exec(userAgent)?.[1] ?? null
+
+    // What each photo declared it was and what its bytes actually were, kept
+    // on the row for diagnosis (#186). The guard below guarantees they match
+    // for everything that reaches this point; the pair is recorded anyway,
+    // because the day that guard changes is the day this column starts
+    // telling us something.
+    const photoMimes: { declared: string; actual: string }[] = []
     const photos: ReportDraft['photos'] = []
     for (const part of form.getAll('photo')) {
       if (!(part instanceof File)) {
@@ -274,6 +288,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
           actual: actual ?? null,
         })
       }
+      photoMimes.push({ declared: part.type, actual: actual ?? part.type })
       photos.push({
         name: part.name,
         mime: part.type,
@@ -342,6 +357,24 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     }
 
     const createdAt = now()
+
+    // What would have gone over the wire — built before the row so the stored
+    // copy can be part of the row (#186).
+    const payload = buildCityPayload(draft)
+
+    // The copy the row keeps (#186): what would have gone over the wire, with
+    // the email removed. 0004 dropped the email column because the relay keeps
+    // no address — "the most sensitive thing in the request" — and a stored
+    // payload that carried it would be a second store of the same thing in the
+    // same table. Photo bytes are already summarized away by publicPayload.
+    const publicCopy = publicPayload(payload)
+    const { email: _email, ...fieldsWithoutEmail } = publicCopy.fields
+    const storedPayload: Record<string, unknown> = { ...publicCopy, fields: fieldsWithoutEmail }
+
+    // How far the nearest registered address was — #31's question, and
+    // previously reachable only through the refusal path's log line (#186).
+    const jurisdictionKm = Math.round(jurisdiction.km * 100) / 100
+
     const base: Omit<NewReport, 'dryRun' | 'sentAt' | 'cityStatus' | 'cityReference' | 'rejection'> = {
       // The app's id when it sent one, so the row IS the report the app is
       // talking about and a repeat finds it. Otherwise ours, as before.
@@ -355,9 +388,11 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       photoCount: photos.length,
       photoBytes: photos.reduce((sum, p) => sum + p.size, 0),
       createdAt,
+      appVersion,
+      photoMimes,
+      cityPayload: storedPayload,
+      jurisdictionKm,
     }
-
-    const payload = buildCityPayload(draft)
 
     // Kept so the report can be REVIEWED before anybody decides it is worth
     // filing for real (#181): a category and a coordinate are not enough to

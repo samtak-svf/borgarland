@@ -21,11 +21,16 @@ interface ReportRow {
   rejection: Rejection | null
   outcome: Outcome | null
   outcome_at: string | null
+  app_version: string | null
+  photo_mimes: string | null
+  city_payload: string | null
+  jurisdiction_km: number | null
 }
 
 const COLUMNS =
   'id, category_slug, latitude, longitude, description, photo_count, photo_bytes, ' +
-  'dry_run, created_at, sent_at, city_status, city_reference, rejection, outcome, outcome_at'
+  'dry_run, created_at, sent_at, city_status, city_reference, rejection, outcome, outcome_at, ' +
+  'app_version, photo_mimes, city_payload, jurisdiction_km'
 
 export interface NewReport {
   id: string
@@ -41,13 +46,21 @@ export interface NewReport {
   cityStatus: number | null
   cityReference: string | null
   rejection: Rejection | null
+  /** Which build filed the report, parsed from the app's User-Agent (#186). */
+  appVersion?: string | null
+  /** Per photo: the declared MIME and the sniffed one (#186). */
+  photoMimes?: { declared: string; actual: string }[] | null
+  /** What would have gone over the wire, photos summarized and the email removed (#186). */
+  cityPayload?: Record<string, unknown> | null
+  /** How far the nearest registered address was, in kilometres (#186). */
+  jurisdictionKm?: number | null
 }
 
 export async function insertReport(db: D1Database, report: NewReport): Promise<ReportRecord> {
   await db
     .prepare(
       `INSERT INTO reports (${COLUMNS})
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       report.id,
@@ -65,6 +78,10 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
       report.rejection,
       null, // outcome
       null, // outcome_at
+      report.appVersion ?? null,
+      report.photoMimes ? JSON.stringify(report.photoMimes) : null,
+      report.cityPayload ? JSON.stringify(report.cityPayload) : null,
+      report.jurisdictionKm ?? null,
     )
     .run()
   return {
@@ -84,6 +101,10 @@ export async function insertReport(db: D1Database, report: NewReport): Promise<R
     rejection: report.rejection,
     outcome: null,
     outcomeAt: null,
+    appVersion: report.appVersion ?? null,
+    photoMimes: report.photoMimes ?? null,
+    cityPayload: report.cityPayload ?? null,
+    jurisdictionKm: report.jurisdictionKm ?? null,
   }
 }
 
@@ -139,6 +160,11 @@ function mapRow(row: ReportRow): ReportRecord {
     rejection: row.rejection,
     outcome: row.outcome,
     outcomeAt: row.outcome_at,
+    appVersion: row.app_version,
+    photoMimes:
+      row.photo_mimes === null ? null : (JSON.parse(row.photo_mimes) as { declared: string; actual: string }[]),
+    cityPayload: row.city_payload === null ? null : (JSON.parse(row.city_payload) as Record<string, unknown>),
+    jurisdictionKm: row.jurisdiction_km,
   }
 }
 
@@ -245,7 +271,7 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
     const result = await db
       .prepare(
         `INSERT INTO reports (${COLUMNS})
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
          WHERE NOT EXISTS (SELECT 1 FROM reports WHERE dry_run = 0)`,
       )
       .bind(
@@ -264,6 +290,10 @@ export async function reserveLiveReport(db: D1Database, report: NewReport): Prom
         null, // rejection
         null, // outcome
         null, // outcome_at
+        null, // app_version: a live reservation has no received request to read it from (#186)
+        null, // photo_mimes
+        null, // city_payload
+        null, // jurisdiction_km
       )
       .run()
     changes = Number(result.meta?.changes ?? 0)
