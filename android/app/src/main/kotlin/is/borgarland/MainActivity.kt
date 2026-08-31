@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
                                 onLocationPermissionResult = viewModel::onLocationPermissionResult,
                                 onLocationPermissionRechecked = viewModel::onLocationPermissionRechecked,
                                 onRequestDeviceFix = viewModel::requestDeviceFix,
+                                onSaveToGallery = viewModel::saveCurrentPhotoToGallery,
                             )
 
                             Screen.Details -> DetailsScreen(
@@ -109,6 +110,9 @@ class MainActivity : ComponentActivity() {
                                 onDescriptionChange = viewModel::onDescriptionChange,
                                 onEmailChange = viewModel::onEmailChange,
                                 onContinue = viewModel::continueToSummary,
+                                saveToGallery = state.saveToGallery,
+                                onSaveToGalleryChange = viewModel::onSaveToGalleryChange,
+                                galleryBlocked = state.galleryBlocked,
                             )
 
                             Screen.Summary -> {
