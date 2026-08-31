@@ -157,20 +157,56 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     val state: StateFlow<PocUiState> = _state
 
     init {
-        // The save toggle's honest state at startup. Only API 26–28 can block
-        // the gallery save (WRITE_EXTERNAL_STORAGE, refused for good); on
-        // API 29+ there is no permission to refuse and the default false
-        // stands.
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-            val app = getApplication<Application>()
-            val granted = ContextCompat.checkSelfPermission(
-                app,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (StorageAsks.asked(app) && !granted) {
-                _state.update { it.copy(galleryBlocked = true) }
-            }
-        }
+        // The save toggle's honest state at startup, both halves of it.
+        //
+        // The SWITCH is read from the stored setting, which Android was not
+        // doing: `saveToGallery` defaulted to true on every launch while the
+        // save path read the real value from `Settings`, so somebody who
+        // turned it off came back to a switch showing on and a photograph
+        // that was correctly not being saved. iOS has always read the setting
+        // here (`ReportModel`), so this was one-sided and the parity file did
+        // not catch it — the capability is detected on the saver type, not on
+        // where the switch gets its value.
+        //
+        // The BLOCK is the API 26-28 permission refused for good. On API 29+
+        // there is no permission to refuse and it stays false.
+        val saved = runCatching { Settings.saveToGallery(getApplication<Application>()) }
+            .getOrDefault(_state.value.saveToGallery)
+        _state.update { it.copy(saveToGallery = saved, galleryBlocked = galleryBlockedNow(saved)) }
+    }
+
+    /**
+     * The ONE place the gallery block is computed (#201). It had two copies
+     * that disagreed about whether the switch mattered, and a third caller was
+     * about to be added, which is the point at which a predicate wants a name.
+     *
+     * Only API 26-28 can block the gallery save: `WRITE_EXTERNAL_STORAGE`
+     * refused for good. On API 29+ there is no permission to refuse, so this
+     * is closed false there and the switch is always honourable.
+     */
+    private fun galleryBlockedNow(save: Boolean): Boolean {
+        if (!save || Build.VERSION.SDK_INT > Build.VERSION_CODES.P) return false
+        val app = getApplication<Application>()
+        val granted = ContextCompat.checkSelfPermission(
+            app,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        ) == PackageManager.PERMISSION_GRANTED
+        return StorageAsks.asked(app) && !granted
+    }
+
+    /**
+     * The permission launcher has answered (#201). This is the moment the
+     * state actually changes, and until now nothing recomputed here: a denial
+     * left the Details caption claiming the photograph was saved for the whole
+     * Activity lifetime, surviving rotation and a second capture, and only a
+     * toggle touch or a process restart corrected it.
+     *
+     * Called on grant as well as denial. A grant clears a block that a
+     * previous refusal had set, which is the same screen telling the same
+     * truth in the other direction.
+     */
+    fun onStoragePermissionResult() {
+        _state.update { it.copy(galleryBlocked = galleryBlockedNow(it.saveToGallery)) }
     }
 
     private var facts: FactsFile? = null
@@ -611,13 +647,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     fun onSaveToGalleryChange(save: Boolean) {
         val app = getApplication<Application>()
         runCatching { Settings.setSaveToGallery(app, save) }
-        val blocked = save && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
-            ContextCompat.checkSelfPermission(
-                app,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            ) != PackageManager.PERMISSION_GRANTED &&
-            StorageAsks.asked(app)
-        _state.update { it.copy(saveToGallery = save, galleryBlocked = blocked) }
+        _state.update { it.copy(saveToGallery = save, galleryBlocked = galleryBlockedNow(save)) }
     }
 
     fun continueToSummary() {

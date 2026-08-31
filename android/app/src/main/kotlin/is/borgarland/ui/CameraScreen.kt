@@ -90,6 +90,7 @@ fun CameraScreen(
     onLocationPermissionRechecked: (Boolean) -> Unit,
     onRequestDeviceFix: () -> Unit,
     onSaveToGallery: () -> Unit,
+    onStoragePermissionResult: () -> Unit,
 ) {
     val context = LocalContext.current
     var cameraPermissionGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.CAMERA)) }
@@ -128,6 +129,11 @@ fun CameraScreen(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) onSaveToGallery()
+        // The answer, either way (#201). This callback is the moment the
+        // permission state changes and nothing used to recompute from it, so
+        // a denial left the Details caption claiming the photograph was saved
+        // until the process restarted.
+        onStoragePermissionResult()
     }
 
     // The save is the model's job; the ASK is this screen's. When the save is

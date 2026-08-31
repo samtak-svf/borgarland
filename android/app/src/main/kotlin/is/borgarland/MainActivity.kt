@@ -102,6 +102,7 @@ class MainActivity : ComponentActivity() {
                                 onLocationPermissionRechecked = viewModel::onLocationPermissionRechecked,
                                 onRequestDeviceFix = viewModel::requestDeviceFix,
                                 onSaveToGallery = viewModel::saveCurrentPhotoToGallery,
+                                onStoragePermissionResult = viewModel::onStoragePermissionResult,
                             )
 
                             Screen.Details -> DetailsScreen(

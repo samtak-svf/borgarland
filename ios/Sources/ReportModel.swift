@@ -242,7 +242,7 @@ final class ReportModel: ObservableObject {
         // The save toggle's honest state at startup: the permission answer
         // that cannot change without the system Settings app.
         state.saveToGallery = settings.saveToGallery()
-        state.galleryBlocked = state.saveToGallery && PhotoLibrarySaver.isDeniedForGood
+        state.galleryBlocked = galleryBlockedNow(state.saveToGallery)
 
         // The telemetry channel is fire-and-forget by contract
         // (data/relay-events.json): it must never affect the report. One
@@ -376,6 +376,12 @@ final class ReportModel: ObservableObject {
         if settings.saveToGallery() {
             Task {
                 await PhotoLibrarySaver.save(data: bytes)
+                // The add-only dialog has had its one chance to be answered
+                // (#201). PHPhotoLibrary never re-prompts once denied, so
+                // without this recompute the caption sits on "saved" for the
+                // rest of the session with nothing being written. The Task is
+                // already on the main actor, because this class is.
+                self.refreshGalleryBlocked()
             }
         }
         photoCapturedAt = Date()
@@ -927,10 +933,27 @@ final class ReportModel: ObservableObject {
     /// address: read at save time, never sent anywhere. `galleryBlocked`
     /// recomputes with it, so a toggle that cannot be honoured is shown as
     /// blocked, not as on.
+    /// The ONE place the gallery block is computed (#201). It had two copies
+    /// before, and a third caller was about to be added, which is the point at
+    /// which a predicate wants a name. The Android mirror is
+    /// `PocViewModel.galleryBlockedNow`.
+    private func galleryBlockedNow(_ save: Bool) -> Bool {
+        save && PhotoLibrarySaver.isDeniedForGood
+    }
+
+    /// Recompute after the system has had its chance to answer (#201). Called
+    /// from the save task, which is the only moment on iOS where the add-only
+    /// permission can change without leaving the app: after a denial
+    /// `PHPhotoLibrary` never prompts again, so there is no later capture that
+    /// would correct the row on its own.
+    func refreshGalleryBlocked() {
+        state.galleryBlocked = galleryBlockedNow(state.saveToGallery)
+    }
+
     func setSaveToGallery(_ save: Bool) {
         settings.setSaveToGallery(save)
         state.saveToGallery = save
-        state.galleryBlocked = save && PhotoLibrarySaver.isDeniedForGood
+        state.galleryBlocked = galleryBlockedNow(save)
     }
     // MARK: - The follow-up question (#57, decision 0013)
 

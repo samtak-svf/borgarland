@@ -167,14 +167,18 @@ fun DetailsScreen(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Vista mynd í myndasafni", style = MaterialTheme.typography.bodyLarge)
+                val caption = galleryCaption(saveToGallery = saveToGallery, galleryBlocked = galleryBlocked)
                 Text(
-                    if (galleryBlocked) {
-                        "Borgarland hefur ekki leyfi til að vista í myndasafnið. Leyfið er opnað í stillingum símans."
-                    } else {
-                        "Myndin sem þú tekur er einnig vistuð í myndasafnið þitt, í möppunni Borgarland."
+                    when (caption) {
+                        GalleryCaption.BLOCKED ->
+                            "Borgarland hefur ekki leyfi til að vista í myndasafnið. Leyfið er opnað í stillingum símans."
+                        GalleryCaption.SAVING ->
+                            "Myndin sem þú tekur er einnig vistuð í myndasafnið þitt, í möppunni Borgarland."
+                        GalleryCaption.NOT_SAVING ->
+                            "Myndin er ekki vistuð í myndasafnið. Hún fer aðeins með ábendingunni."
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (galleryBlocked) {
+                    color = if (caption == GalleryCaption.BLOCKED) {
                         MaterialTheme.colorScheme.error
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
