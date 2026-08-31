@@ -273,14 +273,23 @@ that is what the city accepts. They now agree with the app, but keep the
 distinction in mind: those files map the endpoint, this section governs the
 product.
 
-## Location comes from the photo, not from an address
+## The location comes from the device at capture, not from an address
 
 The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
 here. As Biggi put it when the idea started: *the bin has no address, only the
-coordinate that came with the photo.* So the coordinate travels with the
-picture, a map would be a correction rather than an entry point, and reverse
-geocoding only fills the city's fields after the fact. (No map exists in either
-app yet; the sentence describes the intended shape, not a built surface.)
+coordinate that came with the photo.* Testing on a real phone later changed
+where that coordinate is obtained from — the device, at the moment the photo is
+taken — while the principle the quote states, that an address is the wrong
+primitive, is exactly what held up. Three things must stay distinct. The GPS
+point comes from the device at capture time, and it is the only positional thing
+submitted to the city. The nearest registered address is a reverse lookup in the
+relay, appended to the description as a line for the crew — it is not the
+location, and a report is never snapped to it (see
+[Addresses](#addresses-use-the-registry-not-the-city)). EXIF is relevant only to
+a photo picked from the gallery, a path that does not exist yet (`gallery-pick`
+is `neither-yet` in `data/platform-parity.json`). A map would be a correction
+rather than an entry point. (No map exists in either app yet; the sentence
+describes the intended shape, not a built surface.)
 
 **Which source comes first depends on where the photo came from, and testing on
 a real phone reversed the order we assumed.** A photo the app captures itself
