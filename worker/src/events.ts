@@ -37,7 +37,7 @@ const PLATFORMS: ReadonlySet<string> = new Set(CONTRACT.envelope.platform.enum)
 const MAX_EVENTS: number = CONTRACT.envelope.events.maxLength
 
 /** Fresh per app LAUNCH, so it groups a sitting and cannot follow a person. */
-const SESSION_PATTERN = /^[0-9a-f]{32}$/
+export const SESSION_PATTERN = /^[0-9a-f]{32}$/
 
 /**
  * The app's own version string. Constrained rather than accepted as free text:

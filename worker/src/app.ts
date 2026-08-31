@@ -52,7 +52,7 @@ import {
 } from './db'
 import { sniffImageFormat } from './image-format'
 import { RegistryNotLoadedError, readRegistryHealth } from './registry-loader'
-import { EVENTS_PATH, validateBatch } from './events'
+import { EVENTS_PATH, SESSION_PATTERN, validateBatch } from './events'
 import relayRequestJson from '../../data/relay-request.json'
 
 // ---------------------------------------------------------------------------
@@ -75,6 +75,7 @@ interface RelayFieldSpec {
 interface RelayRequestContract {
   endpoint: { path: string; method: string; contentType: string }
   fields: {
+    session: RelayFieldSpec
     category: RelayFieldSpec
     latitude: RelayFieldSpec
     longitude: RelayFieldSpec
@@ -219,6 +220,19 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     if (suppliedReportId !== '' && !REPORT_ID.test(suppliedReportId)) {
       throw new HttpError(400, 'invalid-report-id', {
         reason: 'a report id is 32 lowercase hex characters',
+      })
+    }
+    // Which launch of the app filed this report — the same value the events
+    // envelope carries (data/relay-events.json), so a report row and the
+    // telemetry of the walk that produced it join on it (#186, split-out
+    // part). Optional for the same reason reportId is: a build that predates
+    // it must keep working. A malformed one is refused rather than stored,
+    // because a session that cannot join to anything is worse than none.
+    const sessionValue = form.get('session')
+    const session = typeof sessionValue === 'string' ? sessionValue.trim() : ''
+    if (session !== '' && !SESSION_PATTERN.test(session)) {
+      throw new HttpError(400, 'invalid-session', {
+        reason: 'a session id is 32 lowercase hex characters',
       })
     }
     if (suppliedReportId !== '') {
@@ -392,6 +406,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       photoMimes,
       cityPayload: storedPayload,
       jurisdictionKm,
+      session: session === '' ? null : session,
     }
 
     // Kept so the report can be REVIEWED before anybody decides it is worth

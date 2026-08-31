@@ -1,0 +1,16 @@
+-- The report remembers which launch of the app filed it (#186, split-out part).
+--
+-- The metadata columns 0005 added answer "which build filed this?" on the row
+-- itself. This one answers "which WALK was this?" — the report row and the
+-- client_events timeline join on the session id, where today they are joined
+-- by hand-transcription (data/field-tests.json says so in its own $comment).
+--
+-- The value is the app's per-launch session id, the same one the telemetry
+-- envelope carries (data/relay-events.json envelope.session): 32 lowercase hex,
+-- generated fresh on every app launch, never derived from a device and never
+-- reused — so it identifies a walk and nothing else.
+--
+-- Nullable for the same reason 0005's columns are: builds 6 and 7 (and any
+-- build older than the relay that first accepts the field) never send one, and
+-- a row written by an older relay reads back NULL rather than failing.
+ALTER TABLE reports ADD COLUMN session TEXT;

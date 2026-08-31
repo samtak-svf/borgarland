@@ -19,7 +19,7 @@ const contractRaw = readFileSync('../data/relay-request.json', 'utf8')
 const eventsContract = JSON.parse(readFileSync('../data/relay-events.json', 'utf8'))
 const eventsRaw = readFileSync('../data/relay-events.json', 'utf8')
 
-const EXPECTED_FIELD_NAMES = ['reportId', 'category', 'latitude', 'longitude', 'description', 'email', 'photo']
+const EXPECTED_FIELD_NAMES = ['reportId', 'session', 'category', 'latitude', 'longitude', 'description', 'email', 'photo']
 // The field names the old app used; none of them may appear in the contract.
 const CITY_FIELD_NAMES = ['type', 'summary', 'lat', 'lng', 'files']
 

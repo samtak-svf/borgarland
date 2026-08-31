@@ -95,10 +95,11 @@
   },
   "notShownToAnyone": {
     "$comment": "Codes the relay can return on endpoints no person is looking at, so a sentence for them would be written for nobody. Listed rather than omitted: the coverage test holds every code in the relay's source against this file, so a NEW code lands here or in outcomes by a decision instead of by silence.",
-    "invalid-outcome": "PATCH /api/reports/:id/outcome, the follow-through endpoint (#57). Machine to machine; it has no caller at all yet.",
+    "invalid-outcome": "POST /api/reports/:id/outcome, the follow-through endpoint (#57). Machine to machine; Android has called it since #120, iOS joins in the same port.",
     "invalid-event-batch": "POST /api/events, the telemetry channel. Fire and forget by contract (data/relay-events.json): the app must never show a person anything about it.",
     "live-send-not-armed": "POST /api/reports/:id/promote, the operator path (#181). Nobody's app can reach it: it needs a credential no build holds.",
     "not-the-operator": "POST /api/reports/:id/promote and GET /api/reports/:id/photo/:n. The credential did not match. Answered to whoever asked, which is never a reporting app.",
+    "invalid-session": "POST /api/reports, the session field (#186). The app generates the session itself as 32 lowercase hex, so a malformed one can only come from a buggy or stale build — the relay refuses it rather than storing a session that cannot join to the telemetry timeline.",
     "photo-not-found": "GET /api/reports/:id/photo/:n, the operator's review path. An index that was never stored, or one the bucket has expired.",
     "photo-expired": "POST /api/reports/:id/promote. The photographs are gone from the store, so the report can no longer be filed with the evidence it was about. The bucket expires objects after 30 days; this is that limit arriving, and it is the operator who is told.",
     "email-required": "POST /api/reports/:id/promote. The address is supplied by the operator at promote time because the relay stores none (migration 0004); a promote without one would file an ábending the city cannot answer."
