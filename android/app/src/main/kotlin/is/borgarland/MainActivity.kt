@@ -1,8 +1,11 @@
 package `is`.borgarland
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.activity.enableEdgeToEdge
@@ -86,6 +89,28 @@ class MainActivity : ComponentActivity() {
                             return@Box
                         }
 
+                        // The gallery-save permission launcher lives HERE,
+                        // above the screen switch, and not in CameraScreen
+                        // (#201). A capture navigates to Details in the same
+                        // frame that fires the request, so a launcher
+                        // remembered inside CameraScreen is disposed before
+                        // the person answers and the ActivityResultRegistry
+                        // has nobody to deliver to.
+                        //
+                        // That one fact explains both halves of what was
+                        // observed. A denial never reached the model, so the
+                        // Details caption went on claiming the photograph was
+                        // saved. And an ALLOW never reached it either, which
+                        // is the #179 walk's unexplained anomaly: the grant
+                        // callback that was supposed to re-save the photo it
+                        // was holding wrote no file.
+                        val storagePermissionLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission(),
+                        ) { granted ->
+                            if (granted) viewModel.saveCurrentPhotoToGallery()
+                            viewModel.onStoragePermissionResult()
+                        }
+
                         when (state.screen) {
                             Screen.Onboarding -> OnboardingScreen(
                                 state = state,
@@ -101,8 +126,9 @@ class MainActivity : ComponentActivity() {
                                 onLocationPermissionResult = viewModel::onLocationPermissionResult,
                                 onLocationPermissionRechecked = viewModel::onLocationPermissionRechecked,
                                 onRequestDeviceFix = viewModel::requestDeviceFix,
-                                onSaveToGallery = viewModel::saveCurrentPhotoToGallery,
-                                onStoragePermissionResult = viewModel::onStoragePermissionResult,
+                                onRequestStoragePermission = {
+                                    storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                },
                             )
 
                             Screen.Details -> DetailsScreen(

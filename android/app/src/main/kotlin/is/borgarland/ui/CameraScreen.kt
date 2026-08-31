@@ -89,8 +89,7 @@ fun CameraScreen(
     onLocationPermissionResult: (granted: Boolean, permanentlyDenied: Boolean) -> Unit,
     onLocationPermissionRechecked: (Boolean) -> Unit,
     onRequestDeviceFix: () -> Unit,
-    onSaveToGallery: () -> Unit,
-    onStoragePermissionResult: () -> Unit,
+    onRequestStoragePermission: () -> Unit,
 ) {
     val context = LocalContext.current
     var cameraPermissionGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.CAMERA)) }
@@ -122,19 +121,14 @@ fun CameraScreen(
     }
     // The gallery save's permission cliff (#179): on API 26–28 saving a
     // photograph needs WRITE_EXTERNAL_STORAGE, and on API 29+ it needs
-    // nothing. The launcher exists only where it can matter; the manifest
-    // declares the permission with maxSdkVersion=28 so it never appears on
-    // newer devices.
-    val storagePermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) onSaveToGallery()
-        // The answer, either way (#201). This callback is the moment the
-        // permission state changes and nothing used to recompute from it, so
-        // a denial left the Details caption claiming the photograph was saved
-        // until the process restarted.
-        onStoragePermissionResult()
-    }
+    // nothing. The manifest declares the permission with maxSdkVersion=28 so
+    // it never appears on newer devices.
+    //
+    // The LAUNCHER itself is not here, and that is the whole of #201's first
+    // facet. A capture navigates to Details in the same frame that fires the
+    // request, so a launcher remembered in this composable is disposed before
+    // anybody answers and its callback is never delivered. It lives in
+    // MainActivity, above the `when (screen)`, where it outlives the switch.
 
     // The save is the model's job; the ASK is this screen's. When the save is
     // wanted on an API level that needs the permission and it is not granted,
@@ -149,7 +143,7 @@ fun CameraScreen(
                 !hasPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)
             ) {
                 StorageAsks.remember(context)
-                storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                onRequestStoragePermission()
             }
             onPhotoCaptured(bytes, rotation, elapsed)
         }
