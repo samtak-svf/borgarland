@@ -31,7 +31,7 @@ what is built on top of it is:
   signature against a pinned upload certificate, and attaches both to a GitHub
   release — `0.1.0` went out that way on 2026-08-24
   ([#58](https://github.com/samtak-svf/borgarland/issues/58)), and `0.1.1`
-  (versionCode 2) on 2026-08-31, carrying thirteen issues the first release
+  (versionCode 2) on 2026-08-31, carrying fourteen issues the first release
   never had. **Play's internal track holds `2 (0.1.1)` since 2026-08-31 21:40**,
   available to the two testers on the `Borgarland Android prófarar` list.
   Uploading is a separate manual act: the workflow only attaches the AAB to a

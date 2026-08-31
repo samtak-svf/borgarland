@@ -69,9 +69,14 @@ export async function loadRegistry(db: D1Database): Promise<Registry> {
 // The registry's age, for GET /api/health.
 //
 // Decision 0009 accepted keeping the registry here and named the cost: the
-// refresh chore is unowned, and a stale registry degrades the jurisdiction
+// refresh chore was unowned, and a stale registry degrades the jurisdiction
 // check silently rather than failing it. It was silent because nothing read
 // the snapshot's date. This reads it.
+//
+// #49 gave the refresh an owner on 2026-08-31, a daily scheduled workflow, so
+// the "unowned" half of that cost is paid. The other half is not: a cron that
+// stops firing looks exactly like one that has nothing to do, which is what
+// this date is for.
 //
 // Deliberately independent of the cache above: health has to answer when the
 // registry is NOT loaded, which is exactly the moment someone is looking.
