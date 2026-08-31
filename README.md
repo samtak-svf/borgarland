@@ -17,7 +17,7 @@ Free software, no charge, no ads, no data resale. Built by
 
 ## Status
 
-**Three parts exist and none of them has filed a report.** The feasibility
+**Three parts exist, and one report has reached the city — on purpose, and no second one can.** The feasibility
 question is answered in
 [docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reporting-api.md);
 what is built on top of it is:
@@ -26,11 +26,14 @@ what is built on top of it is:
   Cloudflare, with D1 (`--jurisdiction eu`) holding the national address
   registry and our record of every report. In dry run.
 - **The Android app** (`android/`), which has run on a real phone: camera,
-  coordinate, category, description, and a POST to the relay. It has no release
-  pipeline and ships to nobody ([#58](https://github.com/samtak-svf/borgarland/issues/58)).
+  coordinate, category, description, and a POST to the relay. It ships signed
+  releases: an `android-v*` tag builds a release APK and AAB, verifies the
+  signature against a pinned upload certificate, and attaches both to a GitHub
+  release — `0.1.0` went out that way on 2026-08-24
+  ([#58](https://github.com/samtak-svf/borgarland/issues/58)).
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
-  request contract the Android and Worker tests pin. Builds through `0.1.0 (6)`
+  request contract the Android and Worker tests pin. Builds through `0.1.0 (7)`
   are in TestFlight, signed without a Mac. Build 4 was walked by two testers on
   2026-08-23; build 5 was installed by three testers on 2026-08-24, of whom the
   relay saw one walk; build 6 was walked twice the same evening, first 45
@@ -151,19 +154,23 @@ entry. Get one right first.
 
 ## What CI checks
 
-Eight workflows, all on GitHub-hosted runners — this repo is public, so the
+Every workflow runs on GitHub-hosted runners — this repo is public, so the
 minutes are free and there is no reason for a self-hosted runner.
 
 | Workflow | What it guards |
 |---|---|
 | `contract.yml` | The daily probe against the city's endpoint, so a change there arrives as a red build rather than as a user's failed report. It posts a deliberately incomplete payload the validator must reject: it *cannot* succeed, which is the property that makes it safe. |
+| `registry-refresh.yml` | The relay's copy of Staðfangaskrá is refreshed daily at 03:17 UTC, applied to D1, and verified live afterwards — the artefact, not the exit code — so an out-of-date registry fails red rather than refusing reports later. |
 | `relay-request-contract.yml` | That the Worker and both apps still agree with `data/relay-request.json`, plus the Swift and Kotlin unit tests. |
 | `platform-parity.yml` | That iOS and Android have not drifted apart without someone writing down why (`data/platform-parity.json`). |
 | `android-ci.yml` | ktlint, Android lint, a debug build and the unit tests. |
+| `android-release.yml` | On an `android-v*` tag (or manual dispatch): builds the release APK and AAB, verifies the signature against a pinned upload-certificate fingerprint, and attaches both to a GitHub release. Skips with a visible warning until the signing secrets exist. |
 | `ios-ci.yml` | The SwiftUI shell builds for a simulator, unsigned. |
 | `ios-release.yml` | On an `ios-v*` tag: archive, sign, upload dSYMs to Crashlytics, ship to TestFlight — without a Mac. |
 | `field-tests.yml` | That a record in `data/field-tests.json` transcribes only events the relay's allowlist permits, so a hand-written transcript stays trustworthy. |
 | `ai-authorship.yml` | That no commit or PR body carries an AI authorship marker. |
+| `issue-title-guard.yml` | That an issue title follows `area: description`, against this repo's own area list — a violation gets a label and a comment, never a closure. |
+| `revisit-guard.yml` | That an issue labelled `blocked: time` carries a `Revisit: YYYY-MM-DD` line; without one it comments once, because a label with no date is a promise nothing can keep. |
 
 ## Contributing
 
