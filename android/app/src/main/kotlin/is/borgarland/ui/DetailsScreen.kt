@@ -12,9 +12,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,9 @@ fun DetailsScreen(
     onDescriptionChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onContinue: () -> Unit,
+    saveToGallery: Boolean,
+    onSaveToGalleryChange: (Boolean) -> Unit,
+    galleryBlocked: Boolean,
 ) {
     Column(
         // imePadding BEFORE verticalScroll, which is the whole of #110: the
@@ -150,6 +154,38 @@ fun DetailsScreen(
             ),
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         )
+
+        // The gallery save toggle (#179). Device state, default ON — the
+        // surprising behaviour was the one that kept nothing — and it is not
+        // part of a report: the relay learns nothing about it. `galleryBlocked`
+        // is the API 26–28 permission refused for good, which no switch can
+        // undo: the screen says so instead of sitting on "saving" while
+        // nothing is saved.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Vista mynd í myndasafni", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    if (galleryBlocked) {
+                        "Borgarland hefur ekki leyfi til að vista í myndasafnið. Leyfið er opnað í stillingum símans."
+                    } else {
+                        "Myndin sem þú tekur er einnig vistuð í myndasafnið þitt, í möppunni Borgarland."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (galleryBlocked) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+            Switch(
+                checked = saveToGallery,
+                onCheckedChange = onSaveToGalleryChange,
+            )
+        }
 
         Button(
             onClick = onContinue,

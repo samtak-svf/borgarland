@@ -12,6 +12,9 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Matrix
 import android.os.SystemClock
+import android.os.Build
+import `is`.borgarland.data.Settings as GallerySettings
+import `is`.borgarland.data.StorageAsks
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -86,6 +89,7 @@ fun CameraScreen(
     onLocationPermissionResult: (granted: Boolean, permanentlyDenied: Boolean) -> Unit,
     onLocationPermissionRechecked: (Boolean) -> Unit,
     onRequestDeviceFix: () -> Unit,
+    onSaveToGallery: () -> Unit,
 ) {
     val context = LocalContext.current
     var cameraPermissionGranted by remember { mutableStateOf(hasPermission(context, Manifest.permission.CAMERA)) }
@@ -115,6 +119,34 @@ fun CameraScreen(
         // unanswered permission a denied one (#76).
         onLocationPermissionResult(granted, standing == LocationPermission.DENIED_FOR_GOOD)
     }
+    // The gallery save's permission cliff (#179): on API 26–28 saving a
+    // photograph needs WRITE_EXTERNAL_STORAGE, and on API 29+ it needs
+    // nothing. The launcher exists only where it can matter; the manifest
+    // declares the permission with maxSdkVersion=28 so it never appears on
+    // newer devices.
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) onSaveToGallery()
+    }
+
+    // The save is the model's job; the ASK is this screen's. When the save is
+    // wanted on an API level that needs the permission and it is not granted,
+    // the shutter fires the request and the model re-saves the photo it is
+    // holding if the person says yes. A denial costs the gallery copy of THIS
+    // photo and nothing else — the report path is untouched.
+    val captureHandler: (bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) -> Unit =
+        { bytes, rotation, elapsed ->
+            if (
+                Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+                GallerySettings.saveToGallery(context) &&
+                !hasPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            ) {
+                StorageAsks.remember(context)
+                storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+            onPhotoCaptured(bytes, rotation, elapsed)
+        }
 
     // The way back from app settings, which is the only place a denied
     // location permission can be opened. Without this the person returns to a
@@ -162,7 +194,7 @@ fun CameraScreen(
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 CameraPreview(
                     enabled = cameraPermissionGranted,
-                    onPhotoCaptured = onPhotoCaptured,
+                    onPhotoCaptured = captureHandler,
                     onPhotoError = onPhotoError,
                 )
             }

@@ -3,6 +3,10 @@ package `is`.borgarland
 import android.app.Application
 import android.content.Context
 import android.location.LocationManager
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import `is`.borgarland.net.RelayClient
 import `is`.borgarland.net.Telemetry
 import `is`.borgarland.net.TelemetryEvent
@@ -17,6 +21,9 @@ import `is`.borgarland.data.Category
 import `is`.borgarland.data.ContactDetails
 import `is`.borgarland.data.Facts
 import `is`.borgarland.data.FollowUps
+import `is`.borgarland.data.GallerySaver
+import `is`.borgarland.data.Settings
+import `is`.borgarland.data.StorageAsks
 import `is`.borgarland.data.CategoryLabels
 import `is`.borgarland.data.CategoryLabelsFile
 import `is`.borgarland.data.FactsFile
@@ -112,6 +119,22 @@ data class PocUiState(
      * a second rule that can disagree with the first.
      */
     val emailValid: Boolean = false,
+    /**
+     * Whether captured photographs are also saved to the device gallery
+     * (#179). Device state, default ON, kept in data/Settings.kt — never part
+     * of a report, and the relay learns nothing about it.
+     */
+    val saveToGallery: Boolean = true,
+    /**
+     * The toggle cannot lie: on API 26–28 the save needs WRITE_EXTERNAL_STORAGE,
+     * and once that has been asked and refused the platform will not show the
+     * dialog again — only app settings can undo it (#76's distinction, applied
+     * to #179). True exactly when the save is wanted but can never happen, so
+     * the screen offers the settings exit instead of a switch that sits on
+     * "saving" while nothing is saved. On API 29+ there is no permission and
+     * this is always false.
+     */
+    val galleryBlocked: Boolean = false,
     val outOfBounds: Boolean = false,
     val sending: Boolean = false,
     val sendOutcome: SendOutcome? = null,
@@ -132,6 +155,22 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(PocUiState())
     val state: StateFlow<PocUiState> = _state
+    init {
+        // The save toggle's honest state at startup. Only API 26–28 can block
+        // the gallery save (WRITE_EXTERNAL_STORAGE, refused for good); on
+        // API 29+ there is no permission to refuse and the default false
+        // stands.
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            val app = getApplication<Application>()
+            val granted = ContextCompat.checkSelfPermission(
+                app,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (StorageAsks.asked(app) && !granted) {
+                _state.update { it.copy(galleryBlocked = true) }
+            }
+        }
+    }
 
     private var facts: FactsFile? = null
 
@@ -361,6 +400,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 locationError = null,
             )
         }
+        savePhotoToGalleryIfEnabled(bytes)
         photoCapturedAtMs = System.currentTimeMillis()
         Telemetry.shared.track(
             TelemetryEvent.PhotoCaptured(captureElapsedMs, bytes.size, Telemetry.normalizedMime(photo.mime)),
@@ -392,6 +432,30 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onPhotoError(message: String) {
         _state.update { it.copy(photoError = message) }
+    }
+    /**
+     * The gallery copy, when the person wants one (#179). Never a failure of
+     * the report: the capture already happened, and the bytes are in the
+     * report whatever the gallery does.
+     *
+     * On API 26–28 the save needs WRITE_EXTERNAL_STORAGE; when it is not
+     * granted the save is skipped here and the camera screen asks, then calls
+     * [saveCurrentPhotoToGallery] if the person says yes. On API 29+ there is
+     * nothing to ask (manifest: maxSdkVersion=28), so the save just happens.
+     */
+    private fun savePhotoToGalleryIfEnabled(bytes: ByteArray) {
+        val app = getApplication<Application>()
+        if (!Settings.saveToGallery(app)) return
+        val granted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
+            ContextCompat.checkSelfPermission(app, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) return
+        GallerySaver.save(app, bytes, System.currentTimeMillis())
+    }
+
+    /** Re-save the photo the phone is holding, after the permission arrived. */
+    fun saveCurrentPhotoToGallery() {
+        _state.value.photo?.let { savePhotoToGalleryIfEnabled(it.bytes) }
     }
 
     /**
@@ -535,6 +599,22 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         val email = ContactDetails.normalise(s.email)
         runCatching { ContactDetails.write(getApplication(), email) }
         _state.update { it.copy(email = email, screen = Screen.Camera) }
+    }
+    /**
+     * The gallery-save toggle (#179). Device state, written like the address:
+     * read at save time, never sent anywhere. `galleryBlocked` recomputes with
+     * it, so a toggle that cannot be honoured is shown as blocked, not as on.
+     */
+    fun onSaveToGalleryChange(save: Boolean) {
+        val app = getApplication<Application>()
+        runCatching { Settings.setSaveToGallery(app, save) }
+        val blocked = save && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            ContextCompat.checkSelfPermission(
+                app,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) != PackageManager.PERMISSION_GRANTED &&
+            StorageAsks.asked(app)
+        _state.update { it.copy(saveToGallery = save, galleryBlocked = blocked) }
     }
 
     fun continueToSummary() {
@@ -683,6 +763,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             photos = listOfNotNull(s.photo),
             email = ContactDetails.normalise(s.email).ifEmpty { null },
             reportId = currentReportId,
+            session = Telemetry.shared.sessionId,
         )
     }
 }
