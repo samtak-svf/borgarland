@@ -355,11 +355,11 @@ public final class ReportQueue {
             description: report.description,
             photos: photos,
             email: email,
-            session: report.session,
             // The queue's id IS the report's id on the wire (#88). Without this
             // line a retry of a report the relay already stored becomes a
             // second row, which is the whole thing the id exists to prevent.
-            reportId: report.id
+            reportId: report.id,
+            session: report.session
         )
     }
 

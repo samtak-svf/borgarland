@@ -155,6 +155,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(PocUiState())
     val state: StateFlow<PocUiState> = _state
+
     init {
         // The save toggle's honest state at startup. Only API 26–28 can block
         // the gallery save (WRITE_EXTERNAL_STORAGE, refused for good); on
@@ -433,6 +434,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     fun onPhotoError(message: String) {
         _state.update { it.copy(photoError = message) }
     }
+
     /**
      * The gallery copy, when the person wants one (#179). Never a failure of
      * the report: the capture already happened, and the bytes are in the
@@ -600,6 +602,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         runCatching { ContactDetails.write(getApplication(), email) }
         _state.update { it.copy(email = email, screen = Screen.Camera) }
     }
+
     /**
      * The gallery-save toggle (#179). Device state, written like the address:
      * read at save time, never sent anywhere. `galleryBlocked` recomputes with

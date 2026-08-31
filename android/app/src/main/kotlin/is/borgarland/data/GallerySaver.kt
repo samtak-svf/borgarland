@@ -31,7 +31,7 @@ object GallerySaver {
     /** The album folder name, both here and in the iOS save path (#179). */
     const val ALBUM = "Borgarland"
 
-    private fun fileName(nowMs: Long): String = "borgarland-${nowMs}.jpg"
+    private fun fileName(nowMs: Long): String = "borgarland-$nowMs.jpg"
 
     /**
      * Save on the current API level's own terms. Returns whether the bytes

@@ -2,7 +2,6 @@ package `is`.borgarland
 
 import `is`.borgarland.data.Settings
 import java.io.File
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
