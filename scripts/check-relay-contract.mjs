@@ -34,7 +34,7 @@ const check = (ok, message) => {
 }
 
 // The one documented shape. The order is the order the app writes the parts in.
-const EXPECTED_FIELDS = ['reportId', 'category', 'latitude', 'longitude', 'description', 'email', 'photo']
+const EXPECTED_FIELDS = ['reportId', 'session', 'category', 'latitude', 'longitude', 'description', 'email', 'photo']
 const fieldNames = Object.keys(contract.fields ?? {})
 check(
   JSON.stringify(fieldNames) === JSON.stringify(EXPECTED_FIELDS),
@@ -125,5 +125,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  '✓ relay request contract holds: seven fields in order, no city vocabulary, facts in agreement, both sides reading the file',
+  '✓ relay request contract holds: eight fields in order, no city vocabulary, facts in agreement, both sides reading the file',
 )
