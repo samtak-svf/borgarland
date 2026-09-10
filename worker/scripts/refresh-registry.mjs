@@ -26,7 +26,9 @@
 // The snapshot is attributed to its source:
 //   Staðfangaskrá by HMS / Þjóðskrá Íslands, CC-BY 4.0.
 
-import { createWriteStream, renameSync, unlinkSync } from 'node:fs'
+import { createWriteStream, mkdirSync, renameSync, unlinkSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { once } from 'node:events'
 import { streamStadfangaskra } from 'iceaddr-ts'
 
@@ -45,6 +47,11 @@ const BATCH = 500
 // caused by a download that dropped.
 const FINAL = new URL('../data/addresses.seed.sql', import.meta.url)
 const TEMP = new URL('../data/addresses.seed.sql.partial', import.meta.url)
+
+// Fresh hosted checkouts have no worker/data/ (the seed and its partial are
+// gitignored, so nothing tracked creates the directory); create it before the
+// write stream opens, or every scheduled run fails with ENOENT (#49).
+mkdirSync(dirname(fileURLToPath(TEMP)), { recursive: true })
 
 const out = createWriteStream(TEMP)
 let count = 0
