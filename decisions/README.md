@@ -47,3 +47,4 @@ is the main thing a decision log is for.
 | [0020](0020-the-crew-block-carries-the-coordinate-it-was-looked-up-from.md) | The crew block carries the coordinate it was looked up from | Accepted |
 | [0021](0021-the-first-release-has-no-gallery-path.md) | The first release has no gallery path | Accepted |
 | [0022](0022-no-swift-linter-for-now.md) | No Swift linter for now, and what would change that | Accepted |
+| [0023](0023-accuracy-does-not-gate-and-should-be-stated.md) | The fix’s accuracy does not gate a report, and should be stated when loose | Accepted |
