@@ -44,4 +44,6 @@ is the main thing a decision log is for.
 | [0017](0017-the-live-send-is-an-operator-act-not-a-request.md) | The live send is an operator act, not something a request can cause | Accepted |
 | [0018](0018-the-saved-copy-carries-no-exif-gps.md) | The saved copy carries no EXIF GPS | Accepted |
 | [0019](0019-a-capability-ships-when-android-is-device-verified.md) | A capability ships when Android is device-verified and iOS is CI-green | Accepted |
+| [0020](0020-the-crew-block-carries-the-coordinate-it-was-looked-up-from.md) | The crew block carries the coordinate it was looked up from | Accepted |
+| [0021](0021-the-first-release-has-no-gallery-path.md) | The first release has no gallery path | Accepted |
 | [0022](0022-no-swift-linter-for-now.md) | No Swift linter for now, and what would change that | Accepted |

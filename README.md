@@ -178,6 +178,7 @@ minutes are free and there is no reason for a self-hosted runner.
 | `registry-refresh.yml` | The relay's copy of Staðfangaskrá is refreshed daily at 03:17 UTC, applied to D1, and verified live afterwards — the artefact, not the exit code — so an out-of-date registry fails red rather than refusing reports later. |
 | `relay-request-contract.yml` | That the Worker and both apps still agree with `data/relay-request.json`, plus the Swift and Kotlin unit tests. |
 | `platform-parity.yml` | That iOS and Android have not drifted apart without someone writing down why (`data/platform-parity.json`). |
+| `app-path-filters.yml` | That each app workflow's `paths:` filter still covers every data file that app bundles. A stale filter is the failure that matters: it does not break, the workflow just stops running on the change it exists to catch (#194). |
 | `android-ci.yml` | ktlint, Android lint, a debug build and the unit tests. |
 | `android-release.yml` | On an `android-v*` tag (or manual dispatch): builds the release APK and AAB, verifies the signature against a pinned upload-certificate fingerprint, and attaches both to a GitHub release. Skips with a visible warning until the signing secrets exist. |
 | `ios-ci.yml` | The SwiftUI shell builds for a simulator, unsigned. |

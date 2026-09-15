@@ -20,7 +20,7 @@
     {
       "name": "gallery-pick",
       "intent": "neither-yet",
-      "reason": "#28 — whether the first release has a gallery path at all is an open decision. AGENTS.md discusses the gallery at length, which reads as though one exists.",
+      "reason": "Decision 0021: the first release is camera-only, and the walking test is what decided it — a photograph already on the phone is not a person walking with a phone meeting the thing. It stays neither-yet because a picker on either platform turns this red, which is this check forcing the other platform's answer at the moment half of one ships. The unbuilt work a picker would need — byte-derived filename and MIME, a transcode with a chosen quality, EXIF read from the file bytes — stays conditional in #28.",
       "detect": {
         "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "PickVisualMedia|ACTION_GET_CONTENT|GetContent\\(" },
         "ios": { "paths": ["ios/Sources"], "pattern": "PhotosPicker|PHPickerViewController" }
