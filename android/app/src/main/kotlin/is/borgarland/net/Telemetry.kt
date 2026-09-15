@@ -140,6 +140,21 @@ class Telemetry {
     /** Flush when the buffer reaches this many events. */
     var flushThreshold: Int = 20
 
+    /**
+     * Called with each event's contract name as it is recorded (#164).
+     *
+     * This is where a test build's self-capture hangs, and it is a hook on the
+     * channel rather than a call beside every `track` because the moments worth
+     * photographing are exactly the events: photo captured, location resolved,
+     * category chosen, summary shown, relay answered. Reusing them means the
+     * image set and the timeline are the same walk by construction, instead of
+     * two lists that can disagree.
+     *
+     * The name is the contract's enum value, never anything a person typed, so
+     * an implementer cannot put a description or a coordinate into a filename.
+     */
+    var onTrack: ((String) -> Unit)? = null
+
     /** The relay refuses a batch longer than this (data/relay-events.json). */
     var maxBatch: Int = 100
 
@@ -181,6 +196,10 @@ class Telemetry {
             buffer.addLast(BufferedEvent(event, atMs))
             shouldFlush = buffer.size >= flushThreshold
         }
+        // Wrapped, and after the event is safely buffered: a capture must never
+        // be able to lose the event it was photographed beside, and nothing
+        // here is allowed to throw into the caller (#164).
+        runCatching { onTrack?.invoke(event.name) }
         if (shouldFlush) flush()
     }
 
