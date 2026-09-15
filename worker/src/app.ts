@@ -365,7 +365,16 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       category,
       latitude,
       longitude,
-      description: composeDescription(description, jurisdiction.nearest, maxDescriptionLength),
+      description: composeDescription(
+        description,
+        {
+          nearest: jurisdiction.nearest,
+          nearestKm: jurisdiction.km,
+          latitude,
+          longitude,
+        },
+        maxDescriptionLength,
+      ),
       email,
       photos,
     }

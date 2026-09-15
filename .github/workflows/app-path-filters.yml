@@ -1,0 +1,49 @@
+# A workflow's `paths:` filter is a claim about what its job can answer, and
+# nothing checked that claim until now (#194).
+#
+# ios-ci.yml and android-ci.yml both triggered on `data/**`, and only four files
+# under data/ reach an app. One commit that changed data/field-tests.json — 190
+# lines of a walk transcript — started ios-ci (two macOS jobs, ~13½ minutes),
+# android-ci, relay-request-contract, contract and platform-parity. The only
+# workflow that could say anything about that file was field-tests, which took
+# 16 seconds.
+#
+# Narrowing the filter is the easy half; the stale filter is the failure that
+# matters. When a fifth data file is bundled, an out-of-date filter does not
+# fail — the workflow just stops running on the change it exists to catch. This
+# compares the filter against the bundle sources instead of trusting either.
+name: app-path-filters
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ios-ci.yml'
+      - '.github/workflows/android-ci.yml'
+      - '.github/workflows/app-path-filters.yml'
+      - 'ios/project.yml'
+      - 'android/app/build.gradle.kts'
+      - 'scripts/check-app-path-filters.mjs'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  filters:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      # No dependencies: plain node, like every other script here.
+      - name: Hold each app's filter to that app's bundle
+        run: node scripts/check-app-path-filters.mjs
