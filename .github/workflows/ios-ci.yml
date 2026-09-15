@@ -9,11 +9,20 @@
 # macos-latest minutes are free because this repository is public.
 name: ios-ci
 
+# The filter names the four data files this app bundles rather than `data/**`
+# (#194): a change to data/field-tests.json is a walk transcript no app reads,
+# and under `data/**` it rebuilt this app and ran a simulator suite that could
+# say nothing about it. scripts/check-app-path-filters.mjs holds the list to
+# ios/project.yml, because a stale filter fails silently — the workflow simply
+# stops running on the change it exists to catch.
 on:
   pull_request:
     paths:
       - 'ios/**'
-      - 'data/**'
+      - 'data/reykjavik-form.json'
+      - 'data/relay-request.json'
+      - 'data/category-labels.json'
+      - 'data/relay-outcomes.json'
       - '.github/workflows/ios-ci.yml'
   workflow_dispatch:
 
