@@ -182,12 +182,15 @@ jobs:
       # Xcode's to choose and a workflow that guesses it fails the day Xcode
       # changes its mind. An empty match is an error rather than an empty run.
       #
-      # `-parallel-testing-enabled YES` with two workers runs the two classes
-      # side by side on cloned simulators inside this one job: no second runner,
-      # no second compile, and it makes the slower of the two the bound. #196
-      # measured what that costs — each worker pays the simulator warm-up — so
-      # the win is smaller than the raw test times suggest, and it is still a
-      # win: the classes are 1m36s and 27s.
+      # `-parallel-testing-enabled YES` with two workers was tried here and
+      # removed, measured rather than assumed: run 35004268148 failed after
+      # 966 s having run NO tests at all, twice reporting
+      # "IDELaunchReport: Finished with error: Failed to send signal 19 to
+      # process". The cloned simulators never launched the test host on this
+      # runner. That is the second experiment this workflow has rejected on
+      # measurement — #196's simulator pre-warm was the first — and both were
+      # rejected for the same shape of reason: the suite's fixed cost is not
+      # where it looks.
       - name: Run the UI tests without building them
         run: |
           set -o pipefail
@@ -200,8 +203,6 @@ jobs:
           xcodebuild test-without-building \
             -xctestrun "$xctestrun" \
             -destination "id=${{ steps.sim.outputs.udid }}" \
-            -parallel-testing-enabled YES \
-            -maximum-parallel-testing-workers 2 \
             -resultBundlePath build/uitest.xcresult \
             | xcpretty
 
