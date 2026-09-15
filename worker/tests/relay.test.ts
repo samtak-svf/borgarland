@@ -68,8 +68,15 @@ describe('dry run is the default', () => {
     expect(payload.fields.summary).toBe('Ábending -> Ruslafötur')
     expect(payload.fields.lat).toBe(REYKJAVIK_POINT.latitude)
     expect(payload.fields.lng).toBe(REYKJAVIK_POINT.longitude)
-    // The crew line: nearest registered address goes into the description.
-    expect(payload.fields.description).toContain('Næsta skráða heimilisfang: Laugavegur 1, 101 Reykjavík')
+    // The crew block: the nearest registered address AND the coordinate the
+    // lookup ran against, so neither can be read as the other (#202). The
+    // coordinate is compared against the city's own `lat`/`lng` fields rather
+    // than a literal, because that agreement is the property worth holding:
+    // the sentence and the fields are one number, formatted once.
+    expect(payload.fields.description).toContain(
+      'Næsta skráða heimilisfang í Staðfangaskrá: Laugavegur 1, 101 Reykjavík, ' +
+        `minna en 10 m frá hnitinu.\nHnit: ${payload.fields.lat}, ${payload.fields.lng}`,
+    )
     expect(payload.photos).toEqual([{ name: 'bin.jpg', mime: 'image/jpeg', size: JPEG_BYTES.length }])
 
     expect(() => cityFetch).not.toThrow()
@@ -173,7 +180,10 @@ describe('the row keeps what a diagnosis needs (#186)', () => {
     // The email is the one thing the relay keeps nowhere (0004, #163); a
     // stored payload must not become a second store of it.
     expect(stored.fields.email).toBeUndefined()
-    expect(stored.fields.description).toContain('Næsta skráða heimilisfang: Laugavegur 1, 101 Reykjavík')
+    expect(stored.fields.description).toContain(
+      'Næsta skráða heimilisfang í Staðfangaskrá: Laugavegur 1, 101 Reykjavík, minna en 10 m frá hnitinu.',
+    )
+    expect(stored.fields.description).toContain('Hnit: 64.14658919, -21.93279823')
     expect(stored.photos).toEqual([{ name: 'bin.jpg', mime: 'image/jpeg', size: JPEG_BYTES.length }])
     expect(stored.url).toContain('/senda-abendingu/')
   })
@@ -345,14 +355,33 @@ describe('description handling', () => {
     expect((await json(response)).error).toBe('invalid-description')
   })
 
-  it('drops the address line rather than overflow the limit', async () => {
+  it('drops the whole block rather than truncate the reporter', async () => {
     const { app } = createTestApp()
     const max = 'x'.repeat(2500)
     const response = await postReport(app, reportForm({ description: max }))
     const body = await json(response)
     const payload = body.cityPayload as { fields: { description: string } }
     expect(payload.fields.description).toBe(max)
+    // Both lines go or neither does. The coordinate is submitted in the city's
+    // own fields and the address line is not, so an appended half-block would
+    // put the coordinate in the text without the thing it is a distance from.
     expect(payload.fields.description).not.toContain('Næsta skráða heimilisfang')
+    expect(payload.fields.description).not.toContain('Hnit:')
+  })
+
+  it('says the distance in metres, and in kilometres past one', async () => {
+    const { app } = createTestApp({ uniqueIds: true })
+    // The body is JSON and this suite has no schema to parse it with, so the
+    // shape is asserted by the reads below rather than proved here.
+    const composed = async (latitude: string) => {
+      const body = await json(await postReport(app, reportForm({ latitude })))
+      const payload = body.cityPayload as { fields: { description: string } }
+      return payload.fields.description
+    }
+    // 40 m north of Laugavegur 1, and 1.2 km north of it, both rounded to the
+    // ten metres the fix behind them can actually support.
+    expect(await composed('64.14694919')).toContain(', 40 m frá hnitinu.')
+    expect(await composed('64.15738919')).toContain(', 1,2 km frá hnitinu.')
   })
 })
 
