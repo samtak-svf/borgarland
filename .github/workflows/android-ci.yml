@@ -34,6 +34,19 @@ on:
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
+# One run per workflow per branch: a superseded run's answer is about code the
+# branch no longer has, and while it finishes it holds the runner that the run
+# which matters is waiting for (#193). Measured on feat/report-remembers-its-walk
+# on 2026-08-31: seven pushes bought seven full runs and zero were cancelled.
+#
+# `github.workflow` is part of the group because every workflow here triggers on
+# the same push; keyed by ref alone, android-ci would cancel ios-ci. Cancelling
+# is confined to `pull_request`, so a push to `main` and a manual dispatch, both
+# deliberate, are never cut short by a later push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
