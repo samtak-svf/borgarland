@@ -149,6 +149,15 @@ jobs:
       # `set -o pipefail` for the same reason as the build job: piping into a
       # formatter otherwise hands the step the FORMATTER's exit code, and a
       # failed test run reports success.
+      #
+      # The per-test times come from xcpretty's own JUnit report rather than from
+      # a `tee` of the raw output, and that is not a preference. A `tee` in this
+      # pipeline fails the step while the suite is green: measured twice, runs
+      # 35001476829 and 35001496802, each ending "▸ Test Succeeded" followed by
+      # "##[error]Process completed with exit code 1". xcpretty stops reading once
+      # it has printed the summary, the middle stage takes SIGPIPE, and pipefail
+      # — which is doing its job — hands the step that status. The JUnit report
+      # is the same numbers in a form a summary can read.
       - name: Run the UI tests on the simulator
         run: |
           set -o pipefail
@@ -162,8 +171,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | tee build/uitest.log \
-            | xcpretty
+            | xcpretty --report junit --output build/uitest-junit.xml
 
       # The number beside the first test is not that test's (#196). Publishing
       # the table is the cheap half of that issue: a session looking for the
@@ -200,6 +208,7 @@ jobs:
       - name: Say which test paid the suite's fixed cost
         if: always()
         run: |
+          report=build/uitest-junit.xml
           {
             echo '## UI test times'
             echo ''
@@ -208,19 +217,27 @@ jobs:
             echo 'is start-up rather than the test (#196).'
             echo ''
             echo '```'
-            grep -aE "Test Case .*(passed|failed) \(" build/uitest.log 2>/dev/null \
-              | sed -E "s/.*Test Case '-\[[^.]*\.([A-Za-z]+) (test[A-Za-z]+)\]' (passed|failed) \(([0-9.]+) seconds\).*/\1.\2 \3 \4 s/" \
-              || true
+            grep -o '<testcase [^>]*>' "$report" 2>/dev/null | while read -r tag; do
+              # Each attribute is read on its own, and anchored on the space
+              # before it, rather than assuming the order xcpretty writes them
+              # in. `name="` is a substring of `classname="`, so an unanchored
+              # match reads the class into the test's name the moment the
+              # attribute order changes — which is what the first version of
+              # this did.
+              class=$(printf '%s' "$tag" | sed -E 's/.*[[:space:]]classname="([^"]*)".*/\1/')
+              name=$(printf '%s' "$tag" | sed -E 's/.*[[:space:]]name="([^"]*)".*/\1/')
+              time=$(printf '%s' "$tag" | sed -E 's/.*[[:space:]]time="([0-9.]*)".*/\1/')
+              printf '%s.%s %s s\n' "${class##*.}" "$name" "$time"
+            done
             echo '```'
-            count=$(grep -acE "Test Case .*(passed|failed) \(" build/uitest.log 2>/dev/null || true)
-            if [ "$count" = "0" ]; then
-              echo 'No per-test times were found in the log, so this table says nothing about this run.'
-            fi
           } >> "$GITHUB_STEP_SUMMARY"
           # Said out loud as well, because a summary that came out empty and a
           # summary that was never written look identical from here otherwise.
-          grep -acE "Test Case .*(passed|failed) \(" build/uitest.log 2>/dev/null \
-            | xargs -I{} echo "per-test rows published to the job summary: {}" || true
+          rows=$(grep -c -o '<testcase ' "$report" 2>/dev/null || true)
+          echo "per-test rows published to the job summary: ${rows:-0}"
+          if [ "${rows:-0}" = "0" ]; then
+            echo "::warning::$report has no test cases in it, so the summary above says nothing about this run"
+          fi
 
       # Failure screenshots are in here, which is the whole point on a machine
       # nobody can look at.
