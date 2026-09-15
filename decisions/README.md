@@ -48,3 +48,4 @@ is the main thing a decision log is for.
 | [0021](0021-the-first-release-has-no-gallery-path.md) | The first release has no gallery path | Accepted |
 | [0022](0022-no-swift-linter-for-now.md) | No Swift linter for now, and what would change that | Accepted |
 | [0023](0023-accuracy-does-not-gate-and-should-be-stated.md) | The fix’s accuracy does not gate a report, and should be stated when loose | Accepted |
+| [0024](0024-no-city-form-fallback.md) | The app does not offer the city’s own form when the relay is unreachable | Accepted |

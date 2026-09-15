@@ -236,6 +236,15 @@
       }
     },
     {
+      "name": "photo-upload-bound",
+      "intent": "android-only",
+      "reason": "#228 bounds the longest edge at 2048 px and re-encodes at q85 on Android, which is what turned a 4032x3024 capture of 1,068,239 bytes into a 30,549-byte upload on the A71 on 2026-09-15 (data/field-tests.json). iOS hands the capture's own bytes to the wire, so the city's upload limit — recorded as unknown in data/reykjavik-form.json, with 1.1 MB and 2.66 MB as the measured captures — is met for the first time by a photograph rather than bounded by us. Declared one-sided here rather than left undeclared, which is what it was until now: check-parity was green without this row because nothing was looking. #230 carries the iOS half and the decision it needs either way.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "PhotoUpload" },
+        "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "MAX_EDGE|photo-upload-bound" }
+      }
+    },
+    {
       "name": "map-correction",
       "intent": "neither-yet",
       "reason": "#2 — AGENTS.md describes the map in the present tense as a correction surface. It does not exist on either platform.",

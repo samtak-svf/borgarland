@@ -7,6 +7,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import `is`.borgarland.photo.PhotoUpload
 import `is`.borgarland.net.RelayClient
 import `is`.borgarland.net.Telemetry
 import `is`.borgarland.net.TelemetryEvent
@@ -235,6 +236,24 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     private var photoCapturedAtMs: Long? = null
 
     /**
+     * The bytes the CAMERA produced, kept beside the upload copy because two
+     * callers want different things and since #2 they are no longer the same
+     * bytes.
+     *
+     * `state.photo.bytes` is what goes on the wire: bounded in size and
+     * re-encoded, which is what strips its metadata. The gallery is the other
+     * record, and decision 0018 is that the saved copy is byte-faithful to
+     * what the camera produced. So the save that runs at capture time reads
+     * the capture, and the DEFERRED save — the one the camera screen calls
+     * after WRITE_EXTERNAL_STORAGE is granted on API 26–28, by which point the
+     * capture is long gone — reads this. Reading `state.photo.bytes` there
+     * would put a rescaled, re-encoded copy in the gallery and make 0018 false
+     * on exactly one API range: the one the emulator and the A71 cannot
+     * exercise, because both are API 29+ and neither asks for the permission.
+     */
+    private var capturedBytes: ByteArray? = null
+
+    /**
      * The id of the report on screen, generated once and kept until the walk
      * starts over (#88). Pressing send a second time therefore sends the SAME
      * id, and the relay answers with the row it already has instead of storing
@@ -424,7 +443,35 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onPhotoCaptured(bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) {
-        val photo = Photo(bytes = bytes, name = "mynd.jpg", mime = "image/jpeg", rotationDegrees = rotationDegrees)
+        // The coordinate comes out of the ORIGINAL bytes, before anything
+        // rewrites them (#2). Two reasons, and both are load-bearing: the EXIF
+        // GPS block is what a picked photo is located by, and `PhotoUpload`
+        // re-encodes through the platform's JPEG encoder, which writes none of
+        // that metadata. Read it after the rescale and there is nothing there.
+        val gps = ExifGps.read(bytes)
+
+        // What goes on the wire: bounded in size, and carrying none of the
+        // photograph's metadata beyond the pixels. The gallery keeps the
+        // original — decision 0018 — so this is a second copy, not a
+        // replacement.
+        //
+        // Wrapped, not merely null-checked: `prepare` answers null for bytes it
+        // cannot decode, and this also catches anything it throws. A report
+        // with a photograph the city might refuse for its size is a far better
+        // outcome than a report with no photograph, and without this a bug in
+        // the rescale would take the capture with it — on the one path where
+        // the photograph cannot be taken again.
+        val uploaded = runCatching {
+            PhotoUpload.prepare(bytes, rotationDegrees)
+        }.getOrNull() ?: bytes
+        val photo = Photo(
+            bytes = uploaded,
+            name = "mynd.jpg",
+            mime = "image/jpeg",
+            // Already upright: the rescale applied the rotation, and the
+            // orientation field it used to travel in has been re-encoded away.
+            rotationDegrees = 0,
+        )
         _state.update {
             it.copy(
                 photo = photo,
@@ -437,12 +484,17 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 locationError = null,
             )
         }
+        // The gallery's copy, from the bytes the camera produced.
+        capturedBytes = bytes
         savePhotoToGalleryIfEnabled(bytes)
         photoCapturedAtMs = System.currentTimeMillis()
         Telemetry.shared.track(
-            TelemetryEvent.PhotoCaptured(captureElapsedMs, bytes.size, Telemetry.normalizedMime(photo.mime)),
+            // The size reported is the one that will be uploaded, not the one
+            // the camera produced: AGENTS.md cross-checks this event against
+            // the row's photo_bytes, and those are the same number only if this
+            // is the uploaded size.
+            TelemetryEvent.PhotoCaptured(captureElapsedMs, uploaded.size, Telemetry.normalizedMime(photo.mime)),
         )
-        val gps = ExifGps.read(bytes)
         if (gps != null && isUsableCoordinate(gps.lat, gps.lng)) {
             // EXIF carries no radius; 0 is the "no radius reported" value.
             Telemetry.shared.track(
@@ -491,9 +543,18 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         GallerySaver.save(app, bytes, System.currentTimeMillis())
     }
 
-    /** Re-save the photo the phone is holding, after the permission arrived. */
+    /**
+     * Re-save the photo the phone is holding, after the permission arrived.
+     *
+     * The CAPTURE's bytes, not `state.photo.bytes`: since #2 the latter is the
+     * rescaled upload copy, and decision 0018 is that the gallery keeps what
+     * the camera produced. This path only runs on API 26–28, where the save at
+     * capture time was skipped for want of WRITE_EXTERNAL_STORAGE — so it is
+     * the only save those devices ever get, and the wrong bytes here are the
+     * only copy the person would have.
+     */
     fun saveCurrentPhotoToGallery() {
-        _state.value.photo?.let { savePhotoToGalleryIfEnabled(it.bytes) }
+        capturedBytes?.let { savePhotoToGalleryIfEnabled(it) }
     }
 
     /**
@@ -589,6 +650,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     fun retakePhoto() {
         photoCapturedAtMs = null
+        capturedBytes = null
         currentReportId = null
         _state.update {
             it.copy(
@@ -678,6 +740,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     fun startOver() {
         Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
         photoCapturedAtMs = null
+        capturedBytes = null
         // A new report is a new id. Inheriting the last one would make the
         // relay answer this report with the previous report's row (#88).
         currentReportId = null
