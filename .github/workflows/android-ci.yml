@@ -19,20 +19,45 @@
 # ubuntu-latest minutes are free because this repository is public.
 name: android-ci
 
+# The filter names the four data files this app bundles rather than `data/**`
+# (#194): data/field-tests.json is a walk transcript no app reads, and under
+# `data/**` a change confined to it rebuilt this app. The list is held to
+# android/app/build.gradle.kts's copy tasks by
+# scripts/check-app-path-filters.mjs, because a stale filter fails silently —
+# the workflow simply stops running on the change it exists to catch.
 on:
   pull_request:
     paths:
       - 'android/**'
-      - 'data/**'
+      - 'data/reykjavik-form.json'
+      - 'data/relay-request.json'
+      - 'data/category-labels.json'
+      - 'data/relay-outcomes.json'
       - '.github/workflows/android-ci.yml'
   push:
     branches:
       - main
     paths:
       - 'android/**'
-      - 'data/**'
+      - 'data/reykjavik-form.json'
+      - 'data/relay-request.json'
+      - 'data/category-labels.json'
+      - 'data/relay-outcomes.json'
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
+
+# One run per workflow per branch: a superseded run's answer is about code the
+# branch no longer has, and while it finishes it holds the runner that the run
+# which matters is waiting for (#193). Measured on feat/report-remembers-its-walk
+# on 2026-08-31: seven pushes bought seven full runs and zero were cancelled.
+#
+# `github.workflow` is part of the group because every workflow here triggers on
+# the same push; keyed by ref alone, android-ci would cancel ios-ci. Cancelling
+# is confined to `pull_request`, so a push to `main` and a manual dispatch, both
+# deliberate, are never cut short by a later push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

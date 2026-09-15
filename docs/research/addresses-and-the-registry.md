@@ -50,6 +50,11 @@ belongs in the description we send:
 
 > Full ruslafata við göngustíginn. Næsta skráða hús: Laugarásvegur 3.
 
+(That is the sketch from the conversation that started the project, not the
+shipped wording. What the relay actually appends also says the address is a
+lookup, how far away it was, and the coordinate it was looked up from:
+[decision 0020](../decisions/0020-the-crew-block-carries-the-coordinate-it-was-looked-up-from.md).)
+
 **It fits on the phone.** Reykjavík's postcodes hold 23,057 addresses out of the
 registry's 139,347 rows. Reduced to street, number, letter, postcode and a
 coordinate at six decimals, that is 1.07 MB of compact JSON and **0.25 MB

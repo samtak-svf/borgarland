@@ -137,18 +137,74 @@ export function readDescription(value: unknown, maxLength: number): string {
   return value
 }
 
+/** Where the report is, as far as the appended block needs to know (#202). */
+export interface ReportLocation {
+  /** The nearest registered address, or null when the register knows of none. */
+  nearest: AddressPoint | null
+  /** How far that address is from the coordinate, in kilometres. */
+  nearestKm: number
+  latitude: number
+  longitude: number
+}
+
 // AGENTS.md: "Put the nearest registered address in the description we send,
 // so the crew can find a bin that has no address of its own." The relay adds
-// the line because it already reverse-looked the coordinate for jurisdiction;
-// the app should not add its own copy. If the line would push the description
+// the block because it already reverse-looked the coordinate for jurisdiction;
+// the app should not add its own copy. If the block would push the description
 // past the city's limit, it is dropped rather than the user's text truncated.
+//
+// The block says THREE things, and the first two are #202. An address alone was
+// read as the location: "Næsta skráða heimilisfang: Gullengi 37" reached a crew
+// who had no way to know it is a lookup result and not where the reporter
+// stood — the exact reading the coordinate-first design exists to avoid, and
+// the city's answer to report 110759 came back naming a neighbouring house
+// rather than the place. So the line now names the register it came from and
+// how far away it was, and the coordinate the lookup was run against is
+// printed under it.
+//
+// The coordinate is `String(latitude)`, the same expression the adapter uses
+// for the city's own `lat`/`lng` fields, so the text and the fields cannot
+// disagree — they are one number formatted one way. Period decimal separator,
+// latitude first, comma and space between: a coordinate is a number a device
+// reads, and the Icelandic decimal comma is not what any map takes. Deliberately
+// not a `geo:` URI or a maps link, because the city stores this text and quotes
+// it back in its closing email (data/reykjavik-form.json
+// `fields.email.answerEmail`), and a link in a stored message that may not be
+// clickable is worse than a pair of numbers the reader can type.
 export function composeDescription(
   description: string,
-  nearest: AddressPoint | null,
+  location: ReportLocation,
   maxLength: number,
 ): string {
-  if (nearest === null) return description
-  const line = `\n\nNæsta skráða heimilisfang: ${describeAddress(nearest)}`
-  if (description.length + line.length > maxLength) return description
-  return description + line
+  const lines: string[] = []
+  if (location.nearest !== null) {
+    lines.push(
+      `Næsta skráða heimilisfang í Staðfangaskrá: ${describeAddress(location.nearest)}, ` +
+        `${describeDistance(location.nearestKm)} frá hnitinu.`,
+    )
+  }
+  lines.push(`Hnit: ${location.latitude}, ${location.longitude}`)
+  const block = `\n\n${lines.join('\n')}`
+  if (description.length + block.length > maxLength) return description
+  return description + block
+}
+
+/**
+ * The distance to the nearest registered address, in the unit a reader can act
+ * on (#202): metres below a kilometre, kilometres above it, and Icelandic
+ * decimal commas, because this sentence is addressed to a person.
+ *
+ * Ten-metre rounding below a kilometre, and a floor that says so rather than
+ * rounding to nothing, because the fix it was measured from carries metres of
+ * its own — the photograph measured in docs/research/photos-exif-and-formats.md
+ * declared an accuracy of 3.54 m. A figure finer than its input would claim an
+ * accuracy nobody has.
+ */
+function describeDistance(km: number): string {
+  const metres = Math.round(km * 1000)
+  if (metres < 1000) {
+    if (metres < 10) return 'minna en 10 m'
+    return `${Math.round(metres / 10) * 10} m`
+  }
+  return `${(Math.round(km * 10) / 10).toFixed(1).replace('.', ',')} km`
 }
