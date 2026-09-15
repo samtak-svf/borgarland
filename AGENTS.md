@@ -315,8 +315,9 @@ wording suggests — while the principle the quote states, that an address is th
 wrong primitive, is exactly what held up. Three things must stay distinct. The GPS
 point comes from the device at capture time, and it is the only positional thing
 submitted to the city. The nearest registered address is a reverse lookup in the
-relay, appended to the description as a line for the crew — it is not the
-location, and a report is never snapped to it (see
+relay, appended to the description as a block for the crew — with the coordinate
+it was looked up from and how far away it was, so neither can be read as the
+other. It is not the location, and a report is never snapped to it (see
 [Addresses](#addresses-use-the-registry-not-the-city)). EXIF is relevant only to
 a photo picked from the gallery, a path that does not exist yet (`gallery-pick`
 is `neither-yet` in `data/platform-parity.json`). A map would be a correction
@@ -356,7 +357,11 @@ directory resolves nowhere else.
 
 That also gives us reverse geocoding, which reykjavik.is does not have anywhere.
 Put the nearest registered address in the description we send, so the crew can
-find a bin that has no address of its own.
+find a bin that has no address of its own. The block also names the register it
+came from, says how far away it was, and prints the coordinate the lookup ran
+against, because a crew member who receives an address on its own has no way to
+tell it is a lookup and not where the reporter stood
+([decision 0020](decisions/0020-the-crew-block-carries-the-coordinate-it-was-looked-up-from.md), #202).
 
 The Reykjavík subset is 23,057 addresses and 0.25 MB gzipped, small enough to
 ship on a phone and answer with no signal. It does not ship on the phone.
