@@ -9,13 +9,35 @@
 # macos-latest minutes are free because this repository is public.
 name: ios-ci
 
+# The filter names the four data files this app bundles rather than `data/**`
+# (#194): a change to data/field-tests.json is a walk transcript no app reads,
+# and under `data/**` it rebuilt this app and ran a simulator suite that could
+# say nothing about it. scripts/check-app-path-filters.mjs holds the list to
+# ios/project.yml, because a stale filter fails silently — the workflow simply
+# stops running on the change it exists to catch.
 on:
   pull_request:
     paths:
       - 'ios/**'
-      - 'data/**'
+      - 'data/reykjavik-form.json'
+      - 'data/relay-request.json'
+      - 'data/category-labels.json'
+      - 'data/relay-outcomes.json'
       - '.github/workflows/ios-ci.yml'
   workflow_dispatch:
+
+# One run per workflow per branch: a superseded run's answer is about code the
+# branch no longer has, and while it finishes it holds the runner that the run
+# which matters is waiting for (#193). Measured on feat/report-remembers-its-walk
+# on 2026-08-31: seven pushes bought seven full runs and zero were cancelled.
+#
+# `github.workflow` is part of the group because every workflow here triggers on
+# the same push; keyed by ref alone, android-ci would cancel ios-ci. Cancelling
+# is confined to `pull_request`, so a push to `main` and a manual dispatch, both
+# deliberate, are never cut short by a later push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -149,6 +171,15 @@ jobs:
       # `set -o pipefail` for the same reason as the build job: piping into a
       # formatter otherwise hands the step the FORMATTER's exit code, and a
       # failed test run reports success.
+      #
+      # The per-test times come from xcpretty's own JUnit report rather than from
+      # a `tee` of the raw output, and that is not a preference. A `tee` in this
+      # pipeline fails the step while the suite is green: measured twice, runs
+      # 35001476829 and 35001496802, each ending "▸ Test Succeeded" followed by
+      # "##[error]Process completed with exit code 1". xcpretty stops reading once
+      # it has printed the summary, the middle stage takes SIGPIPE, and pipefail
+      # — which is doing its job — hands the step that status. The JUnit report
+      # is the same numbers in a form a summary can read.
       - name: Run the UI tests on the simulator
         run: |
           set -o pipefail
@@ -162,7 +193,73 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
+            | xcpretty --report junit --output build/uitest-junit.xml
+
+      # The number beside the first test is not that test's (#196). Publishing
+      # the table is the cheap half of that issue: a session looking for the
+      # slow part of this job finds the first test, spends an afternoon on it
+      # and changes nothing, because what it is paying is the app's install, its
+      # first launch and XCUITest's own warm-up.
+      #
+      # Measured on 2026-09-15. Baseline, run 34997276456: the first test 43.794 s
+      # against 18.356 s for the test of the same name in the other class, and
+      # 133 s of tests inside a 537 s step — so ~404 s of that step is compile,
+      # boot, install and launch.
+      #
+      # PRE-WARMING THE SIMULATOR WAS TRIED AND REJECTED. Both variants measured:
+      #   - a headless `xcrun simctl boot`, run 34999085246: the device boots with
+      #     no Simulator process, ConnectHardwareKeyboard above is never applied,
+      #     the software keyboard never appears — the thing these tests are ABOUT
+      #     — and the run failed in 5m53s with "Failed to synthesize event:
+      #     Neither element nor any descendant has keyboard focus". Not one test
+      #     reported a time.
+      #   - `open -a Simulator` then wait, run 35000052756: green, and every
+      #     number below got honest (first test 43.794 -> 25.749 s, its twin
+      #     18.356 -> 13.997 s, tests 133 -> 82 s). It also cost the job 66 s —
+      #     581 -> 647 s — because xcodebuild pays its own setup anyway, so the
+      #     boot is paid twice and only the per-test numbers improve.
+      #
+      # 66 seconds of the slowest gate on every PR is too much to pay for a
+      # better label, so the boot is left where it is and the table below is
+      # what makes the cost legible. What remains on the first test is the app's
+      # first launch and XCUITest's warm-up, which no step can move; the compile
+      # is #195's.
+      #
+      # `if: always()`, because a failed suite is when somebody is most likely
+      # to be staring at these numbers and least likely to have them.
+      - name: Say which test paid the suite's fixed cost
+        if: always()
+        run: |
+          report=build/uitest-junit.xml
+          {
+            echo '## UI test times'
+            echo ''
+            echo 'The first test to run pays this suite'\''s fixed cost — the app install,'
+            echo 'its first launch, and XCUITest'\''s own warm-up — so the first line below'
+            echo 'is start-up rather than the test (#196).'
+            echo ''
+            echo '```'
+            grep -o '<testcase [^>]*>' "$report" 2>/dev/null | while read -r tag; do
+              # Each attribute is read on its own, and anchored on the space
+              # before it, rather than assuming the order xcpretty writes them
+              # in. `name="` is a substring of `classname="`, so an unanchored
+              # match reads the class into the test's name the moment the
+              # attribute order changes — which is what the first version of
+              # this did.
+              class=$(printf '%s' "$tag" | sed -E 's/.*[[:space:]]classname="([^"]*)".*/\1/')
+              name=$(printf '%s' "$tag" | sed -E 's/.*[[:space:]]name="([^"]*)".*/\1/')
+              time=$(printf '%s' "$tag" | sed -E 's/.*[[:space:]]time="([0-9.]*)".*/\1/')
+              printf '%s.%s %s s\n' "${class##*.}" "$name" "$time"
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # Said out loud as well, because a summary that came out empty and a
+          # summary that was never written look identical from here otherwise.
+          rows=$(grep -c -o '<testcase ' "$report" 2>/dev/null || true)
+          echo "per-test rows published to the job summary: ${rows:-0}"
+          if [ "${rows:-0}" = "0" ]; then
+            echo "::warning::$report has no test cases in it, so the summary above says nothing about this run"
+          fi
 
       # Failure screenshots are in here, which is the whole point on a machine
       # nobody can look at.

@@ -27,6 +27,8 @@
 //   reports       an id in the format D1 stores, a category the facts file
 //                 names, and a photo count that is not negative
 //   timelineHole  its own arithmetic, and a gap that is really in the timeline
+//   cityAnswer    that the elapsed time is answeredAt minus the row's sentAt,
+//                 and that a request number is the city's own shape or absent
 //   findings      an issue number
 //
 // What is NOT checked, and cannot be from here: whether any of it is TRUE.
@@ -211,6 +213,7 @@ for (const test of record.tests) {
   checkDelivery(id, test)
   checkReports(id, test)
   checkTimelineHole(id, test)
+  checkCityAnswer(id, test)
 }
 
 /**
@@ -329,6 +332,58 @@ function checkTimelineHole(id, test) {
   const inside = atMs.filter((value) => value > from && value < to)
   if (inside.length > 0) {
     fail(id, `timelineHole claims nothing between ${from} and ${to}, and the timeline has ${inside.length} event(s) there`)
+  }
+}
+
+/**
+ * The city's half of a report, when it has one (#177). Every value here is
+ * transcribed from a mail file the repository does not hold — private/ is
+ * gitignored — so nothing can check whether these are the mail's words. What
+ * CAN be checked is the arithmetic, and that is the check: elapsedHours has to
+ * be answeredAt minus the row's own sentAt, because a response time is the one
+ * number in this section anybody will quote.
+ */
+function checkCityAnswer(id, test) {
+  const answer = test.cityAnswer
+  if (answer === undefined) return
+  if (answer === null || typeof answer !== 'object' || Array.isArray(answer)) {
+    fail(id, 'cityAnswer must be an object')
+    return
+  }
+
+  for (const key of ['department', 'subject', 'from', 'closedAs', 'source', 'note']) {
+    if (typeof answer[key] !== 'string' || answer[key].trim() === '') {
+      fail(id, `cityAnswer.${key} must be a non-empty sentence; got ${JSON.stringify(answer[key])}`)
+    }
+  }
+
+  // A request number is optional — the city's answer to 110759 carries none at
+  // all, which is itself the finding — but an invented one is not.
+  if (answer.requestNumber !== null && !/^RVK-\d+$/.test(answer.requestNumber ?? '')) {
+    fail(id, `cityAnswer.requestNumber is ${JSON.stringify(answer.requestNumber)}, and the city's own form is RVK-<digits> or nothing`)
+  }
+
+  const answeredAt = Date.parse(answer.answeredAt)
+  if (typeof answer.answeredAt !== 'string' || Number.isNaN(answeredAt)) {
+    fail(id, `cityAnswer.answeredAt is not a timestamp: ${JSON.stringify(answer.answeredAt)}`)
+    return
+  }
+  if (typeof answer.elapsedHours !== 'number' || !Number.isFinite(answer.elapsedHours) || answer.elapsedHours <= 0) {
+    fail(id, `cityAnswer.elapsedHours is ${JSON.stringify(answer.elapsedHours)}`)
+    return
+  }
+
+  const sentAt = Date.parse(test.report?.sentAt)
+  if (Number.isNaN(sentAt)) {
+    // Not skippable: without the row's own send time this section is a number
+    // nothing can check, and passing it silently is the failure mode this
+    // script exists to prevent.
+    fail(id, 'cityAnswer has no report.sentAt to measure against, so its elapsed time cannot be checked')
+    return
+  }
+  const expected = (answeredAt - sentAt) / 3_600_000
+  if (Math.abs(answer.elapsedHours - expected) > 0.05) {
+    fail(id, `cityAnswer.elapsedHours is ${answer.elapsedHours}, and ${answer.answeredAt} minus sentAt ${test.report.sentAt} is ${expected.toFixed(2)}`)
   }
 }
 

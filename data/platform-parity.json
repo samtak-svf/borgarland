@@ -20,7 +20,7 @@
     {
       "name": "gallery-pick",
       "intent": "neither-yet",
-      "reason": "#28 — whether the first release has a gallery path at all is an open decision. AGENTS.md discusses the gallery at length, which reads as though one exists.",
+      "reason": "Decision 0021: the first release is camera-only, and the walking test is what decided it — a photograph already on the phone is not a person walking with a phone meeting the thing. It stays neither-yet because a picker on either platform turns this red, which is this check forcing the other platform's answer at the moment half of one ships. The unbuilt work a picker would need — byte-derived filename and MIME, a transcode with a chosen quality, EXIF read from the file bytes — stays conditional in #28.",
       "detect": {
         "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "PickVisualMedia|ACTION_GET_CONTENT|GetContent\\(" },
         "ios": { "paths": ["ios/Sources"], "pattern": "PhotosPicker|PHPickerViewController" }
@@ -137,7 +137,7 @@
     {
       "name": "lint-in-ci",
       "intent": "android-only",
-      "reason": "#2 named ktlint and Android lint as an acceptance criterion; both now run in .github/workflows/android-ci.yml. iOS has no SwiftLint and no decision has been taken on adding one, so this is one-sided on purpose rather than by neglect. Tracked in #206; it said #58 until 2026-08-31, and #58 closing left the gap deliberate but untracked, which is the one thing this file is meant to make impossible. The parity check caught this the moment ktlint landed, which is the tool doing its job on its first real change.",
+      "reason": "Decision 0022: Android runs ktlint and Android lint (#2's acceptance criterion, in .github/workflows/android-ci.yml); iOS runs neither, deliberately, and the record gives the measurement it was decided on — 0 try!, 0 fatalError, 1 as!, and 22 of 45 files carrying a line over swift-format's 100-column default, which is the first thing a formatter would reformat. Revisit when a defect appears that a linter would have caught, or when the first run is measured and turns out small. The reason named #58 until 2026-08-31 and #206 until this decision, and #58 closing left the gap deliberate but untracked — the one thing this file exists to make impossible.",
       "detect": {
         "android": { "paths": ["android", ".github/workflows"], "pattern": "ktlint|detekt" },
         "ios": { "paths": ["ios", ".github/workflows"], "pattern": "swiftlint|SwiftLint" }
@@ -224,6 +224,15 @@
       "detect": {
         "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "object ContactDetails" },
         "ios": { "paths": ["ios/BorgarlandCore/Sources"], "pattern": "struct ContactDetails" }
+      }
+    },
+    {
+      "name": "walk-captures",
+      "intent": "android-only",
+      "reason": "Decision 0019: Android is device-verified before iOS is green, so one platform may lead. #164 built the capturer there and #225 carries the iOS half, including the `#if DEBUG` gate and the debug-only-source-file option this one did not need. The gate is the point rather than the plumbing: a screenshot is a privacy surface, so the single wiring site passes BuildConfig.DEBUG and WalkCaptureTest checks it over the source, because no unit test can observe a release build's flag.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "WalkCapture" },
+        "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "WalkCapture|walk-captures" }
       }
     },
     {

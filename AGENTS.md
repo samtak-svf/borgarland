@@ -315,13 +315,15 @@ wording suggests — while the principle the quote states, that an address is th
 wrong primitive, is exactly what held up. Three things must stay distinct. The GPS
 point comes from the device at capture time, and it is the only positional thing
 submitted to the city. The nearest registered address is a reverse lookup in the
-relay, appended to the description as a line for the crew — it is not the
-location, and a report is never snapped to it (see
+relay, appended to the description as a block for the crew — with the coordinate
+it was looked up from and how far away it was, so neither can be read as the
+other. It is not the location, and a report is never snapped to it (see
 [Addresses](#addresses-use-the-registry-not-the-city)). EXIF is relevant only to
-a photo picked from the gallery, a path that does not exist yet (`gallery-pick`
-is `neither-yet` in `data/platform-parity.json`). A map would be a correction
-rather than an entry point. (No map exists in either app yet; the sentence
-describes the intended shape, not a built surface.)
+a photo picked from the gallery, and there is no such path: decision 0021 keeps
+the first release camera-only (`gallery-pick` stays `neither-yet` in
+`data/platform-parity.json`). A map would be a correction rather than an entry
+point. (No map exists in either app yet; the sentence describes the intended
+shape, not a built surface.)
 
 **Which source comes first depends on where the photo came from, and testing on
 a real phone reversed the order we assumed.** A photo the app captures itself
@@ -339,8 +341,11 @@ platforms. A picked HEIC has to be converted, and conversion runs *larger* than
 the original (4.14 MB became 4.78 MB at quality 90); `ExifGps.read` understands
 only JPEG and reads a HEIC as having no location at all; and on iOS a picked
 photo read as a `UIImage` arrives with its EXIF gone, so read the file bytes
-instead. Measured against a real original, along with what else the GPS block
-carries and the reverse lookup running end to end:
+instead. **All of this is reasoning about a path nobody has built**: decision
+0021 keeps the first release camera-only, so it is the measured starting point
+if a picker is ever added rather than a description of one. Measured against a
+real original, along with what else the GPS block carries and the reverse lookup
+running end to end:
 [docs/research/photos-exif-and-formats.md](docs/research/photos-exif-and-formats.md).
 
 ## Addresses: use the registry, not the city
@@ -356,7 +361,11 @@ directory resolves nowhere else.
 
 That also gives us reverse geocoding, which reykjavik.is does not have anywhere.
 Put the nearest registered address in the description we send, so the crew can
-find a bin that has no address of its own.
+find a bin that has no address of its own. The block also names the register it
+came from, says how far away it was, and prints the coordinate the lookup ran
+against, because a crew member who receives an address on its own has no way to
+tell it is a lookup and not where the reporter stood
+([decision 0020](decisions/0020-the-crew-block-carries-the-coordinate-it-was-looked-up-from.md), #202).
 
 The Reykjavík subset is 23,057 addresses and 0.25 MB gzipped, small enough to
 ship on a phone and answer with no signal. It does not ship on the phone.
@@ -481,6 +490,25 @@ thread and are not durable there. Dedupe by SHA-256 against
 `private/screenshots` — an end-to-end walk usually re-sends earlier shots, and
 four of seven were already held the first time this was done.
 
+**On Android a test-mode walk now photographs itself (#164), which is the half
+of this step that used to depend on somebody remembering.** The app writes one
+numbered image per step into `files/walk-captures/<session id>/` — photo
+captured, location resolved, category chosen, screen left, relay answered — in a
+debug build only, from its own window, with no permission and no screenshot
+button pressed. Pull them with
+
+```
+adb exec-out run-as is.borgarland cat files/walk-captures/<session>/<n>-<step>.jpg \
+  > private/screenshots/<date>-walk-<n>-<step>.jpg
+```
+
+and index every one of them, because an unindexed image is worse than a missing
+one: it looks like evidence and says nothing. The directory is named after the
+telemetry session, so the images and the events join without hand-transcription;
+that numbering also makes a *missing* image visible, which is how the first walk
+showed that its very first event had no window to copy yet. **iOS does not have
+this**, and #225 is why: decision 0019 lets one platform lead.
+
 **3. Cross-check the two records against each other, and say which pairs you
 checked.** The photo's byte count on the summary screen against
 `photo-captured`, the description's character count against
@@ -535,7 +563,12 @@ from a screenshot, and log the contact with a date.
   citizen report (ábending)". App UI strings are Icelandic.
 - CI runs on GitHub-hosted runners. This repo is public, so `ubuntu-latest` and
   `macos-latest` minutes are free; there is no reason for a self-hosted runner
-  here.
+  here. Kept hosted-only on purpose (recorded 2026-09-10, claude-config#195):
+  every job is short CI or a daily schedule and public-repo hosted minutes do
+  not run out, so a self-hosted lane would add an always-on box as a failure
+  mode without removing one. The same reason is written in each scheduled
+  workflow's header; a new scheduled workflow inherits it and need not
+  relitigate the lane.
 
 ## Cloudflare
 
