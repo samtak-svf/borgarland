@@ -481,6 +481,25 @@ thread and are not durable there. Dedupe by SHA-256 against
 `private/screenshots` — an end-to-end walk usually re-sends earlier shots, and
 four of seven were already held the first time this was done.
 
+**On Android a test-mode walk now photographs itself (#164), which is the half
+of this step that used to depend on somebody remembering.** The app writes one
+numbered image per step into `files/walk-captures/<session id>/` — photo
+captured, location resolved, category chosen, screen left, relay answered — in a
+debug build only, from its own window, with no permission and no screenshot
+button pressed. Pull them with
+
+```
+adb exec-out run-as is.borgarland cat files/walk-captures/<session>/<n>-<step>.jpg \
+  > private/screenshots/<date>-walk-<n>-<step>.jpg
+```
+
+and index every one of them, because an unindexed image is worse than a missing
+one: it looks like evidence and says nothing. The directory is named after the
+telemetry session, so the images and the events join without hand-transcription;
+that numbering also makes a *missing* image visible, which is how the first walk
+showed that its very first event had no window to copy yet. **iOS does not have
+this**, and #225 is why: decision 0019 lets one platform lead.
+
 **3. Cross-check the two records against each other, and say which pairs you
 checked.** The photo's byte count on the summary screen against
 `photo-captured`, the description's character count against

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import `is`.borgarland.ui.BorgarlandPocTheme
+import `is`.borgarland.capture.WalkCapture
 import `is`.borgarland.ui.CameraScreen
 import `is`.borgarland.ui.FollowUpDialog
 import `is`.borgarland.ui.OnboardingScreen
@@ -158,6 +159,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        // #164: in a test build the walk photographs itself, one image per
+        // telemetry moment, into filesDir/walk-captures/<session id>/.
+        //
+        // This is the only place a capture is wired, and the flag it is gated
+        // on is BuildConfig.DEBUG — WalkCaptureTest asserts both of those over
+        // this source rather than trusting the comment.
+        //
+        // After setContent, because the window has to exist before anything can
+        // be copied out of it, and app-opened was already emitted from
+        // Application.onCreate where no window existed yet. So a walk's images
+        // begin at the first event after the UI is up, and the numbering makes
+        // that visible rather than silent.
+        Telemetry.shared.onTrack =
+            WalkCapture.fromActivity(this, enabled = BuildConfig.DEBUG)::record
     }
 
     override fun onStop() {
