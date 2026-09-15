@@ -236,6 +236,24 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     private var photoCapturedAtMs: Long? = null
 
     /**
+     * The bytes the CAMERA produced, kept beside the upload copy because two
+     * callers want different things and since #2 they are no longer the same
+     * bytes.
+     *
+     * `state.photo.bytes` is what goes on the wire: bounded in size and
+     * re-encoded, which is what strips its metadata. The gallery is the other
+     * record, and decision 0018 is that the saved copy is byte-faithful to
+     * what the camera produced. So the save that runs at capture time reads
+     * the capture, and the DEFERRED save — the one the camera screen calls
+     * after WRITE_EXTERNAL_STORAGE is granted on API 26–28, by which point the
+     * capture is long gone — reads this. Reading `state.photo.bytes` there
+     * would put a rescaled, re-encoded copy in the gallery and make 0018 false
+     * on exactly one API range: the one the emulator and the A71 cannot
+     * exercise, because both are API 29+ and neither asks for the permission.
+     */
+    private var capturedBytes: ByteArray? = null
+
+    /**
      * The id of the report on screen, generated once and kept until the walk
      * starts over (#88). Pressing send a second time therefore sends the SAME
      * id, and the relay answers with the row it already has instead of storing
@@ -467,6 +485,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         // The gallery's copy, from the bytes the camera produced.
+        capturedBytes = bytes
         savePhotoToGalleryIfEnabled(bytes)
         photoCapturedAtMs = System.currentTimeMillis()
         Telemetry.shared.track(
@@ -524,9 +543,18 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         GallerySaver.save(app, bytes, System.currentTimeMillis())
     }
 
-    /** Re-save the photo the phone is holding, after the permission arrived. */
+    /**
+     * Re-save the photo the phone is holding, after the permission arrived.
+     *
+     * The CAPTURE's bytes, not `state.photo.bytes`: since #2 the latter is the
+     * rescaled upload copy, and decision 0018 is that the gallery keeps what
+     * the camera produced. This path only runs on API 26–28, where the save at
+     * capture time was skipped for want of WRITE_EXTERNAL_STORAGE — so it is
+     * the only save those devices ever get, and the wrong bytes here are the
+     * only copy the person would have.
+     */
     fun saveCurrentPhotoToGallery() {
-        _state.value.photo?.let { savePhotoToGalleryIfEnabled(it.bytes) }
+        capturedBytes?.let { savePhotoToGalleryIfEnabled(it) }
     }
 
     /**
@@ -622,6 +650,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     fun retakePhoto() {
         photoCapturedAtMs = null
+        capturedBytes = null
         currentReportId = null
         _state.update {
             it.copy(
@@ -711,6 +740,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     fun startOver() {
         Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
         photoCapturedAtMs = null
+        capturedBytes = null
         // A new report is a new id. Inheriting the last one would make the
         // relay answer this report with the previous report's row (#88).
         currentReportId = null
