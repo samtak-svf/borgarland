@@ -115,7 +115,7 @@
         "languages": [
           "is"
         ],
-        "timing": "the answer to 110759 (filed 2026-08-30 01:18:03Z, a Sunday) is stamped 2026-08-31 10:58:00Z — 33.6 h later, the next working day, matching statedServiceTarget. The confirmation had promised exactly this cadence; this is the first measurement of it.",
+        "timing": "the answer to 110759 (filed 2026-08-30 01:18:03Z, a Sunday) is stamped 2026-08-31 10:58:00Z — 33 h 40 min later (33.6656 h), the next working day, matching statedServiceTarget. The confirmation had promised exactly this cadence; this is the first measurement of it.",
         "echoesOurDescription": "the quoted ábending carries the composed description including 'Næsta skráða heimilisfang: Gullengi 39, 112 Reykjavík' — proof the crew-facing address line (AGENTS.md) reaches the city as designed, and that the city stores the composed text rather than a stripped one.",
         "outcomeSignal": "the answer for 110759 was a CLOSURE notice with a human hand-off message from Garðyrkja Reykjavíkurborgar ('Kem þessu á viðeigandi starfsmann og fæ viðkomandi til að meta fýsileika þess að planta þarna í') — the ticket was closed as handed-off for assessment, not as fixed. The distinction is the whole of #57's measurement question, and here is the city's own first answer to it."
       }

@@ -3424,7 +3424,7 @@
         "note": "The FIRST field test in this file with dryRun false. Every other entry says the city could not have been reached; this one says it was."
       },
       "session": "106716c5c70b54d97420e7ffce5a6b1d",
-      "method": "Timeline, delivery boundaries and report row transcribed from the deployed D1 by query on 2026-08-30, unedited. The city's reference number is read from its confirmation email, kept out of this repository in private/city-correspondence/ because it is addressed mail; only the facts it establishes are here and in data/reykjavik-form.json.",
+      "method": "Timeline, delivery boundaries and report row transcribed from the deployed D1 by query on 2026-08-30, unedited. The city's reference number is read from its confirmation email, kept out of this repository in private/city-correspondence/ because it is addressed mail; only the facts it establishes are here and in data/reykjavik-form.json. cityAnswer was added on 2026-09-15 and is read from the answer mail in that same directory, which is not in this repository either.",
       "timeline": [
         {
           "atMs": 5556968,
@@ -3660,6 +3660,18 @@
         "rejection": null,
         "outcome": null
       },
+      "cityAnswer": {
+        "answeredAt": "2026-08-31T10:58:00Z",
+        "elapsedHours": 33.7,
+        "department": "Garðyrkja Reykjavíkurborgar",
+        "requestNumber": null,
+        "subject": "Svar vegna ábendingar",
+        "from": "no-reply@reykjavik.is",
+        "closedAs": "a closure notice that hands the report to a person, in the department's own words: 'Kem þessu á viðeigandi starfsmann og fæ viðkomandi til að meta fýsileika þess að planta þarna í' — an assessment, not a fix",
+        "echoesTheComposedDescription": "the quoted ábending carries the reporter's own words AND 'Næsta skráða heimilisfang: Gullengi 39, 112 Reykjavík', so the city stores what the relay composed and sends it back to the reporter",
+        "source": "private/city-correspondence/2026-08-31-answer-110759.eml, kept out of this repository because it is addressed mail (decision 0015). This section and data/reykjavik-form.json fields.email.answerEmail are the only places its facts are written down.",
+        "note": "33 h 40 min after sentAt — 33.6656 h to the second, measured from the mail's own Date header against the row's sentAt with both in UTC, not from a memory of when it seemed to arrive. The same mail is the first answer that carries NO request number: decision 0015 records 110474's reply as carrying RVK-58576, and this one carries nothing, so the ábending quoted back is the only way to tell which report an answer is about. One sample, so this is a shape and not a rate."
+      },
       "confirmed": [
         "The address does what #163 assumed. The previous entry's notFoundHere said the confirmation email 'is settled only by the one deliberate real submission' — this is that submission, and the mail arrived at the address the app sent, from no-reply@reykjavik.is, carrying the reference number in three languages.",
         "The adapter's category mapping round-trips. The app sent the slug gras-og-grodur; the city's confirmation subject names 'Gras og gróður', which is the display name worker/src/adapters/reykjavik.ts derives from the facts file. Nothing else in this project could have checked that.",
@@ -3681,7 +3693,7 @@
         },
         {
           "issue": 57,
-          "what": "There is now, for the first time, a real report whose follow-through can be measured: reference 110759, with the city promising an answer or a hand-off 'within the next weekday'. The outcome endpoint still has no caller, so nothing will record what actually happens unless somebody does it by hand."
+          "what": "There is now, for the first time, a real report whose follow-through can be measured: reference 110759, with the city promising an answer or a hand-off 'within the next weekday'. [Revised 2026-09-15: both halves of the sentence that followed stopped being true. The city's answer arrived and is in cityAnswer above, somebody did keep the record by hand (#190), and the endpoint has two callers — Android since #120, iOS since #191. What survives is the part that matters: the city closed the report by handing it to a person, which is neither of the two outcomes the app's own follow-up offers the reporter, so a person answering 'not fixed' about a report the city considers closed is measuring something real.]"
         },
         {
           "issue": 164,
@@ -3690,7 +3702,7 @@
       ],
       "notFoundHere": [
         "Anything about a SECOND real submission. The gate is spent, and the 409 live-send-already-used path has still never been answered to a real client — only to tests.",
-        "The city's ANSWER, as opposed to its receipt. The confirmation is automatic and arrived in one second; whether a crew reads it, acts on it, or finds the grass strip from a 100 m coordinate is unmeasured and is #57.",
+        "Anything about what came OF the city's answer. The answer itself is recorded in cityAnswer above (2026-08-31), and it says only that the report was closed and handed to a member of staff to assess. Whether anyone assessed it, whether anything was planted there, and whether a crew found the grass strip from a 100 m coordinate are all unmeasured — an answer is a statement about the city's process, not about the place.",
         "Whether the coordinate was good enough. It was accepted, which says only that nothing checks it. Nobody has stood where a crew would stand.",
         "The upload ceiling. See the #61 finding: this is a floor.",
         "Anything about iOS. This is Android, and the iOS half has been compiled by CI and has never filed a real report.",
