@@ -3898,6 +3898,206 @@
         "Anything about the DEPLOYED relay accepting session: the walk hit the local worker. The deployed relay gets session only when #191 deploys, and no build that sends the field may reach TestFlight or Play before that.",
         "The description typed on the walk: the adb text input escaped spaces as literal '%' characters ('Fieldtest walk through%the%app%gallery ave'), so the description is not what a human would have typed. It did not matter to this test, which was about the save and the join, but the field test record should not read as a measure of the description flow."
       ]
+    },
+    {
+      "id": "2026-09-15-android-the-photograph-bounded-on-a-real-capture",
+      "date": "2026-09-15",
+      "platform": "android",
+      "what": "The #2 bound and EXIF strip, walked end to end on the connected A71 — the first capture on a device whose camera exceeds the bound, which is what #228 could not get from the emulator (640x480) or from a fresh AVD (camera wedges after the first launch). Capture, category, description, send against a LOCAL relay (wrangler dev on 127.0.0.1:8787 via adb reverse, local D1 and local R2, LIVE_SEND off). The camera produced 4032x3024 / 1,068,239 bytes; what went on the wire was 1536x2048 / 30,549 bytes with no EXIF block at all. The walk also reproduced the deploy-before-ship rule in miniature: the first send answered 500 because this machine's local D1 was two migrations behind the working tree, and the retry after `wrangler d1 migrations apply --local` answered 201 with the same report id.",
+      "device": {
+        "model": "Samsung SM-A715F (Galaxy A71), 1080x2400, Android 13 (API 33)",
+        "note": "Read off the phone over adb (getprop ro.product.model, ro.build.version.sdk), NOT from the telemetry, which names no device. API 33 is the load-bearing part of this entry: the API 26-28 gallery path is not exercised here and could not be."
+      },
+      "build": {
+        "version": "0.1.1 (1)",
+        "note": "The debug APK built from feat/2-the-photo-goes-up-smaller at 9ae7f3e (the #228 change plus the deferred-gallery-save fix committed during this walk). Events report '0.1.1 (1)'; the row's appVersion reads '0.1.1 (Android)' because the Worker's User-Agent parse captures the platform tag the app appends."
+      },
+      "relay": {
+        "note": "LOCAL worker (npx wrangler dev --port 8787) on 127.0.0.1:8787, reached by the debug build's RELAY_BASE_URL through adb reverse: local D1, local R2 bucket borgarland-photos, LIVE_SEND off. Migrations 0005 and 0006 were applied to the local D1 during the walk (see `what`). The DEPLOYED relay was never contacted, so nothing of this walk exists anywhere but this machine.",
+        "registryRows": 139360,
+        "dryRun": true,
+        "workerVersion": "working tree (not deployed)"
+      },
+      "session": "f864cbee3e13fad098c19262a1374db4",
+      "method": "Transcribed by query from the local D1 (client_events, reports) on 2026-09-15, unedited. The original capture was pulled off the phone from Pictures/Borgarland/ and measured with PIL; the uploaded copy was read out of the local R2 blob directory and measured the same way. The walk was driven over adb (input tap, input text, uiautomator dump for element positions); no screenshot button was pressed, and the images the app wrote itself are in files/walk-captures/<session>/ on the device.",
+      "timeline": [
+        {
+          "atMs": 2,
+          "name": "app-opened",
+          "fields": {}
+        },
+        {
+          "atMs": 581,
+          "name": "camera-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 93196,
+          "name": "photo-captured",
+          "fields": {
+            "elapsedMs": 718,
+            "bytes": 30549,
+            "mime": "image/jpeg"
+          }
+        },
+        {
+          "atMs": 93225,
+          "name": "location-failed",
+          "fields": {
+            "elapsedMs": 30,
+            "reason": "no-exif"
+          }
+        },
+        {
+          "atMs": 93278,
+          "name": "location-permission",
+          "fields": {
+            "granted": true
+          }
+        },
+        {
+          "atMs": 93290,
+          "name": "location-resolved",
+          "fields": {
+            "elapsedMs": 95,
+            "source": "device",
+            "accuracyM": 100
+          }
+        },
+        {
+          "atMs": 93336,
+          "name": "screen-left",
+          "fields": {
+            "screen": "camera",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 121316,
+          "name": "category-chosen",
+          "fields": {
+            "elapsedMs": 28120,
+            "slug": "ruslafotur"
+          }
+        },
+        {
+          "atMs": 142699,
+          "name": "description-length",
+          "fields": {
+            "length": 46
+          }
+        },
+        {
+          "atMs": 160485,
+          "name": "screen-left",
+          "fields": {
+            "screen": "details",
+            "completed": true
+          }
+        },
+        {
+          "atMs": 176704,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 176734,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 30,
+            "status": 500,
+            "ok": false
+          }
+        },
+        {
+          "atMs": 253731,
+          "name": "send-started",
+          "fields": {}
+        },
+        {
+          "atMs": 254154,
+          "name": "send-result",
+          "fields": {
+            "elapsedMs": 422,
+            "status": 201,
+            "ok": true
+          }
+        }
+      ],
+      "delivery": [
+        {
+          "receivedAt": "2026-09-15T23:30:53.935Z",
+          "events": 1,
+          "firstAtMs": 2,
+          "lastAtMs": 2
+        },
+        {
+          "receivedAt": "2026-09-15T23:33:50.539Z",
+          "events": 11,
+          "firstAtMs": 581,
+          "lastAtMs": 176734
+        },
+        {
+          "receivedAt": "2026-09-15T23:35:07.992Z",
+          "events": 2,
+          "firstAtMs": 253731,
+          "lastAtMs": 254154
+        }
+      ],
+      "report": {
+        "id": "acc2051ef837906c775c49cd028a41a5",
+        "categorySlug": "ruslafotur",
+        "latitude": 64.1485714,
+        "longitude": -21.7809046,
+        "nearestAddress": "Gullengi 39, 112 Reykjavík",
+        "photoCount": 1,
+        "photoBytes": 30549,
+        "dryRun": true,
+        "session": "f864cbee3e13fad098c19262a1374db4",
+        "appVersion": "0.1.1 (Android)",
+        "jurisdictionKm": 0,
+        "photoMimes": [
+          {
+            "declared": "image/jpeg",
+            "actual": "image/jpeg"
+          }
+        ],
+        "createdAt": "2026-09-15T23:35:07.888Z"
+      },
+      "confirmed": [
+        "The bound works on a capture that exceeds it, which is what no emulator could show: the camera produced a 4032x3024 file of 1,068,239 bytes (the gallery's copy, pulled off the phone) and the photograph that went on the wire was 30,549 bytes — 2.9% of the capture (#2).",
+        "The whole EXIF block is gone, not just its GPS half. The capture carries Make samsung, Model SM-A715F, Software A715FXXSBDXB1, DateTime 2026:09:15 23:32:26, Orientation 6 and an empty GPS IFD pointer (read with PIL on the pulled file); the relay's stored copy answers `getexif()` with nothing at all and has no GPS IFD. That is the metadata #2 exists to strip, and until this walk it had been argued from the code.",
+        "The rotation is applied rather than lost: 4032x3024 with Orientation 6 became an upright 1536x2048, because Bitmap.compress writes no orientation tag and the rescale is the only chance to apply one.",
+        "Three records agree on one number, which is the cross-check AGENTS.md asks for: the summary screen ('image/jpeg, 30549 bytes'), the event photo-captured.bytes (30549) and the stored row's photo_bytes (30549).",
+        "The coordinate came from the device, and the app said so: location-failed {no-exif} then location-resolved {source: device, accuracyM: 100}, with the Details screen reading 'Staðsetning: Tækjastaðsetning (GPS)'. On this path the camera's JPEG carries a GPS IFD pointer with no entries in it, so the EXIF route answers nothing on a real phone exactly as docs/research/photos-exif-and-formats.md says.",
+        "The gallery holds the CAPTURE, not the upload: Pictures/Borgarland/borgarland-1789515146549.jpg is 4032x3024, 1,068,239 bytes. The API 29+ path saves at capture time from the camera's own bytes, which is decision 0018 working on the one platform it can be walked on.",
+        "The walk-capture mechanism (#164) works on a handset as well as an AVD: the app wrote seven numbered images into files/walk-captures/f864cbee.../ by itself, read with `run-as` and no screenshot button. Two pairs are byte-identical (02/03 and 06/07) because two steps happened inside one frame — the same property the AVD walk showed.",
+        "The 14-day follow-up came due and was shown (#57): the app opened on 'Var þetta lagað?' naming Ruslafötur and 'fyrir um tveimur vikum' — the report filed on 2026-08-30. Dismissed with the back gesture, which is the third way out the dialog's own comment names; the answer path was not exercised.",
+        "Deploy-before-ship, reproduced locally: the first send answered 500 with `D1_ERROR: no such column: app_version` because this machine's local D1 held migrations only through 0004 while the working tree selected the column. `wrangler d1 migrations apply borgarland-relay --local` applied 0005 and 0006 without disturbing the 139,360 registry rows, and the retry answered 201 with the same report id."
+      ],
+      "findings": [
+        {
+          "issue": 2,
+          "what": "The bound and the strip are verified on a device with a camera that exceeds the bound, which closes the verification gap #228 declared. The measurement is one number on each side rather than a claim: 1,068,239 bytes in, 30,549 bytes out, no EXIF on the wire. What it does NOT verify is the 30 KB figure as characteristic — one capture, at 23:32, of a dim indoor scene compresses far below a daylight photograph, and no entry here should be read as a typical size."
+        },
+        {
+          "issue": 164,
+          "what": "The self-capturing walk holds on a handset: seven images numbered in step order, written by the app, joined to fourteen events by the session id. The duplicate pairs are the same lesson the AVD walk produced — a step list, not every event, or the images say nothing."
+        },
+        {
+          "issue": 186,
+          "what": "The join is a query on a handset too: seven images, fourteen events and one report row all carry f864cbee3e13fad098c19262a1374db4, and the row's photo_bytes is the same number as the summary screen the walker read."
+        }
+      ],
+      "notFoundHere": [
+        "The API 26-28 deferred gallery save, which this PR also fixes: the A71 is API 33, no permission is asked, and the fix is held by GallerySaveBytesTest's source guard alone. Nothing on this device can enter that path.",
+        "Whether 30,549 bytes is what this app usually produces. One capture of one dim scene at night produced that number; a daylight photograph of the same size in pixels is far larger, and the entry does not claim otherwise.",
+        "The city's maximum upload size. The city was not contacted: the relay ran dry and the row is dry_run.",
+        "The iOS half of anything here. The bound and the strip are Android-only, and data/platform-parity.json does not yet name the capability, so iOS uploading its capture untouched is a divergence this walk found and did not decide.",
+        "The follow-up's answer path (#57): the dialog was dismissed, not answered, so nothing here says what a yes or a no records."
+      ]
     }
   ]
 }
