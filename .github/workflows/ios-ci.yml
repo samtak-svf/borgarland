@@ -146,6 +146,22 @@ jobs:
       - name: Make the software keyboard the one that appears
         run: defaults write com.apple.iphonesimulator ConnectHardwareKeyboard -bool false || true
 
+      # The suite's fixed start-up cost used to be charged to whichever test ran
+      # first, and it looked like that test was slow (#196). Measured in run
+      # 34997276456, job 104476567651: the two classes carry the same test with
+      # the same shape, and the first one to run reported 43.794 s against its
+      # twin's 18.356 s. The gap is not the test — it is the runtime booting a
+      # simulator that has never run, and it would move to whichever test ran
+      # first instead. Booting it here, in a step with a name, is what makes the
+      # number beside a test a fact about the test.
+      #
+      # `-b` boots the device if it is not already up, so this is one command
+      # rather than a boot plus a status check. It does NOT install the app: the
+      # install and the app's own first launch still belong to the first test,
+      # and #195 is where that cost is addressed.
+      - name: Boot the simulator, so the first test does not pay for it
+        run: xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+
       # `set -o pipefail` for the same reason as the build job: piping into a
       # formatter otherwise hands the step the FORMATTER's exit code, and a
       # failed test run reports success.
