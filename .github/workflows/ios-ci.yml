@@ -155,12 +155,23 @@ jobs:
       # first instead. Booting it here, in a step with a name, is what makes the
       # number beside a test a fact about the test.
       #
+      # `open -a Simulator` rather than a headless `simctl boot`, and the first
+      # attempt is why: booting the device on its own left it with no Simulator
+      # process, and the software keyboard these tests are ABOUT is the thing
+      # that needs one. It failed in 5m53s with "Failed to synthesize event:
+      # Neither element nor any descendant has keyboard focus" and not one test
+      # reported a time. Simulator.app is what reads ConnectHardwareKeyboard
+      # above, so it is opened here and the boot is waited out after it.
+      #
       # `-b` boots the device if it is not already up, so this is one command
       # rather than a boot plus a status check. It does NOT install the app: the
       # install and the app's own first launch still belong to the first test,
       # and #195 is where that cost is addressed.
       - name: Boot the simulator, so the first test does not pay for it
-        run: xcrun simctl bootstatus "${{ steps.sim.outputs.udid }}" -b
+        run: |
+          udid="${{ steps.sim.outputs.udid }}"
+          open -a Simulator --args -CurrentDeviceUDID "$udid"
+          xcrun simctl bootstatus "$udid" -b
 
       # `set -o pipefail` for the same reason as the build job: piping into a
       # formatter otherwise hands the step the FORMATTER's exit code, and a
