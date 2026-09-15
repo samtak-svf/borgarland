@@ -16,8 +16,14 @@ structurally cannot. Neither is true, and the rest of this file was corrected in
 
 ```bash
 ./gradlew assembleDebug          # APK at app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest      # 16 unit tests, all green
+./gradlew testDebugUnitTest      # the unit suite; its own summary prints the count
 ```
+
+That line said "16 unit tests, all green" until 2026-09-15, when the suite was
+measured at **120** test cases (`grep -rc '@Test' android/app/src/test/kotlin/is/borgarland/`,
+120 on 2026-09-15). A count in a recipe ages the moment somebody adds a test and
+nothing fails when it does, so the line names the command that produces the
+number instead of carrying a copy of it.
 
 Verified green from a clean tree on this machine: JDK 25, Gradle 9.4.1 wrapper,
 AGP 9.2.0, Kotlin 2.3.21, Compose BOM 2026.04.01, compileSdk 36, minSdk 26. All
@@ -165,9 +171,15 @@ the manifest.
   provider and takes whichever answers first.
 - **No jurisdiction check** (SVFNR) **in the app**. AGENTS.md puts it in the
   relay, and the relay implements it (`worker/src/jurisdiction.ts`); the app has
-  only the map-bounds warning. Nothing in this POC reaches a deployed relay, so
-  in practice no coordinate has been jurisdiction-checked outside the worker's
-  own tests.
+  only the map-bounds warning. The sentence that used to close this bullet —
+  "Nothing in this POC reaches a deployed relay, so in practice no coordinate
+  has been jurisdiction-checked outside the worker's own tests" — stopped being
+  true on 2026-08-23, when the relay was deployed, and every walk since has gone
+  through it: the stored rows carry `jurisdiction_km` — 0.01 km for the row the
+  2026-08-31 walk left, 0 for the 2026-09-15 one — and the real submission of
+  2026-08-30 went through the same accept path, which refuses a coordinate
+  outside Reykjavíkurborg, so a stored row is one that passed. The app still
+  does not do the check; it is the relay that has been doing it all along.
 
 ## Places the repo did not say, so the POC guessed
 
