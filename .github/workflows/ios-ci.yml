@@ -217,6 +217,10 @@ jobs:
               echo 'No per-test times were found in the log, so this table says nothing about this run.'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+          # Said out loud as well, because a summary that came out empty and a
+          # summary that was never written look identical from here otherwise.
+          grep -acE "Test Case .*(passed|failed) \(" build/uitest.log 2>/dev/null \
+            | xargs -I{} echo "per-test rows published to the job summary: {}" || true
 
       # Failure screenshots are in here, which is the whole point on a machine
       # nobody can look at.
