@@ -19,18 +19,30 @@
 # ubuntu-latest minutes are free because this repository is public.
 name: android-ci
 
+# The filter names the four data files this app bundles rather than `data/**`
+# (#194): data/field-tests.json is a walk transcript no app reads, and under
+# `data/**` a change confined to it rebuilt this app. The list is held to
+# android/app/build.gradle.kts's copy tasks by
+# scripts/check-app-path-filters.mjs, because a stale filter fails silently —
+# the workflow simply stops running on the change it exists to catch.
 on:
   pull_request:
     paths:
       - 'android/**'
-      - 'data/**'
+      - 'data/reykjavik-form.json'
+      - 'data/relay-request.json'
+      - 'data/category-labels.json'
+      - 'data/relay-outcomes.json'
       - '.github/workflows/android-ci.yml'
   push:
     branches:
       - main
     paths:
       - 'android/**'
-      - 'data/**'
+      - 'data/reykjavik-form.json'
+      - 'data/relay-request.json'
+      - 'data/category-labels.json'
+      - 'data/relay-outcomes.json'
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
