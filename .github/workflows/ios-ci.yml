@@ -55,10 +55,15 @@ jobs:
       # The destination is generic rather than a named simulator: runner images
       # rename and retire devices, and a build that needs 'iPhone 16' to exist
       # fails months later for a reason that has nothing to do with the code.
+      #
+      # `build-for-testing` rather than `build` (#195): the same compile, plus
+      # the test bundle and the .xctestrun that names it. The artefact below is
+      # what lets the uitest job stop compiling — it was doing the identical
+      # build a second time, ~156 s of its 537 s step.
       - name: Build for the simulator, unsigned
         run: |
           set -o pipefail
-          xcodebuild build \
+          xcodebuild build-for-testing \
             -project Borgarland.xcodeproj \
             -scheme Borgarland \
             -configuration Debug \
@@ -82,11 +87,19 @@ jobs:
             cmp "$app/$f" "../data/$f" || { echo "::error::$f differs from data/$f"; exit 1; }
           done
 
-      - name: Keep the built app
+      # The whole products directory rather than the .app alone: test-without-
+      # building needs the UI test bundle and the .xctestrun beside it, and the
+      # .xctestrun names its neighbours relatively (__TESTROOT__), so the layout
+      # has to survive the round trip. The least common ancestor of these two
+      # paths is Build/Products, which is what the upload keeps and what the
+      # download puts back in uitest.
+      - name: Keep the build, so uitest does not repeat it
         uses: actions/upload-artifact@v7
         with:
-          name: Borgarland-simulator
-          path: ios/build/Build/Products/Debug-iphonesimulator/Borgarland.app
+          name: Borgarland-build-for-testing
+          path: |
+            ios/build/Build/Products/Debug-iphonesimulator
+            ios/build/Build/Products/*.xctestrun
           retention-days: 14
 
   # The only check in this repository that can see a layout.
@@ -103,9 +116,18 @@ jobs:
   # data/field-tests.json exists because the two find different things (#125).
   #
   # A separate job rather than another step in `build`, so a UI failure and a
-  # compile failure are never diagnosed as each other.
+  # compile failure are never diagnosed as each other — and `needs: build` makes
+  # that structural rather than a matter of which job failed first: if the
+  # compile fails, this job does not start at all.
+  #
+  # It does not compile anything (#195). The identical target was being built
+  # twice, once here and once next door, for ~156 s of a 537 s step; what it runs
+  # now is `test-without-building` against the .xctestrun the build job uploads.
+  # It no longer needs XcodeGen either, and that is the test of whether this
+  # worked: nothing here generates a project, so nothing here can compile.
   uitest:
     runs-on: macos-latest
+    needs: build
     defaults:
       run:
         working-directory: ios
@@ -113,11 +135,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Generate the Xcode project
-        run: xcodegen generate
+      # The path is workspace-relative, NOT relative to the `working-directory`
+      # the run steps below use: download-artifact ignores that default, so
+      # `build/Build/Products` here would land outside ios/ and the test step
+      # would find nothing. The artefact's own root is Build/Products, so this
+      # puts the products and the .xctestrun back in the layout the build job
+      # produced them in.
+      - name: Take what build produced, rather than compiling it again
+        uses: actions/download-artifact@v8
+        with:
+          name: Borgarland-build-for-testing
+          path: ios/build/Build/Products
 
       # The destination is RESOLVED, not named. Runner images rename and retire
       # devices, and a workflow that needs 'iPhone 16' to exist fails months
@@ -149,19 +177,32 @@ jobs:
       # `set -o pipefail` for the same reason as the build job: piping into a
       # formatter otherwise hands the step the FORMATTER's exit code, and a
       # failed test run reports success.
-      - name: Run the UI tests on the simulator
+      #
+      # The .xctestrun is found by glob rather than named, because its name is
+      # Xcode's to choose and a workflow that guesses it fails the day Xcode
+      # changes its mind. An empty match is an error rather than an empty run.
+      #
+      # `-parallel-testing-enabled YES` with two workers runs the two classes
+      # side by side on cloned simulators inside this one job: no second runner,
+      # no second compile, and it makes the slower of the two the bound. #196
+      # measured what that costs — each worker pays the simulator warm-up — so
+      # the win is smaller than the raw test times suggest, and it is still a
+      # win: the classes are 1m36s and 27s.
+      - name: Run the UI tests without building them
         run: |
           set -o pipefail
-          xcodebuild test \
-            -project Borgarland.xcodeproj \
-            -scheme Borgarland \
-            -configuration Debug \
+          xctestrun=$(ls build/Build/Products/*.xctestrun | head -1)
+          if [ -z "$xctestrun" ]; then
+            echo "::error::no .xctestrun in the build artefact, so there is nothing to run"
+            exit 1
+          fi
+          echo "Running $xctestrun"
+          xcodebuild test-without-building \
+            -xctestrun "$xctestrun" \
             -destination "id=${{ steps.sim.outputs.udid }}" \
-            -derivedDataPath build \
+            -parallel-testing-enabled YES \
+            -maximum-parallel-testing-workers 2 \
             -resultBundlePath build/uitest.xcresult \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
             | xcpretty
 
       # Failure screenshots are in here, which is the whole point on a machine
