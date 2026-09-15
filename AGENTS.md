@@ -319,10 +319,11 @@ relay, appended to the description as a block for the crew — with the coordina
 it was looked up from and how far away it was, so neither can be read as the
 other. It is not the location, and a report is never snapped to it (see
 [Addresses](#addresses-use-the-registry-not-the-city)). EXIF is relevant only to
-a photo picked from the gallery, a path that does not exist yet (`gallery-pick`
-is `neither-yet` in `data/platform-parity.json`). A map would be a correction
-rather than an entry point. (No map exists in either app yet; the sentence
-describes the intended shape, not a built surface.)
+a photo picked from the gallery, and there is no such path: decision 0021 keeps
+the first release camera-only (`gallery-pick` stays `neither-yet` in
+`data/platform-parity.json`). A map would be a correction rather than an entry
+point. (No map exists in either app yet; the sentence describes the intended
+shape, not a built surface.)
 
 **Which source comes first depends on where the photo came from, and testing on
 a real phone reversed the order we assumed.** A photo the app captures itself
@@ -340,8 +341,11 @@ platforms. A picked HEIC has to be converted, and conversion runs *larger* than
 the original (4.14 MB became 4.78 MB at quality 90); `ExifGps.read` understands
 only JPEG and reads a HEIC as having no location at all; and on iOS a picked
 photo read as a `UIImage` arrives with its EXIF gone, so read the file bytes
-instead. Measured against a real original, along with what else the GPS block
-carries and the reverse lookup running end to end:
+instead. **All of this is reasoning about a path nobody has built**: decision
+0021 keeps the first release camera-only, so it is the measured starting point
+if a picker is ever added rather than a description of one. Measured against a
+real original, along with what else the GPS block carries and the reverse lookup
+running end to end:
 [docs/research/photos-exif-and-formats.md](docs/research/photos-exif-and-formats.md).
 
 ## Addresses: use the registry, not the city
