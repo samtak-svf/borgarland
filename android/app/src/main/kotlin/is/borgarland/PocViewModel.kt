@@ -7,6 +7,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import `is`.borgarland.photo.PhotoUpload
 import `is`.borgarland.net.RelayClient
 import `is`.borgarland.net.Telemetry
 import `is`.borgarland.net.TelemetryEvent
@@ -424,7 +425,35 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onPhotoCaptured(bytes: ByteArray, rotationDegrees: Int, captureElapsedMs: Int) {
-        val photo = Photo(bytes = bytes, name = "mynd.jpg", mime = "image/jpeg", rotationDegrees = rotationDegrees)
+        // The coordinate comes out of the ORIGINAL bytes, before anything
+        // rewrites them (#2). Two reasons, and both are load-bearing: the EXIF
+        // GPS block is what a picked photo is located by, and `PhotoUpload`
+        // re-encodes through the platform's JPEG encoder, which writes none of
+        // that metadata. Read it after the rescale and there is nothing there.
+        val gps = ExifGps.read(bytes)
+
+        // What goes on the wire: bounded in size, and carrying none of the
+        // photograph's metadata beyond the pixels. The gallery keeps the
+        // original — decision 0018 — so this is a second copy, not a
+        // replacement.
+        //
+        // Wrapped, not merely null-checked: `prepare` answers null for bytes it
+        // cannot decode, and this also catches anything it throws. A report
+        // with a photograph the city might refuse for its size is a far better
+        // outcome than a report with no photograph, and without this a bug in
+        // the rescale would take the capture with it — on the one path where
+        // the photograph cannot be taken again.
+        val uploaded = runCatching {
+            PhotoUpload.prepare(bytes, rotationDegrees)
+        }.getOrNull() ?: bytes
+        val photo = Photo(
+            bytes = uploaded,
+            name = "mynd.jpg",
+            mime = "image/jpeg",
+            // Already upright: the rescale applied the rotation, and the
+            // orientation field it used to travel in has been re-encoded away.
+            rotationDegrees = 0,
+        )
         _state.update {
             it.copy(
                 photo = photo,
@@ -437,12 +466,16 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 locationError = null,
             )
         }
+        // The gallery's copy, from the bytes the camera produced.
         savePhotoToGalleryIfEnabled(bytes)
         photoCapturedAtMs = System.currentTimeMillis()
         Telemetry.shared.track(
-            TelemetryEvent.PhotoCaptured(captureElapsedMs, bytes.size, Telemetry.normalizedMime(photo.mime)),
+            // The size reported is the one that will be uploaded, not the one
+            // the camera produced: AGENTS.md cross-checks this event against
+            // the row's photo_bytes, and those are the same number only if this
+            // is the uploaded size.
+            TelemetryEvent.PhotoCaptured(captureElapsedMs, uploaded.size, Telemetry.normalizedMime(photo.mime)),
         )
-        val gps = ExifGps.read(bytes)
         if (gps != null && isUsableCoordinate(gps.lat, gps.lng)) {
             // EXIF carries no radius; 0 is the "no radius reported" value.
             Telemetry.shared.track(
