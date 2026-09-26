@@ -1,0 +1,21 @@
+-- The fix's accuracy, on the row it belongs to (#223, decision 0023).
+--
+-- Both apps have measured this since they had a device fix — Location.getAccuracy()
+-- on Android, CLLocation.horizontalAccuracy on iOS — and sent it to our own event
+-- stream, where it stopped. The consequence was on the crew's screen: since #202
+-- the description states the distance to the nearest registered address rounded to
+-- ten metres, and nothing beside it said the fix behind the coordinate could be a
+-- hundred metres out. Report 110759 was filed with accuracy 100.
+--
+-- Nullable, for two reasons that are both real rather than defensive:
+--
+--   * every row written before this migration, including the one real submission;
+--   * every report from a build older than the relay that first accepts the field,
+--     because the part is optional in data/relay-request.json — the same rule the
+--     session column follows, and the reason the relay is deployed before any build
+--     that sends it.
+--
+-- Whole metres, non-negative. Nothing gates on it (decision 0023, point 1): the
+-- city enforces nothing on the coordinate, so a threshold would refuse only our own
+-- reports, and the one sample the project has is a 100 m fix the city acted on.
+ALTER TABLE reports ADD COLUMN accuracy_m INTEGER;

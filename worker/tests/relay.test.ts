@@ -237,6 +237,45 @@ describe('the row keeps what a diagnosis needs (#186)', () => {
   })
 })
 
+describe("the fix's accuracy (#223)", () => {
+  it('is stored on the row and stated on the coordinate line', async () => {
+    const { app, sqlite } = createTestApp()
+    const response = await postReport(app, reportForm({ accuracy: '100' }))
+    expect(response.status).toBe(201)
+
+    const row = sqlite.prepare('SELECT accuracy_m, description FROM reports').all()[0] as Record<string, unknown>
+    expect(row.accuracy_m).toBe(100)
+    // On the coordinate's own line rather than beside the distance: 40 m is how
+    // far the nearest registered address is, and a radius is how wrong the
+    // coordinate under that lookup might be. The shape #223 argued against put
+    // the two in apposition.
+    const lines = String(row.description).split('\n')
+    const hnit = lines.find((line) => line.startsWith('Hnit:'))
+    expect(hnit).toMatch(/^Hnit: -?[\d.]+, -?[\d.]+ \(nákvæmni ±100 m\)$/)
+    const distance = lines.find((line) => line.startsWith('Næsta skráða heimilisfang'))
+    expect(distance ?? '').not.toContain('nákvæmni')
+  })
+
+  it('a report without one is accepted, because every build on a phone sends none', async () => {
+    const { app, sqlite } = createTestApp()
+    const response = await postReport(app, reportForm())
+    expect(response.status).toBe(201)
+
+    const row = sqlite.prepare('SELECT accuracy_m, description FROM reports').all()[0] as Record<string, unknown>
+    expect(row.accuracy_m).toBeNull()
+    expect(String(row.description)).not.toContain('nákvæmni')
+  })
+
+  it('refuses a value that is not whole metres, rather than coercing it', async () => {
+    const { app } = createTestApp()
+    for (const bad of ['about a hundred', '100 m', '-5', '12.5']) {
+      const response = await postReport(app, reportForm({ accuracy: bad }))
+      expect(response.status, `accuracy ${JSON.stringify(bad)}`).toBe(400)
+      expect((await json(response)).error).toBe('invalid-accuracy')
+    }
+  })
+})
+
 describe('the coordinate guard', () => {
   it.each([
     ['missing latitude', { latitude: '__remove__' }],

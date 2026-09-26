@@ -31,7 +31,7 @@ class RelayRequestTest {
         // written in. The check script (scripts/check-relay-contract.mjs)
         // asserts the same set on the Worker side.
         assertEquals(
-            listOf("reportId", "session", "category", "latitude", "longitude", "description", "email", "photo"),
+            listOf("reportId", "session", "category", "latitude", "longitude", "accuracy", "description", "email", "photo"),
             contract.fields.keys.toList(),
         )
         assertEquals("/api/reports", contract.endpoint.path)
@@ -47,7 +47,50 @@ class RelayRequestTest {
         // none; worker/tests/contract.test.ts pins that half. This is the one
         // field where the two sides differ on purpose.
         assertTrue(contract.fields.getValue("email").required)
+        // Optional, and for a reason the relay's own test states the other way
+        // round: every build already on a phone sends no accuracy part, so a
+        // relay or an app that required one would refuse those reports (#223).
+        assertFalse(contract.fields.getValue("accuracy").required)
         assertFalse(contract.fields.getValue("photo").required)
+    }
+
+    @Test
+    fun theFixsAccuracyIsWrittenWhenThereIsOne() {
+        val contract = RelayRequest.parse(contractText)
+        val payload = Payload(
+            categorySlug = "ruslafotur",
+            latitude = 64.14658919,
+            longitude = -21.93279823,
+            description = "Full ruslafata við stíginn",
+            photos = emptyList(),
+            email = "nafn@example.is",
+            accuracyM = 100,
+        )
+
+        val body = RelayClient.buildBody(payload, contract, "----b").toString(Charsets.UTF_8)
+
+        // In the contract's own position: after the coordinate it describes,
+        // before the description. The relay reads parts by name, so the order
+        // is a convention rather than a requirement — which is exactly why the
+        // two apps have to agree on it.
+        val names = Regex("""name="([^"]+)""").findAll(body).map { it.groupValues[1] }.toList()
+        assertEquals(listOf("category", "latitude", "longitude", "accuracy", "description", "email"), names)
+        assertTrue(body.contains("name=\"accuracy\"\r\n\r\n100\r\n"))
+    }
+
+    @Test
+    fun anAccuracyTheAppDoesNotHaveIsOmittedRatherThanZero() {
+        val contract = RelayRequest.parse(contractText)
+        // The EXIF path has no radius to report, and a fabricated 0 would read
+        // to the crew as a perfect fix (#223, decision 0023 point 4).
+        val payload = Payload(
+            "ruslafotur", 64.14658919, -21.93279823, "lýsing", emptyList(),
+            email = "nafn@example.is",
+        )
+
+        val body = RelayClient.buildBody(payload, contract, "----b").toString(Charsets.UTF_8)
+
+        assertFalse(body.contains("name=\"accuracy\""))
     }
 
     @Test

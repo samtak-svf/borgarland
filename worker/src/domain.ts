@@ -27,6 +27,13 @@ export interface ReportDraft {
   category: string
   latitude: number
   longitude: number
+  /**
+   * How wrong the device fix might be, in whole metres, or null when the app
+   * sent none (#223, decision 0023). A property of the coordinate above and
+   * nothing else: nothing gates on it, and the only thing that reads it is the
+   * block the crew reads.
+   */
+  accuracyM: number | null
   description: string
   /**
    * Where the city sends its confirmation, and the only channel it has back to
@@ -71,6 +78,8 @@ export interface ReportRecord {
   cityPayload: Record<string, unknown> | null
   /** How far the nearest registered address was, in kilometres (#186). */
   jurisdictionKm: number | null
+  /** How wrong the device fix might be, in whole metres (#223). Null for a report that sent none. */
+  accuracyM: number | null
   /** Which launch of the app filed this, joining the report to its telemetry walk (#186). Null for a row written before the column existed. */
   session: string | null
 }
@@ -127,6 +136,36 @@ export function assertWgs84(latitude: number, longitude: number): void {
   }
 }
 
+/**
+ * How wrong the fix might be, in whole metres, or null when the app sent none
+ * (#223). Optional on the wire, because builds already on phones send no such
+ * part and a relay that required one would refuse every report from them.
+ *
+ * Strict for the same reason readCoordinate is: this value ends up in a
+ * sentence a crew reads, so "about a hundred" is refused rather than coerced
+ * into NaN or 0. There is no upper bound and nothing gates on it (decision
+ * 0023) — a report with a 500 m fix is filed, and the crew is told 500.
+ */
+export function readAccuracy(value: unknown): number | null {
+  if (value === undefined || value === null) return null
+  if (typeof value !== 'string') {
+    throw new HttpError(400, 'invalid-accuracy', { reason: 'a radius in whole metres' })
+  }
+  const v = value.trim()
+  if (v === '') return null
+  if (!/^\d+$/.test(v)) {
+    throw new HttpError(400, 'invalid-accuracy', {
+      reason: 'a radius in whole metres, as a non-negative integer',
+      got: v,
+    })
+  }
+  const n = Number(v)
+  if (!Number.isSafeInteger(n)) {
+    throw new HttpError(400, 'invalid-accuracy', { reason: 'not a usable integer', got: v })
+  }
+  return n
+}
+
 export function readDescription(value: unknown, maxLength: number): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new HttpError(400, 'invalid-description')
@@ -145,6 +184,14 @@ export interface ReportLocation {
   nearestKm: number
   latitude: number
   longitude: number
+  /**
+   * How wrong the fix behind that coordinate might be, in whole metres, or
+   * null when the app sent none (#223). It is what the distance line above
+   * cannot say for itself: a distance rounded to ten metres reads as a
+   * ten-metre fix unless the block says otherwise, and report 110759 was filed
+   * with accuracy 100.
+   */
+  accuracyM: number | null
 }
 
 // AGENTS.md: "Put the nearest registered address in the description we send,
@@ -153,7 +200,15 @@ export interface ReportLocation {
 // the app should not add its own copy. If the block would push the description
 // past the city's limit, it is dropped rather than the user's text truncated.
 //
-// The block says THREE things, and the first two are #202. An address alone was
+// The block says FOUR things. The first two are #202, the coordinate is the
+// third, and the fourth is #223: the radius of the fix behind that coordinate.
+// It sits on the coordinate's own line rather than beside the distance, and
+// that placement is the decision rather than a default. The shape argued
+// against in #223 was `... 40 m frá hnitinu (±100 m)`, which puts the fix's
+// uncertainty in apposition to a distance it has nothing to do with: 40 m is
+// how far the nearest registered address is, and ±100 m is how wrong the
+// coordinate under the lookup might be. On the coordinate's line the number
+// attaches to the thing it describes. An address alone was
 // read as the location: "Næsta skráða heimilisfang: Gullengi 37" reached a crew
 // who had no way to know it is a lookup result and not where the reporter
 // stood — the exact reading the coordinate-first design exists to avoid, and
@@ -183,7 +238,12 @@ export function composeDescription(
         `${describeDistance(location.nearestKm)} frá hnitinu.`,
     )
   }
-  lines.push(`Hnit: ${location.latitude}, ${location.longitude}`)
+  // The accuracy, when the app sent one (§223). Deliberately terse: this text
+  // is stored by the city and quoted back in its closing email, and a crew
+  // reads it on a phone. A report from a build that predates the part, or one
+  // whose coordinate came from a picked photo, carries no parenthetical at all.
+  const accuracy = location.accuracyM === null ? '' : ` (nákvæmni ±${location.accuracyM} m)`
+  lines.push(`Hnit: ${location.latitude}, ${location.longitude}${accuracy}`)
   const block = `\n\n${lines.join('\n')}`
   if (description.length + block.length > maxLength) return description
   return description + block
@@ -199,6 +259,13 @@ export function composeDescription(
  * its own — the photograph measured in docs/research/photos-exif-and-formats.md
  * declared an accuracy of 3.54 m. A figure finer than its input would claim an
  * accuracy nobody has.
+ *
+ * Since #223 the block says the radius outright, on the coordinate's line, so
+ * the rounding here no longer has to imply one. Where it does: the distance is
+ * how far the nearest registered address is from the coordinate, and it is
+ * exact for the number it describes whatever the coordinate's own error is.
+ * The two are different quantities and the block prints both rather than
+ * letting the finer one speak for the coarser one.
  */
 function describeDistance(km: number): string {
   const metres = Math.round(km * 1000)

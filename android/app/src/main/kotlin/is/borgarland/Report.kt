@@ -53,6 +53,17 @@ data class Payload(
      * the contract says so: a build that predates the field sends none.
      */
     val session: String? = null,
+    /**
+     * How wrong the device fix behind the coordinate might be, in whole metres
+     * (#223, decision 0023). The relay appends it to the block the crew reads,
+     * so a distance rounded to ten metres is not mistaken for a ten-metre fix.
+     *
+     * Null in two real cases rather than as a precaution: a coordinate that
+     * came from the photograph's EXIF, which carries no radius (decision 0023,
+     * point 4), and a build older than the relay that first accepted the part.
+     * Nothing on either side gates on it.
+     */
+    val accuracyM: Int? = null,
 ) {
     /** Formatted the way send-report.mjs formats them: shortest round-trip decimal. */
     val latitudeText: String get() = latitude.toString()

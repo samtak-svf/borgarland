@@ -76,6 +76,10 @@ public enum MultipartBodyBuilder {
         case "category": return payload.categorySlug
         case "latitude": return payload.latitudeText
         case "longitude": return payload.longitudeText
+        // How wrong the fix behind that coordinate might be (#223). Absent
+        // rather than zero when the app has none: the relay states what it is
+        // given, and a fabricated 0 would read as a perfect fix.
+        case "accuracy": return payload.accuracyM.map(String.init)
         case "description": return payload.description
         // Where the city sends its confirmation (#163). Required by the
         // contract, so a nil here is refused by the loop above rather than
