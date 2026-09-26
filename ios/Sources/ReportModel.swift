@@ -134,6 +134,17 @@ final class ReportModel: ObservableObject {
     /// events measures from here (data/relay-events.json).
     private var photoCapturedAt: Date?
 
+    /// How wrong the device fix behind the coordinate on screen might be, in
+    /// whole metres (#223). Kept beside the coordinate for the same reason
+    /// `photoCapturedAt` is kept beside the photograph: the telemetry event and
+    /// the report are built at different moments, and one value has to survive
+    /// from the first to the second.
+    ///
+    /// Nil when the coordinate came from the photograph's EXIF, which carries
+    /// no radius (decision 0023, point 4) — and that nil travels as no part at
+    /// all rather than as a zero.
+    private var fixAccuracyM: Int?
+
     /// Reports that have not reached the relay yet, on disk (#73). Everything a
     /// person files goes in here BEFORE it is sent, so losing the network
     /// cannot lose the report.
@@ -397,12 +408,16 @@ final class ReportModel: ObservableObject {
         // EXIF and falls through (AGENTS.md's location section).
         if let gps = ExifGps.read(from: bytes),
            Coordinates.isUsable(latitude: gps.latitude, longitude: gps.longitude) {
-            // EXIF carries no radius; 0 is the "no radius reported" value.
+            // EXIF carries no radius; 0 is the "no radius reported" value the
+            // EVENT carries, because the contract's accuracyM is not optional.
+            // The REPORT says nothing at all, because a zero there would read
+            // to the crew as a perfect fix (#223).
             Telemetry.shared.track(.locationResolved(
                 elapsedMs: elapsedSincePhoto(),
                 source: .exif,
                 accuracyM: 0
             ))
+            fixAccuracyM = nil
             Telemetry.shared.track(.screenLeft(screen: .camera, completed: true))
             update { state in
                 state.coordinate = Coordinate(latitude: gps.latitude, longitude: gps.longitude)
@@ -472,11 +487,13 @@ final class ReportModel: ObservableObject {
             update { state in
                 if let location,
                    Coordinates.isUsable(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude) {
+                    let accuracyM = max(0, Int(location.horizontalAccuracy.rounded()))
                     Telemetry.shared.track(.locationResolved(
                         elapsedMs: elapsedSincePhoto(),
                         source: .device,
-                        accuracyM: max(0, Int(location.horizontalAccuracy.rounded()))
+                        accuracyM: accuracyM
                     ))
+                    self.fixAccuracyM = accuracyM
                     Telemetry.shared.track(.screenLeft(screen: .camera, completed: true))
                     state.locating = false
                     state.coordinate = Coordinate(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
@@ -498,6 +515,7 @@ final class ReportModel: ObservableObject {
 
     func retakePhoto() {
         photoCapturedAt = nil
+        fixAccuracyM = nil
         update { state in
             state.photo = nil
             state.photoError = nil
@@ -588,6 +606,7 @@ final class ReportModel: ObservableObject {
     func startOver() {
         Telemetry.shared.track(.screenLeft(screen: .confirm, completed: false))
         photoCapturedAt = nil
+        fixAccuracyM = nil
         currentReportID = nil
         let categories = state.categories
         let categoryDisplay = state.categoryDisplay
@@ -809,6 +828,7 @@ final class ReportModel: ObservableObject {
             email: unidentified.email,
             reportId: token,
             session: unidentified.session,
+            accuracyM: unidentified.accuracyM,
         )
         update { state in state.sending = true }
         delivery = Task { [weak self] in
@@ -1009,6 +1029,7 @@ final class ReportModel: ObservableObject {
             photos: s.photo.map { [$0] } ?? [],
             email: emailToSend(),
             session: Telemetry.shared.sessionID,
+            accuracyM: fixAccuracyM,
         )
     }
 }

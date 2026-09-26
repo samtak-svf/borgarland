@@ -254,6 +254,19 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     private var capturedBytes: ByteArray? = null
 
     /**
+     * How wrong the device fix behind the coordinate on screen might be, in
+     * whole metres (#223). Kept beside the coordinate for the same reason
+     * [capturedBytes] is kept beside the upload copy: the telemetry event and
+     * the report are built at different moments from different places, and the
+     * value has to survive from the first to the second.
+     *
+     * Null when the coordinate came from the photograph's EXIF — which carries
+     * no radius at all (decision 0023, point 4) — and that null is sent as no
+     * part rather than as a zero.
+     */
+    private var locationAccuracyM: Int? = null
+
+    /**
      * The id of the report on screen, generated once and kept until the walk
      * starts over (#88). Pressing send a second time therefore sends the SAME
      * id, and the relay answers with the row it already has instead of storing
@@ -500,6 +513,10 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             Telemetry.shared.track(
                 TelemetryEvent.LocationResolved(elapsedSincePhoto(), TelemetryEvent.LocationSource.EXIF, 0),
             )
+            // The event keeps 0 because the contract's accuracyM is not
+            // optional; the REPORT carries no accuracy at all, because EXIF
+            // has none to give and a zero would read as a perfect fix (#223).
+            locationAccuracyM = null
             Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.CAMERA, true))
             _state.update {
                 it.copy(
@@ -612,13 +629,15 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val location = DeviceFix(getApplication()).request()
             if (location != null && isUsableCoordinate(location.latitude, location.longitude)) {
+                val accuracyM = max(0, location.accuracy.roundToInt())
                 Telemetry.shared.track(
                     TelemetryEvent.LocationResolved(
                         elapsedSincePhoto(),
                         TelemetryEvent.LocationSource.DEVICE,
-                        max(0, location.accuracy.roundToInt()),
+                        accuracyM,
                     ),
                 )
+                locationAccuracyM = accuracyM
                 Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.CAMERA, true))
                 _state.update {
                     it.copy(
@@ -651,6 +670,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     fun retakePhoto() {
         photoCapturedAtMs = null
         capturedBytes = null
+        locationAccuracyM = null
         currentReportId = null
         _state.update {
             it.copy(
@@ -741,6 +761,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.SUMMARY, false))
         photoCapturedAtMs = null
         capturedBytes = null
+        locationAccuracyM = null
         // A new report is a new id. Inheriting the last one would make the
         // relay answer this report with the previous report's row (#88).
         currentReportId = null
@@ -860,6 +881,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             email = ContactDetails.normalise(s.email).ifEmpty { null },
             reportId = currentReportId,
             session = Telemetry.shared.sessionId,
+            accuracyM = locationAccuracyM,
         )
     }
 }

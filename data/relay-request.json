@@ -34,6 +34,11 @@
       "format": "WGS84 decimal degrees, dot separator, e.g. -21.93279823",
       "notes": "full words, not the city's abbreviation; see latitude."
     },
+    "accuracy": {
+      "required": false,
+      "format": "whole metres, a non-negative integer, e.g. 100",
+      "notes": "how wrong the device fix might be: Location.getAccuracy() on Android, CLLocation.horizontalAccuracy on iOS (#223, decision 0023). Optional, because every build already on a phone sends none and the relay's unknown-field guard would refuse it from an older relay, so the relay is deployed before a build that sends it. It is a property of the COORDINATE and nothing gates on it; the relay states it beside the coordinate in the block the crew reads, so a distance rounded to ten metres is not mistaken for a ten-metre fix. The EXIF path reads no accuracy (decision 0023, point 4), so a coordinate that came from a picked photo has none to send."
+    },
     "description": {
       "required": true,
       "maxLength": 2500,

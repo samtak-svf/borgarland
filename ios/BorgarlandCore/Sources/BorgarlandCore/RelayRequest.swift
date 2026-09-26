@@ -14,7 +14,9 @@ import Foundation
 /// reordered request.
 ///
 /// It grew one: `reportId` (#88), first in the order, so a report carries its
-/// own identity ahead of everything that describes it.
+/// own identity ahead of everything that describes it. It grew another:
+/// `accuracy` (#223), between the coordinate it describes and the description,
+/// so the fix's radius travels with the fix.
 public struct RelayRequestFile: Decodable, Equatable {
     public let endpoint: Endpoint
     public let reportId: FieldSpec
@@ -22,6 +24,7 @@ public struct RelayRequestFile: Decodable, Equatable {
     public let category: FieldSpec
     public let latitude: FieldSpec
     public let longitude: FieldSpec
+    public let accuracy: FieldSpec
     public let description: FieldSpec
     public let email: FieldSpec
     public let photo: FieldSpec
@@ -32,6 +35,7 @@ public struct RelayRequestFile: Decodable, Equatable {
         category: FieldSpec,
         latitude: FieldSpec,
         longitude: FieldSpec,
+        accuracy: FieldSpec,
         description: FieldSpec,
         email: FieldSpec,
         photo: FieldSpec,
@@ -43,6 +47,7 @@ public struct RelayRequestFile: Decodable, Equatable {
         self.category = category
         self.latitude = latitude
         self.longitude = longitude
+        self.accuracy = accuracy
         self.description = description
         self.email = email
         self.photo = photo
@@ -57,7 +62,7 @@ public struct RelayRequestFile: Decodable, Equatable {
     /// synthesized: a synthesized one would look for them at the top level and
     /// fail on the canonical contract.
     private enum FieldKeys: String, CodingKey {
-        case reportId, session, category, latitude, longitude, description, email, photo
+        case reportId, session, category, latitude, longitude, accuracy, description, email, photo
     }
 
     public init(from decoder: Decoder) throws {
@@ -69,6 +74,7 @@ public struct RelayRequestFile: Decodable, Equatable {
         category = try fields.decode(FieldSpec.self, forKey: .category)
         latitude = try fields.decode(FieldSpec.self, forKey: .latitude)
         longitude = try fields.decode(FieldSpec.self, forKey: .longitude)
+        accuracy = try fields.decode(FieldSpec.self, forKey: .accuracy)
         description = try fields.decode(FieldSpec.self, forKey: .description)
         email = try fields.decode(FieldSpec.self, forKey: .email)
         photo = try fields.decode(FieldSpec.self, forKey: .photo)
@@ -82,6 +88,7 @@ public struct RelayRequestFile: Decodable, Equatable {
             ("category", category),
             ("latitude", latitude),
             ("longitude", longitude),
+            ("accuracy", accuracy),
             ("description", description),
             ("email", email),
             ("photo", photo),
