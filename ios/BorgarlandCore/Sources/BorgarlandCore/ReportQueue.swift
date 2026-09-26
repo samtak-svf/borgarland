@@ -364,14 +364,14 @@ public final class ReportQueue {
             latitude: report.latitude,
             longitude: report.longitude,
             description: report.description,
-            accuracyM: report.accuracyM,
             photos: photos,
             email: email,
             // The queue's id IS the report's id on the wire (#88). Without this
             // line a retry of a report the relay already stored becomes a
             // second row, which is the whole thing the id exists to prevent.
             reportId: report.id,
-            session: report.session
+            session: report.session,
+            accuracyM: report.accuracyM
         )
     }
 
