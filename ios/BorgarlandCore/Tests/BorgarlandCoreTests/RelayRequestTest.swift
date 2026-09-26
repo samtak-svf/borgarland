@@ -60,7 +60,7 @@ final class RelayRequestTest: XCTestCase {
         )
 
         let text = String(decoding: body, as: UTF8.self)
-        XCTAssertTrue(text.contains("name="accuracy"\r\n\r\n100\r\n"), text)
+        XCTAssertTrue(text.contains("name=\"accuracy\"\r\n\r\n100\r\n"), text)
 
         let names = text.components(separatedBy: "name=\"").dropFirst().compactMap { $0.components(separatedBy: "\"").first }
         XCTAssertEqual(names, ["category", "latitude", "longitude", "accuracy", "description", "email"])
@@ -81,7 +81,7 @@ final class RelayRequestTest: XCTestCase {
             boundary: "----boundary"
         )
 
-        XCTAssertFalse(String(decoding: body, as: UTF8.self).contains("name="accuracy""))
+        XCTAssertFalse(String(decoding: body, as: UTF8.self).contains("name=\"accuracy\""))
     }
 
     func testContractAgreesWithTheFactsFileWhereItClaimsTo() throws {
