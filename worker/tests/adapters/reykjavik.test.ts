@@ -21,6 +21,7 @@ const draft: ReportDraft = {
   category: 'ruslafotur',
   latitude: 64.14658919,
   longitude: -21.93279823,
+  accuracyM: null,
   description: 'Full ruslafata við stíginn',
   email: 'test@example.com',
   photos: [{ name: 'bin.jpg', mime: 'image/jpeg', bytes: new Uint8Array([1, 2, 3]), size: 3 }],

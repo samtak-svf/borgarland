@@ -30,6 +30,7 @@ import {
   HttpError,
   assertWgs84,
   composeDescription,
+  readAccuracy,
   readCoordinate,
   readDescription,
 } from './domain'
@@ -258,6 +259,12 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
     const longitude = readCoordinate(form.get('longitude'), 'longitude')
     assertWgs84(latitude, longitude)
 
+    // How wrong the fix behind that coordinate might be (#223, decision 0023).
+    // Optional: every build already on a phone sends no such part, which is why
+    // the relay is deployed before any build that does. Nothing gates on it —
+    // it is stated in the block the crew reads and kept on the row.
+    const accuracyM = readAccuracy(form.get('accuracy'))
+
     const description = readDescription(form.get('description'), maxDescriptionLength)
 
     const emailValue = form.get('email')
@@ -365,6 +372,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       category,
       latitude,
       longitude,
+      accuracyM,
       description: composeDescription(
         description,
         {
@@ -372,6 +380,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
           nearestKm: jurisdiction.km,
           latitude,
           longitude,
+          accuracyM,
         },
         maxDescriptionLength,
       ),
@@ -415,6 +424,7 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       photoMimes,
       cityPayload: storedPayload,
       jurisdictionKm,
+      accuracyM,
       session: session === '' ? null : session,
     }
 
@@ -599,6 +609,10 @@ export function createApp(env: Env, deps: AppDeps): (request: Request) => Promis
       category: stored.category,
       latitude: stored.latitude,
       longitude: stored.longitude,
+      // The row's own value, carried for the type's sake: the city payload is
+      // built from the description below, which already states the accuracy in
+      // its block (#223). Nothing here recomposes it.
+      accuracyM: stored.accuracyM,
       // Already composed when the report was filed, address line and all. Not
       // recomposed here, or the crew's line would be appended twice.
       description: stored.description,

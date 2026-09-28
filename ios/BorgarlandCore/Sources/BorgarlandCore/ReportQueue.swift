@@ -65,6 +65,16 @@ public struct QueuedReport: Equatable, Codable {
     public let categorySlug: String
     public let latitude: Double
     public let longitude: Double
+    /// How wrong the fix behind that coordinate might be, in whole metres
+    /// (#223). Persisted with the record for the same reason the session is:
+    /// the record is the report's, not the transport's, so a report that waits
+    /// two days still carries the radius it was filed with rather than
+    /// arriving as a coordinate with no stated precision.
+    ///
+    /// Optional, and absent from records written before the key existed:
+    /// synthesized Decodable reads a missing key as nil, so an older queue
+    /// entry is a report with no accuracy to send, which the relay accepts.
+    public let accuracyM: Int?
     public let description: String
 
     /// Whole milliseconds since 1970. An integer on purpose: a date written by
@@ -267,6 +277,7 @@ public final class ReportQueue {
             categorySlug: payload.categorySlug,
             latitude: payload.latitude,
             longitude: payload.longitude,
+            accuracyM: payload.accuracyM,
             description: payload.description,
             queuedAtEpochMs: Int((date.timeIntervalSince1970 * 1000).rounded()),
             attempts: 0,
@@ -359,7 +370,8 @@ public final class ReportQueue {
             // line a retry of a report the relay already stored becomes a
             // second row, which is the whole thing the id exists to prevent.
             reportId: report.id,
-            session: report.session
+            session: report.session,
+            accuracyM: report.accuracyM
         )
     }
 

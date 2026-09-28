@@ -18,7 +18,7 @@ final class RelayRequestTest: XCTestCase {
         // the documented one so a reorder is a deliberate, reviewed change.
         XCTAssertEqual(
             contract.fieldsInContractOrder.map { $0.name },
-            ["reportId", "session", "category", "latitude", "longitude", "description", "email", "photo"]
+            ["reportId", "session", "category", "latitude", "longitude", "accuracy", "description", "email", "photo"]
         )
         XCTAssertEqual(contract.endpoint.path, "/api/reports")
         XCTAssertEqual(contract.endpoint.method, "POST")
@@ -33,7 +33,55 @@ final class RelayRequestTest: XCTestCase {
         // none; worker/tests/contract.test.ts pins that half. This is the one
         // field where the two sides differ on purpose.
         XCTAssertTrue(contract.email.required)
+        // Optional, and for a reason the relay's own test states the other way
+        // round: every build already on a phone sends no accuracy part, so a
+        // relay or an app that required one would refuse those reports (#223).
+        XCTAssertFalse(contract.accuracy.required)
         XCTAssertFalse(contract.photo.required)
+    }
+
+    /// #223. The fix's radius travels with the fix: after the coordinate it
+    /// describes, before the description. Absent rather than zero when there is
+    /// none, which is the EXIF path and every build older than the part.
+    func testTheFixsAccuracyIsWrittenWhenThereIsOne() throws {
+        let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
+        let body = try MultipartBodyBuilder.buildBody(
+            payload: Payload(
+                categorySlug: "ruslafotur",
+                latitude: 64.14658919,
+                longitude: -21.93279823,
+                description: "lýsing",
+                photos: [],
+                email: "nafn@example.is",
+                accuracyM: 100
+            ),
+            contract: contract,
+            boundary: "----boundary"
+        )
+
+        let text = String(decoding: body, as: UTF8.self)
+        XCTAssertTrue(text.contains("name=\"accuracy\"\r\n\r\n100\r\n"), text)
+
+        let names = text.components(separatedBy: "name=\"").dropFirst().compactMap { $0.components(separatedBy: "\"").first }
+        XCTAssertEqual(names, ["category", "latitude", "longitude", "accuracy", "description", "email"])
+    }
+
+    func testAnAccuracyTheAppDoesNotHaveIsOmittedRatherThanZero() throws {
+        let contract = try RelayRequest.parse(ContractSource.dataFile("relay-request.json"))
+        let body = try MultipartBodyBuilder.buildBody(
+            payload: Payload(
+                categorySlug: "ruslafotur",
+                latitude: 64.14658919,
+                longitude: -21.93279823,
+                description: "lýsing",
+                photos: [],
+                email: "nafn@example.is"
+            ),
+            contract: contract,
+            boundary: "----boundary"
+        )
+
+        XCTAssertFalse(String(decoding: body, as: UTF8.self).contains("name=\"accuracy\""))
     }
 
     func testContractAgreesWithTheFactsFileWhereItClaimsTo() throws {
