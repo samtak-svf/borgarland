@@ -53,24 +53,29 @@ somebody will have to do them then.
 | 6 Provisioning profile | **must be created**, once per app |
 | 7 GitHub secrets | copy the same five values from GCP |
 
-The five values live in GCP Secret Manager, project `fedora-setup-secrets`,
-account `gudrodur@gmail.com`, and the whole of step 7 is:
+The five values live in GCP Secret Manager, project `samtak-secrets` (Samtak svf.'s
+own vault since 2026-10-07), account `gudrodur@gmail.com`, and the whole of step 7 is:
 
 ```bash
-gcloud secrets versions access latest --secret=apple-team-ios-signing-p12 \
+gcloud secrets versions access latest --secret=samtak-apple-team-ios-signing-p12 \
+    --project=samtak-secrets \
   | gh secret set IOS_SIGNING_P12_BASE64
-gcloud secrets versions access latest --secret=apple-team-ios-signing-p12-password \
+gcloud secrets versions access latest --secret=samtak-apple-team-ios-signing-p12-password \
+    --project=samtak-secrets \
   | gh secret set IOS_SIGNING_P12_PASSWORD
-gcloud secrets versions access latest --secret=apple-team-asc-api-key-id \
+gcloud secrets versions access latest --secret=samtak-apple-team-asc-api-key-id \
+    --project=samtak-secrets \
   | gh secret set ASC_API_KEY_ID
-gcloud secrets versions access latest --secret=apple-team-asc-api-issuer-id \
+gcloud secrets versions access latest --secret=samtak-apple-team-asc-api-issuer-id \
+    --project=samtak-secrets \
   | gh secret set ASC_API_ISSUER_ID
-gcloud secrets versions access latest --secret=apple-team-asc-api-key-p8 \
+gcloud secrets versions access latest --secret=samtak-apple-team-asc-api-key-p8 \
+    --project=samtak-secrets \
   | gh secret set ASC_API_KEY_P8
 ```
 
-The names say `apple-team` because that is what the certificate and the API key
-are scoped to: both name the team (`UID=B4724Z74TM`) and neither mentions an app.
+The names say `apple-team` (after the vault owner's `samtak-` prefix) because that
+is what the certificate and the API key are scoped to: both name the team (`UID=B4724Z74TM`) and neither mentions an app.
 **Do not create a second certificate for a new app.**
 
 They were called `samtakamatt-rosaparks-*` until 2026-08-25, after the first app
