@@ -54,8 +54,14 @@ jobs:
             echo "See ios/signing/README.md."
           fi
 
+  ci:
+    # Run the iOS tests on the exact commit being released, whatever the
+    # CI workflow's path filters say. A failed called workflow fails this job,
+    # and the release job needs it.
+    uses: ./.github/workflows/ios-ci.yml
+
   build-and-release:
-    needs: check-secrets
+    needs: [check-secrets, ci]
     if: needs.check-secrets.outputs.secrets_present == 'true'
     runs-on: macos-latest
     defaults:
