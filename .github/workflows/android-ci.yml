@@ -26,6 +26,12 @@ name: android-ci
 # scripts/check-app-path-filters.mjs, because a stale filter fails silently —
 # the workflow simply stops running on the change it exists to catch.
 on:
+  # Called by android-release.yml so the tests run on the exact commit being
+  # released, whatever the path filters say. In a called run github.event_name is
+  # the CALLER's (push of a tag, or dispatch), so the concurrency block below
+  # never cancels it, and the caller has no concurrency group of its own to
+  # collide with.
+  workflow_call:
   pull_request:
     paths:
       - 'android/**'
