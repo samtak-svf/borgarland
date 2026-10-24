@@ -142,7 +142,7 @@ against the database, and it requires deciding first that the city really did
 not receive the report — check the city's own queue, not our row:
 
 ```bash
-eval "$(node ~/.claude/scripts/switch-cf-profile.mjs personal)"
+eval "$(node ~/.claude/scripts/switch-cf-profile.mjs samtak)"
 cd worker && npx wrangler d1 execute borgarland-relay --remote \
   --command "SELECT id, created_at, rejection FROM reports WHERE dry_run = 0"
 # then, only for a row confirmed never to have reached the city:
