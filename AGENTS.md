@@ -572,11 +572,11 @@ from a screenshot, and log the contact with a date.
 
 ## Cloudflare
 
-The Worker and its D1 live on the **personal** Cloudflare account, the one that
+The Worker and its D1 live on **Samtak svf.'s** Cloudflare account, the one that
 serves `api.samtak.is`. Switch before any wrangler operation:
 
 ```bash
-eval "$(node ~/.claude/scripts/switch-cf-profile.mjs personal)"
+eval "$(node ~/.claude/scripts/switch-cf-profile.mjs samtak)"
 ```
 
 Create the D1 with `--jurisdiction eu`. A jurisdiction can only be set at
