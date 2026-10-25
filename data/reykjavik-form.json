@@ -29,11 +29,12 @@
       "verifiedAt": "2026-08-21"
     },
     "addressInfo": {
-      "url": "https://reykjavik.is/abendingar/addressInfo?a={address}&p={postcode}",
+      "url": "https://reykjavik.is/location/addressInfo?a={address}&p={postcode}",
+      "formerUrl": "https://reykjavik.is/abendingar/addressInfo?a={address}&p={postcode}",
       "returns": "{addressInfo:[{street,address,district,zip,geometry:{lat,lng}}]}",
       "weUseIt": false,
-      "notes": "Under /abendingar/, not /location/ beside its sibling. Both params required. Returns an empty array, not an error, for an address the register does not hold.",
-      "verifiedAt": "2026-08-21"
+      "notes": "Since about 2026-10-21 the old /abendingar/ path returns 404 and the endpoint sits under /location/ beside its sibling (measured 2026-10-25). Both params required. Returns an empty array, not an error, for an address the register does not hold.",
+      "verifiedAt": "2026-10-25"
     }
   },
   "fields": {

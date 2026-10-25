@@ -23,6 +23,7 @@ on:
     paths:
       - 'worker/**'
       - 'scripts/send-report.mjs'
+      - 'data/reykjavik-form.json'
       - '.github/workflows/contract.yml'
   workflow_dispatch:
 
@@ -55,7 +56,8 @@ jobs:
       - name: The submission endpoint still rejects an incomplete payload the way we expect
         run: |
           set -uo pipefail
-          URL=https://reykjavik.is/abendingar/senda-abendingu/ruslafotur
+          URL=$(jq -r '.endpoints.submit.url' data/reykjavik-form.json)
+          URL=${URL//\{slug\}/ruslafotur}
           body=$(mktemp)
           code=$(curl -sS -X POST -F "dummy=1" -o "$body" -w '%{http_code}' "$URL")
 
@@ -87,15 +89,18 @@ jobs:
         run: |
           set -uo pipefail
           fail=0
-          curl -sS 'https://reykjavik.is/location/addresses?q=Laugavegur+1' \
+          # Both URLs come from the source of truth, so the probe follows the
+          # file when the city moves an endpoint.
+          search_url=$(jq -r '.endpoints.addressSearch.url' data/reykjavik-form.json)
+          info_url=$(jq -r '.endpoints.addressInfo.url' data/reykjavik-form.json)
+          info_url=${info_url//\{address\}/Laugavegur%201}
+          info_url=${info_url//\{postcode\}/101}
+          curl -sS "${search_url//\{prefix\}/Laugavegur+1}" \
             | grep -q 'fasteignarheiti_nefnifall' \
-            || { echo "::error::/location/addresses no longer returns the expected shape"; fail=1; }
-
-          # Note the path: addressInfo is under /abendingar/, its sibling is not.
-          curl -sS -G --data-urlencode 'a=Laugavegur 1' --data-urlencode 'p=101' \
-            'https://reykjavik.is/abendingar/addressInfo' \
+            || { echo "::error::$search_url no longer returns the expected shape"; fail=1; }
+          curl -sS "$info_url" \
             | grep -q '"geometry"' \
-            || { echo "::error::/abendingar/addressInfo no longer returns geometry"; fail=1; }
+            || { echo "::error::$info_url no longer returns geometry"; fail=1; }
 
           [ "$fail" -eq 0 ] || exit 1
           echo "✓ address search and address-to-coordinate both answering"

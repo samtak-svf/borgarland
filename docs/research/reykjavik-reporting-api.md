@@ -75,9 +75,8 @@ reject a report with no coordinate, since the city will not.
 
 - `GET /location/addresses?q=Laugavegur+1` → JSON list of
   `{fasteignarheiti_nefnifall, postnumer_id}`. Address autocomplete, no auth.
-- `GET /abendingar/addressInfo?a={address}&p={postcode}` → address ⇄
-  coordinates. Note the path: this one sits under `/abendingar/`, not beside its
-  sibling under `/location/`. Both parameters are required and the wrong names
+- `GET /location/addressInfo?a={address}&p={postcode}` (moved from `/abendingar/` about 2026-10-21; measured 2026-10-25) → address ⇄
+  coordinates, beside its sibling under `/location/`. Both parameters are required and the wrong names
   return `{"error":"Invalid input"}`; an address the register does not hold
   returns an empty array rather than an error.
 - Basemap tiles: `borgarvefsja.reykjavik.is/arcgis/rest/services/Kort/Lettkort/MapServer/tile/{z}/{y}/{x}`,
