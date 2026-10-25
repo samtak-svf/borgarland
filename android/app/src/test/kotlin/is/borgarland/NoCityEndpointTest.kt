@@ -19,6 +19,7 @@ class NoCityEndpointTest {
         "reykjavik.is",
         "senda-abendingu",
         "abendingar/addressInfo",
+        "location/addressInfo",
         "location/addresses",
     )
 

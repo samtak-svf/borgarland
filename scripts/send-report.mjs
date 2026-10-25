@@ -111,12 +111,18 @@ function exifGps(buf) {
 
 // ------------------------------------------------------------- city lookups
 
-// Note the path: addressInfo lives under /abendingar/, its sibling under
-// /location/. Both parameters are required; omitting either returns an error
-// rather than an empty result.
+// The URL comes from the facts file, so a path the city moves (it left
+// /abendingar/ for /location/ about 2026-10-21) is edited in one place. Both
+// parameters are required; omitting either returns an error rather than an
+// empty result.
+function addressInfoUrl(address, postCode) {
+  return FACTS.endpoints.addressInfo.url
+    .replace('{address}', encodeURIComponent(address))
+    .replace('{postcode}', encodeURIComponent(String(postCode)))
+}
+
 async function addressInfo(address, postCode) {
-  const q = new URLSearchParams({ a: address, p: String(postCode) })
-  const r = await fetch(`${BASE}/abendingar/addressInfo?${q}`)
+  const r = await fetch(addressInfoUrl(address, postCode))
   if (!r.ok) throw new Error(`addressInfo failed: HTTP ${r.status}`)
   const body = await r.json()
   if (body.error) throw new Error(`addressInfo rejected the input: ${body.error}`)

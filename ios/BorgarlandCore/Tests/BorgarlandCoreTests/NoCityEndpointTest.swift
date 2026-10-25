@@ -31,6 +31,7 @@ final class NoCityEndpointTest: XCTestCase {
         "reykjavik.is",
         "senda-abendingu",
         "abendingar/addressInfo",
+        "location/addressInfo",
         "location/addresses",
     ]
 

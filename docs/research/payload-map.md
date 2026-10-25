@@ -197,10 +197,9 @@ JSON and are what a client should use.
 {"addresses":[{"fasteignarheiti_nefnifall":"Laugavegur 1","postnumer_id":"101"}, …]}
 ```
 
-**Address to coordinate** — `GET /abendingar/addressInfo?a=<address>&p=<postcode>`
+**Address to coordinate** — `GET /location/addressInfo?a=<address>&p=<postcode>` (moved from `/abendingar/` about 2026-10-21; measured 2026-10-25)
 
-Note the path: it is under `/abendingar/`, not `/location/`, even though its
-sibling is not. Both parameters are required; omitting either returns
+It sits under `/location/` beside its sibling. Both parameters are required; omitting either returns
 `{"error":"Invalid input\npostCode: …\naddress: …"}`.
 
 ```json

@@ -6,7 +6,7 @@ the city's response to the registry's own export.
 
 ## The evidence
 
-The city's `/abendingar/addressInfo?a=Laugavegur 1&p=101` returns:
+The city's `/location/addressInfo?a=Laugavegur 1&p=101` (moved from `/abendingar/` about 2026-10-21; measured 2026-10-25) returns:
 
 ```json
 {"street":"Laugavegur","address":"Laugavegur 1","district":"0000","zip":"101",
@@ -38,7 +38,7 @@ to depend on; `xj-greenfield` consumes it the same way. The Worker relay runs on
 Workers. Use it rather than writing a lookup.
 
 **Two dependencies drop off.** `/location/addresses` and
-`/abendingar/addressInfo` stop being part of the surface we rely on. Both stay
+`/location/addressInfo` stop being part of the surface we rely on. Both stay
 in `payload-map.md` as documentation of the city's form, but nothing we ship
 needs to call them.
 
