@@ -45,28 +45,7 @@ thing works, which is the whole question at this stage.
 
 ## Before you change app code: the skills outrank your memory
 
-**Android — Google's skills decide.** They publish 21 official ones
-([github.com/android/skills](https://github.com/android/skills), Apache-2.0),
-installed here as the `android-skills` plugin: edge-to-edge and IME insets,
-adaptive layout, theming, Navigation 3, CameraX, R8, testing setup, Play. On
-anything they cover, read the `SKILL.md` before writing the code rather than
-after. This is not deference for its own sake. #110 was fixed by
-`Modifier.imePadding()` placed **before** `verticalScroll()`, and a hand-written
-note in this machine's own skills directory had the order backwards — appending
-the modifier the obvious way would have shipped a quieter second bug on top of
-the one being fixed. Three corrections in one line, from the people who own the
-framework.
-
-**iOS — nobody's skills decide, because Apple publishes none.** Checked
-2026-08-24: `apple/skills` and every obvious variant is a 404, and no repository
-under `org:apple` matches. Their move was to put the Claude Agent SDK inside
-Xcode 26.3, which is no help here. What is installed is community work —
-`swiftui-pro` and `swift-testing-pro`, Paul Hudson, MIT — and it is **evidence,
-not law**. Two specific cautions: Hudson's own index says listing is not
-endorsement, and `swiftui-pro` assumes iOS 26 and Swift 6.2 while
-`ios/project.yml` targets **iOS 17.0 and Swift 5.9**, so its "use the modern
-API" advice is regularly unbuildable here. There is no Mac on this machine, so
-CI is the only compiler and a wrong suggestion costs a whole build to discover.
+The Android paragraph is in `android/AGENTS.md` and the iOS one in `ios/AGENTS.md`; the rest binds both.
 
 **Then verify on the device.** `android-ux` is the local companion for that half
 and defers to Google for everything about the code. Its first rule is the one
@@ -291,7 +270,7 @@ front door, until a close-out sweep grepped for the claim rather than the file.
 The correction found the document it was already reading and stopped there. That
 is the whole failure above, repeated by a session that had just written the rule
 down — which is the strongest argument this page can make for the seven-step
-check in **When new test data arrives**, and why step 6 of it is a gate rather
+check in **When new test data arrives** (`data/AGENTS.md`), and why step 6 of it is a gate rather
 than a habit.
 
 This paragraph twice said the opposite of the truth, in opposite directions. It
@@ -318,7 +297,7 @@ submitted to the city. The nearest registered address is a reverse lookup in the
 relay, appended to the description as a block for the crew — with the coordinate
 it was looked up from and how far away it was, so neither can be read as the
 other. It is not the location, and a report is never snapped to it (see
-[Addresses](#addresses-use-the-registry-not-the-city)). EXIF is relevant only to
+[Addresses](worker/AGENTS.md)). EXIF is relevant only to
 a photo picked from the gallery, and there is no such path: decision 0021 keeps
 the first release camera-only (`gallery-pick` stays `neither-yet` in
 `data/platform-parity.json`). A map would be a correction rather than an entry
@@ -347,61 +326,6 @@ if a picker is ever added rather than a description of one. Measured against a
 real original, along with what else the GPS block carries and the reverse lookup
 running end to end:
 [docs/research/photos-exif-and-formats.md](docs/research/photos-exif-and-formats.md).
-
-## Addresses: use the registry, not the city
-
-The city's address endpoints are Staðfangaskrá passed through unchanged —
-verified to the last decimal against the HMS export. Do not call them. Use
-**`iceaddr-ts`**, a zero-dependency, edge-native port already built for
-Cloudflare Workers. Depend on the **published package** (`iceaddr-ts` on npm,
-MIT, source at [gudrodur/iceaddr-ts](https://github.com/gudrodur/iceaddr-ts)),
-the same way `xj-greenfield` consumes it. Never point a dependency at a local
-checkout: this repository is public, and a path into one machine's home
-directory resolves nowhere else.
-
-That also gives us reverse geocoding, which reykjavik.is does not have anywhere.
-Put the nearest registered address in the description we send, so the crew can
-find a bin that has no address of its own. The block also names the register it
-came from, says how far away it was, and prints the coordinate the lookup ran
-against, because a crew member who receives an address on its own has no way to
-tell it is a lookup and not where the reporter stood
-([decision 0020](decisions/0020-the-crew-block-carries-the-coordinate-it-was-looked-up-from.md), #202).
-
-The Reykjavík subset is 23,057 addresses and 0.25 MB gzipped, small enough to
-ship on a phone and answer with no signal. It does not ship on the phone.
-[Decision 0009](decisions/0009-the-registry-stays-in-the-relay.md) keeps the
-registry in the relay, and the relay carries the **full national** registry
-rather than the subset, because a coordinate in Kópavogur has to find a
-Kópavogur address or the municipality check cannot fail it. Neither app has any
-address capability at all.
-
-**Check the municipality before sending.** The city validates nothing — not
-even that a coordinate exists, let alone where it falls — so a pothole in
-Kópavogur would reach a Reykjavík queue that cannot act on it. Reverse-look the
-coordinate to its nearest address and read `SVFNR`: `0000` is Reykjavíkurborg.
-Anything else, say so instead of filing. The city's own map bounds are useless
-for this; they cover the whole capital region and out past Þingvellir.
-
-**And ask how far away "nearest" was, which is the other half of the check.**
-The register holds Icelandic addresses and nothing else, so the scan answers for
-every point on Earth: a tester in Seattle resolved to a lighthouse in Suðureyri
-5,630 km away, and that lighthouse's `SVFNR` decided whether his report was
-filed. Beyond ten kilometres the answer is refused as
-`jurisdiction-unknown` and no address is offered with it, because at that
-distance the address is not a place but an artefact of a register covering one
-country. Ten was measured rather than picked: the farthest point inside
-Reykjavík probed sits 3.31 km from a registered address, and the table it was
-chosen against is in `worker/src/jurisdiction.ts` beside the constant.
-
-What no distance bound fixes, and what a point register cannot answer at all: a
-coordinate the wrong side of a municipal boundary whose nearest registered
-address is still a Reykjavík one passes. Only the boundaries themselves would
-catch that, and a test says so rather than leaving it to be rediscovered.
-
-**The registry is a convenience, never a constraint.** Picking an address does
-not snap the report to it; the marker is free and moving it clears the address
-field. The coordinate is the only thing submitted. Never snap a report to the
-nearest house. Detail: [docs/research/addresses-and-the-registry.md](docs/research/addresses-and-the-registry.md).
 
 ## Never press submit on the city's live form
 
@@ -473,79 +397,18 @@ own browser cannot complete the opt-in, which every tester invited over
 Messenger or Discord will do first. All three were found by watching one person
 try, on 2026-08-24.
 
-## When new test data arrives
+## Subtree context
 
-A walk produces two records that can falsify each other: the telemetry, which
-the phone wrote and nobody can edit, and the screenshots, which show what the
-person actually saw. Reading either alone is how a session ends up describing a
-walk that did not happen. Do all of this before writing anything down.
+Claude Code loads a nested `CLAUDE.md` (a symlink to the sibling `AGENTS.md`) only once a file in that
+subdirectory is read or edited. Other hosts may not load it at all, and an action that opens no file there
+(a deploy, a wrangler call, a new walk arriving) never triggers it. Read the file yourself in those cases.
 
-**1. Ask the data which build it was, never the tester.** `app_version` in
-`client_events` reads `0.1.0 (6)`. A fix that is merged, deployed and installed
-is still untested if the walk came from the build before it, and that is the
-single most likely way to record a false confirmation.
-
-**2. Get the images onto disk before they scroll away.** They arrive in a chat
-thread and are not durable there. Dedupe by SHA-256 against
-`private/screenshots` — an end-to-end walk usually re-sends earlier shots, and
-four of seven were already held the first time this was done.
-
-**On Android a test-mode walk now photographs itself (#164), which is the half
-of this step that used to depend on somebody remembering.** The app writes one
-numbered image per step into `files/walk-captures/<session id>/` — photo
-captured, location resolved, category chosen, screen left, relay answered — in a
-debug build only, from its own window, with no permission and no screenshot
-button pressed. Pull them with
-
-```
-adb exec-out run-as is.borgarland cat files/walk-captures/<session>/<n>-<step>.jpg \
-  > private/screenshots/<date>-walk-<n>-<step>.jpg
-```
-
-and index every one of them, because an unindexed image is worse than a missing
-one: it looks like evidence and says nothing. The directory is named after the
-telemetry session, so the images and the events join without hand-transcription;
-that numbering also makes a *missing* image visible, which is how the first walk
-showed that its very first event had no window to copy yet. **iOS does not have
-this**, and #225 is why: decision 0019 lets one platform lead.
-
-**3. Cross-check the two records against each other, and say which pairs you
-checked.** The photo's byte count on the summary screen against
-`photo-captured`, the description's character count against
-`description-length`, the location label against `location-resolved.source`. If
-a pair disagrees, that is the finding — stop and chase it rather than writing
-the version that reads better.
-
-**4. Write the field-test entry** in `data/field-tests.json`, keeping the
-timeline and the report row as transcription and everything else as
-interpretation. `scripts/check-field-tests.mjs` will refuse an event the
-allowlist does not name, and refuse a finding with no issue number.
-
-**5. Say what the walk does NOT establish.** This is the step that gets skipped,
-and it is the one that stops the next session from inheriting a confirmation
-nobody earned. Build 6's first walk measured the asked-to-answered gap and did
-**not** test #139, because #139 was about the second report and she took one
-photograph. Unobserved is not disproved; write which one it is.
-
-The second walk that evening is the harder version of the same lesson, because
-it **looks** like the missing test. Two `photo-captured` and two
-`location-permission-asked` in one session id is exactly the shape #139 asked
-for, and it still settles nothing: the two are 98 minutes apart with the app
-left in between, and the tester's own voice note says she taps `Leyfa einu sinni`
-(Allow Once), which returns the permission to `.notDetermined` on its own. A
-matching shape is not a matching condition. Read the gaps between the events, not
-only the events.
-
-**6. Index every screenshot** in `private/testers.json`, saying what is ON the
-screen and what it cross-checks. Run `node scripts/check-private-index.mjs`,
-which reconciles the directory against the index and rejects a description too
-short to be one. That gate exists because on 2026-08-24 the images were saved,
-the entry was written and merged, and nothing indexed them — five against eight,
-caught by a person asking. It cannot run in CI and must not: the data is real
-names and real addresses, and this repository is public.
-
-**7. Update the tester's roster entry** with state read from the API rather than
-from a screenshot, and log the contact with a date.
+| File | Holds | Read it when |
+|---|---|---|
+| [android/AGENTS.md](android/AGENTS.md) | Google's Android skills outrank memory | before Android app code |
+| [ios/AGENTS.md](ios/AGENTS.md) | Why no Apple skills decide, and what the community ones are worth | before iOS app code |
+| [worker/AGENTS.md](worker/AGENTS.md) | Addresses: use the registry, not the city; Cloudflare profile and D1 jurisdiction | before relay, registry or wrangler work |
+| [data/AGENTS.md](data/AGENTS.md) | When new test data arrives (the seven-step check) | when a walk, screenshots or telemetry arrive |
 
 ## Conventions
 
@@ -570,19 +433,6 @@ from a screenshot, and log the contact with a date.
   workflow's header; a new scheduled workflow inherits it and need not
   relitigate the lane.
 
-## Cloudflare
-
-The Worker and its D1 live on **Samtak svf.'s** Cloudflare account, the one that
-serves `api.samtak.is`. Switch before any wrangler operation:
-
-```bash
-eval "$(node ~/.claude/scripts/switch-cf-profile.mjs samtak)"
-```
-
-Create the D1 with `--jurisdiction eu`. A jurisdiction can only be set at
-creation and can never be added afterwards; a plain `wrangler d1 create`
-silently drops the guarantee, and finding that out later means recreating the
-database.
 
 ## Origin
 
