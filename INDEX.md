@@ -16,7 +16,7 @@ Quick navigation for AI assistants. Read this first to find the relevant section
 | **What belongs in the app: a human walking with a phone** | 64-73   | The walking-with-a-phone scope test, the category label rule, and grep-the-claim discipline |
 | **The location comes from the device at capture, not from an address** | 74-79   | Take location from the device at capture, not from a typed address |
 | **Never press submit on the city's live form** | 80-90   | Never press the live submit button; use the probe; the --send flag stays |
-| **Where things are written down** | 91-95   | Which file or doc owns which kind of fact, so they do not drift |
+| **Where things are written down** | 91-95   | One home per kind of fact: data, reasoning, decisions; `private/` is never committed |
 | **Subtree context** | 96-108  | Which nested AGENTS.md holds android, ios, worker and data rules, and when to read each |
 | **Conventions** | 109-124 | Branch, commit message and authorship conventions, and hooks to install |
 | **Origin** | 125-129 | Where the project idea came from and where the private transcripts live |
