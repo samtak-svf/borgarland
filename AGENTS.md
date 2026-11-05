@@ -11,52 +11,33 @@ Read [docs/research/reykjavik-reporting-api.md](docs/research/reykjavik-reportin
 before touching anything that talks to the city. It is the whole factual basis
 for this project and it was established by black-box probing, not documentation.
 
+## Rule detail (read on the trigger)
+
+Each section below keeps its rule as one line. The full wording, its history and its measurements moved
+verbatim to `docs/agents/` (agent-config#1482 step 4); read the file when its trigger fires.
+
+| Detail file | Holds | Read it when |
+|:--|:--|:--|
+| [project-stage.md](docs/agents/project-stage.md) | Proof-of-concept status, the purpose limit, the 2026-08-31 north-star correction | before arguing from what the data is for |
+| [app-code.md](docs/agents/app-code.md) | Verify on the device; the `mobile-skills-guard` hook | before app code |
+| [relay-and-reports.md](docs/agents/relay-and-reports.md) | Phone-first queue and report id, the reporter address, deploy order and its measurements | before changing the request, the events, the queue or a deploy |
+| [app-scope.md](docs/agents/app-scope.md) | The scope test, all twelve categories, the `almenn-abending` wording | before adding a flow, a category or a screen |
+| [claim-history.md](docs/agents/claim-history.md) | Build 5/6/7 label sightings, the five wrong claims, grep-the-claim lessons | before stating what was built, installed or walked, in any file, README or issue |
+| [location-and-photos.md](docs/agents/location-and-photos.md) | Device fix vs EXIF vs address; HEIC and JPEG | before location, photo or EXIF work |
+| [live-form.md](docs/agents/live-form.md) | Why the rule is about the button, the incident, what is allowed instead | before anything that talks to the city's form |
+| [where-things-live.md](docs/agents/where-things-live.md) | The one-job-each table and why `private/` exists | before recording a fact anywhere |
+| [ci-runners.md](docs/agents/ci-runners.md) | Why CI is GitHub-hosted only | before adding a workflow or changing a runner |
+
 ## What stage this is, and what the data is for
 
-**The app is a proof of concept.** The feasibility question is answered — the
-city's endpoint was reverse-engineered, the relay carries a report end to end,
-and exactly one real ábending was filed on purpose (110759, decision 0006). No
-second one can be: `reserveLiveReport`'s row is claimed and the relay refuses
-another whatever the switch says. Nothing here is a service yet.
-
-**So the data exists to prove the app works, and nothing else.** The telemetry,
-the session join, `data/field-tests.json` — all of it is there so a walk can be
-reconstructed and a defect diagnosed with nobody in the room. That is why
-`data/relay-events.json` names no free-text field and no coordinate: it is
-diagnostic data about software, deliberately not data about people or places.
-
-**Do not justify anything here by what the data could later become.** The
-reports would add up to a map showing where the same thing keeps going wrong,
-and [#36](https://github.com/samtak-svf/borgarland/issues/36) is that idea —
-titled, deliberately, *"that is a different purpose than the one we collected
-them for."* It is a purpose that would need its own argument, its own consent
-story and its own decision record. Reaching for it as a reason to do something
-today is the exact collapse the purpose limit exists to prevent.
-
-Recorded because a session did it, 2026-08-31: asked what the project's north
-star was, it answered that the app is becoming "a record of what the city does
-with reports" and justified the measurement discipline by that — two messages
-after quoting #36 approvingly. Guðröður corrected it. The discipline needs no
-such justification, and the real one is smaller and harder: **at proof-of-concept
-stage the only thing you have is whether your claims about your own app are
-true.** A box reported as ticked that is not, or a test green for the wrong
-reason, does not spoil a future dataset. It means you do not know whether the
-thing works, which is the whole question at this stage.
+**The app is a proof of concept**, and the data exists only to prove the app works. Never justify anything
+by what the data could later become (#36): that is the collapse the purpose limit exists to prevent.
 
 ## Before you change app code: the skills outrank your memory
 
 The Android paragraph is in `android/AGENTS.md` and the iOS one in `ios/AGENTS.md`; the rest binds both.
 
-**Then verify on the device.** `android-ux` is the local companion for that half
-and defers to Google for everything about the code. Its first rule is the one
-this project learned the expensive way: *the screenshot is the instrument, take
-it before you theorise.* #110 was in every screenshot already captured while an
-agent read accessibility trees and blamed its own taps.
-
-A `PreToolUse` hook (`~/.claude/scripts/mobile-skills-guard.mjs`) says this once
-per platform per session on the first touch of `.kt` or `.swift`, including
-edits made through the shell. If you are reading this instead, the hook did its
-job.
+**Then verify on the device** (`android-ux`): the screenshot is the instrument, take it before you theorise.
 
 ## The one rule that matters
 
@@ -75,327 +56,42 @@ iOS (Swift/SwiftUI)       ─┘         │
                                      └─→  D1: our record of what was sent, when
 ```
 
-The apps do **not** post to the city directly. Behind a relay, a breaking change
-at the city costs a deploy; from the app it costs an App Store review before
-anyone can report anything again. The relay is also the only place the
-follow-through measurement can live.
-
-**A report is written to the phone before it is sent, and it carries its own
-id.** Both halves came out of the same field test, on the same phone, nine
-minutes apart: a tester filed the same ábending twice because the screen never
-said the first one had worked, and a send in airplane mode lost the report
-([`2026-08-23-ios-reykjavik-offline-and-denial`](data/field-tests.json)). The
-two sends are 34.9 seconds apart in that timeline and the airplane-mode failure
-is 8 min 52 s after the first of them, by `atMs`, which is the phone's own clock
-and the only one that measures what the person experienced.
-
-The queue is iOS-only and `data/platform-parity.json` records why; the id is on
-both. The id is 32 lowercase hex, generated per report by the app, and the relay
-stores it as the row's own primary key, so a repeat is answered with the row
-that already exists rather than becoming a second one. That makes a retry and a
-double press the same harmless thing, which neither side can otherwise tell
-apart. The queue refuses when it is full instead of evicting: every other policy
-throws away something somebody filed, silently.
-
-**A report carries the address the city will answer to, and the phone keeps
-it.** The city's form has exactly one field that gives the reporter anything
-back — no phone number, no account, no ticket handle in the app — and both apps
-skipped it until #163, so every report filed from a phone was anonymous to the
-city and its author heard nothing from anyone but us. It is now **required by
-us and optional to the city**, the same override the coordinate gets and for
-the same reason. The address belongs to the DEVICE rather than to the report:
-typed once, kept beside the queue and the follow-ups, prefilled, and read at
-send time — so a report that waited in the queue goes out to whatever address
-the phone holds now, and `QueuedReport`'s persisted format is untouched.
-
-**The relay is deliberately NOT tightened to match, and that asymmetry is the
-ordering rule pointing the other way.** `required` in `data/relay-request.json`
-is read by the two apps; the Worker reads that file for the unknown-field
-allowlist alone and still parses the email as optional. Builds 6 and 7 are on
-testers' phones and send no address, so a relay that required one would answer
-400 to every report they file — and unlike the app, those phones cannot be
-fixed by a deploy. Decision 0015, and `worker/tests/contract.test.ts` names
-itself as the test to delete when the relay does follow.
-
-**Deploy the relay before shipping an app that uses a new part of the request.**
-The Worker rejects any part `data/relay-request.json` does not name, which is
-the guard that makes a stale app fail loudly — and it points both ways. A build
-that sends a field an older relay has never heard of gets `unknown-field` on
-every send. Measured on 2026-08-23, against the live relay, by an app that had
-been built four minutes earlier.
-
-**The same rule covers `data/relay-events.json`, and there it fails quietly.**
-The Worker bundles the events allowlist at build time too (`worker/src/events.ts`
-imports it), so a build that sends an event name the live relay has never heard
-of is refused the same way. Two things make this the more dangerous half. The
-refusal is *batch-level*: `validateEvent` rejects the whole POST with
-`invalid-event-batch`, so one unknown name destroys every event that travelled
-with it, including the ones the relay does know. And the app never finds out,
-by design: `outcomeForStatus` treats 400-499 as REJECTED and drops the batch
-rather than retrying, while `/api/events` and the report path are separate
-handlers in `worker/src/app.ts` — so the report itself goes through, the person
-filing sees success, and only the measurement disappears.
-
-Measured on 2026-08-24, not assumed: a real walk lost its entire batch to one
-unknown name while its report row landed normally, and the walk left no trace to
-read afterwards, because the trace was the thing that was refused. Deploy first,
-then ship the build.
+- **The apps do not post to the city directly**: behind the relay, a break at the city costs a deploy, not an App Store review.
+- **A report is written to the phone before it is sent and carries its own id**, the row's primary key, so a retry and a double press are the same harmless thing. The queue refuses when full, never evicts.
+- **The reporter's address is required by us, optional to the city**, and belongs to the device; the relay deliberately stays optional (decision 0015).
+- **Deploy the relay before shipping an app that uses a new part of `data/relay-request.json` or `data/relay-events.json`.** An unknown name is refused, and for events the whole batch vanishes silently.
 
 ## What belongs in the app: a human walking with a phone
 
-The scope test is **can a person walking with a phone meet this thing and
-photograph it**. That test governs the *interaction*, not the taxonomy — a
-distinction worth stating, because an earlier version of this section got it
-wrong and dropped two categories over it.
+**Can a person walking with a phone meet this thing and photograph it?** All twelve categories stay; the
+camera is the entry point, a coordinate is required, and there is no desk mode. `almenn-abending` shows as
+**Annað í almannarými** from `data/category-labels.json`; never present it as a suggestion box.
 
-**All twelve categories are in the app.** Every one of them can carry a
-photograph of a physical object at a coordinate: a damaged bin on a private lot
-is as photographable from the pavement as a pothole, and a broken meter, a bent
-sign or a barrier that will not lift are as physical as a dead street light.
-
-The mistake to avoid is judging a category by the city's description text rather
-than by what people actually report through it. Read that way, `heimilissorp`
-looks like a service complaint and `bilastaedasjodur` looks like account
-administration — but **every category has a non-photographic tail**.
-`umferdaroryggi` can be a pure opinion that a junction feels dangerous, and
-`almenn-abending` usually is one. Singling out parking for a property all twelve
-share was over-fitting.
-
-So the boundary is drawn in the interaction instead:
-
-- **The camera is the entry point.** The app opens on it. There is no path that
-  starts with a form.
-- **A coordinate is required.** The city does not enforce this; we do. See the
-  location section below.
-- **No desk mode.** No flow for disputing a charge, chasing an application, or
-  filing an idea with nothing attached to it. Someone who wants that has the
-  city's own form, and the app should say so rather than pretend to be it.
-
-`almenn-abending` **is** reworded in the interface. The city calls it
-suggestions, praise and ideas; here it is the net under a broken bench, a fallen
-tree, a collapsed fence — a walker's find with no category of its own. Both
-pickers show it as **Annað í almannarými**, with a line underneath saying what
-belongs there, from `data/category-labels.json` (#40). Never present it as a
-suggestion box.
-
-Both pickers read that file, so the check is one grep of it rather than a
-memory of a screen. Worth saying because the obvious check is worse. iOS build 4
-was cut before the labels file was read at all; build 5, uploaded 2026-08-24 and
-VALID in TestFlight, is the first iOS build that reads it. **Build 5 has now
-been run**, and by more people than the relay can see. App Store Connect records
-**three** internal testers on build 5 as of 2026-08-24, with fourteen sessions
-between them; the relay recorded **one** walk, at 11:58, accepted and written up
-as [`2026-08-24-ios-build-5-first-run`](data/field-tests.json). This sentence
-said "once" until the tester list was actually read, which is the same mistake as
-every other one on this page: a count taken from the record nearest to hand
-rather than from the thing being counted. That one walk chose `heimilissorp`, so
-it did not settle the label either. Which tester made it is not knowable — App
-Store Connect names who installed, the telemetry names no device, and nothing
-joins the two.
-
-**The gap between fourteen and one now has a mechanism rather than a suspicion,
-and it is not the one #126 thought most likely.** The telemetry buffer is memory
-only, and a session where somebody opens the app, looks and leaves reaches no
-other flush point: no report, so no send-result flush, and nowhere near the
-twenty events the threshold wants. Everything rests on the flush at
-`scenePhase == .background` — which posted with `URLSession.shared` from a
-process iOS was already suspending, with no background-task assertion asking it
-to wait. So the session simply left no trace. #126 guessed that `app-opened`
-alone never triggers a flush; it does, and the flush was being killed instead.
-
-Read every iOS count in this file as a **lower bound through build 6**. Build 7
-holds an assertion across that flush, which fixes the next walk and recovers
-none of the earlier ones.
-
-**The label has now been seen on iOS, on build 6, at 22:00 on 2026-08-24.** A
-tester's screenshot of the picker shows `Annað í almannarými` above `Bekkur,
-girðing, tré eða annað sem á ekki heima í hinum flokkunum`, read off her iPhone
-and matched to `data/category-labels.json` — the same standard the Android half
-below is held to. Recorded as
-[`2026-08-24-ios-build-6-the-asked-to-answered-gap-measured`](data/field-tests.json).
-**Seen is not chosen**: she picked `heimilissorp` and switched to `gotusopun`, so
-no walk on either platform has yet filed a report under this category from iOS.
-Keep the two claims apart, because this page has confused them before.
-
-**On Android somebody has now seen it.** The picker rendered
-`Annað í almannarými` with its help line on an SM-S918B on 2026-08-24, read off
-the device and matched to the file byte for byte, and the category was then
-walked by hand to a report row — recorded as
-[`2026-08-24-android-ime-fix-and-the-label-on-a-screen`](data/field-tests.json).
-The 2026-08-23 run that #101 was filed about is in the same file, and that entry
-is careful about what it cannot say: the telemetry carries no device identifier,
-so which phone it was is a memory rather than a measurement. True of the event
-BODY, which is what that entry meant and what `data/relay-events.json` enforces.
-It was false of the transport until 2026-08-24: Android's default `User-Agent`
-named the handset model on every request, and three models were visible in the
-relay's logs before #128 replaced it with `Borgarland/<version>`. The allowlist
-governs what the app sends, never what the platform adds underneath it.
-
-**A build existing and a build having been walked are different claims.** This
-paragraph has now been wrong five times, and the fifth failed differently from
-the other four: "nobody has installed build 5" was *true when it was written*
-and stopped being true at 11:58 the same day, while the sentence sat here for
-hours saying otherwise — and in two issue bodies as well, which is where most of
-the cost was. A sentence that reports the current state of the world has a shelf
-life, and this file is not a place to store one without saying when it was
-measured.
-
-The other four were wrong on the day they were written. The third was a
-correction that cited `data/field-tests.json` for an observation the file did
-not contain; the fourth was this one still saying the run was recorded nowhere
-**one commit after the same session recorded it** (#113). Both directions of the
-same mistake, and the second was made by the person who had just written the
-first correction.
-
-So the check is not "grep before you claim". It is **grep again after you change
-the record**, because the thing that most often falsifies a sentence here is
-your own last commit.
-
-**And grep for the CLAIM, not for the sentence you remember writing.** The
-correction above announced three carriers. There were five. `README.md` said the
-build "has not yet been installed by anyone" and `ReportQueue.swift` said it "is
-installed nowhere" — the same assertion twice, in the public front door and in a
-comment whose reasoning depended on it, and a search for `nobody has installed`
-matches neither. The commit that found two carriers by widening a pattern then
-stated a count from the pattern it had just been burned by. A prose claim has as
-many spellings as the people who wrote it, so search for the several ways it
-could be said, or state no number at all — which is what the paragraph two above
-already tells you to do.
-
-**A fresh instance, 2026-08-24, and it is the carrier lesson rather than a sixth
-wrong claim in this paragraph — the count above is deliberately left alone.**
-#127 corrected "build 5 was run once" to three testers and fourteen sessions,
-here. `README.md` went on saying "once" for eight hours afterwards, in the public
-front door, until a close-out sweep grepped for the claim rather than the file.
-The correction found the document it was already reading and stopped there. That
-is the whole failure above, repeated by a session that had just written the rule
-down — which is the strongest argument this page can make for the seven-step
-check in **When new test data arrives** (`data/AGENTS.md`), and why step 6 of it is a gate rather
-than a habit.
-
-This paragraph twice said the opposite of the truth, in opposite directions. It
-first claimed the rewording existed when it did not; the correction then claimed
-it did not exist, and stayed after it was built. Both times the sentence
-described an intention rather than the tree. The check is one grep of
-`data/category-labels.json`, which is why the file exists.
-
-**`scripts/send-report.mjs` and `payload-map.md` document all twelve** because
-that is what the city accepts. They now agree with the app, but keep the
-distinction in mind: those files map the endpoint, this section governs the
-product.
+**A build existing and a build having been walked are different claims.** Date any sentence about the
+current state, and after you change the record grep again for the CLAIM, not the sentence you remember,
+in README, issues and code comments too.
 
 ## The location comes from the device at capture, not from an address
 
-The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
-here. As Biggi put it when the idea started: *the bin has no address, only the
-coordinate that came with the photo.* The coordinate is obtained from the
-device, at the moment the photo is taken, rather than from the picture as that
-wording suggests — while the principle the quote states, that an address is the
-wrong primitive, is exactly what held up. Three things must stay distinct. The GPS
-point comes from the device at capture time, and it is the only positional thing
-submitted to the city. The nearest registered address is a reverse lookup in the
-relay, appended to the description as a block for the crew — with the coordinate
-it was looked up from and how far away it was, so neither can be read as the
-other. It is not the location, and a report is never snapped to it (see
-[Addresses](worker/AGENTS.md)). EXIF is relevant only to
-a photo picked from the gallery, and there is no such path: decision 0021 keeps
-the first release camera-only (`gallery-pick` stays `neither-yet` in
-`data/platform-parity.json`). A map would be a correction rather than an entry
-point. (No map exists in either app yet; the sentence describes the intended
-shape, not a built surface.)
-
-**Which source comes first depends on where the photo came from, and testing on
-a real phone reversed the order we assumed.** A photo the app captures itself
-carries no EXIF GPS at all, because CameraX does not write it unless asked, so
-the device fix is the primary source on that path and not the fallback. EXIF is
-the primary source for a photo chosen from the gallery — which is also the path
-where it is most often missing, since messaging apps strip it. Ask both, label
-which one answered, and refuse when neither does.
-
-**The city accepts `image/jpeg`, `image/png` and `image/gif`, and an iPhone
-shoots HEIC.** On our own capture path that is a setting, not a constraint: iOS
-names its own codec through `AVCapturePhotoSettings`, so ask for JPEG and never
-transcode a photograph we took ourselves. The gallery is where it bites, on both
-platforms. A picked HEIC has to be converted, and conversion runs *larger* than
-the original (4.14 MB became 4.78 MB at quality 90); `ExifGps.read` understands
-only JPEG and reads a HEIC as having no location at all; and on iOS a picked
-photo read as a `UIImage` arrives with its EXIF gone, so read the file bytes
-instead. **All of this is reasoning about a path nobody has built**: decision
-0021 keeps the first release camera-only, so it is the measured starting point
-if a picker is ever added rather than a description of one. Measured against a
-real original, along with what else the GPS block carries and the reverse lookup
-running end to end:
-[docs/research/photos-exif-and-formats.md](docs/research/photos-exif-and-formats.md).
+The device's GPS fix at capture is the only positional thing sent to the city. The nearest registered
+address is a labelled note for the crew, never the location, and a report is never snapped to it. Ask our
+own camera for JPEG; never transcode a photograph we took ourselves.
 
 ## Never press submit on the city's live form
 
 Not with a network interceptor in place, not with the network throttled, not
 under any circumstance. The button files a real report into a real work queue.
 
-This is stated as a rule about **the button** rather than about intent, because
-the previous wording said "never file a real report as a test", was followed,
-and a real report was filed anyway — see
-[docs/incidents/2026-08-21-filed-a-real-report.md](docs/incidents/2026-08-21-filed-a-real-report.md).
-The safeguard was a patch to `window.fetch` that never ran, and it had not been
-tested before the button was pressed. A safety mechanism you have not seen fire
-is not a safety mechanism.
-
-What is allowed instead:
-
-- **The probe.** `node scripts/send-report.mjs --category <slug> --probe` posts a
-  deliberately incomplete payload that the validator must reject. It *cannot*
-  succeed, which is the property that makes it safe, and
-  `.github/workflows/contract.yml` runs it daily on that basis.
-- **Reading the client bundle** when a payload needs observing rather than
-  constructing. It is static and already downloaded; reading it cannot send.
-- **One real submission, once, deliberately**, at the end of a build, with a real
-  problem at a real location. That is a decision to take on purpose, never a step
-  in a test. **It was taken on 2026-08-30** — reference 110759, a grass strip in
-  Grafarvogur — so this line is now a record and not a permission. There is no
-  second one to spend: `reserveLiveReport`'s row is claimed and the relay refuses
-  another whatever the switch says. Filing one more is a code change in its own
-  PR, argued for on its own merits, and #6 is where that argument belongs.
+Use the `--probe`, which cannot succeed. The one deliberate real submission (110759) is spent; another is
+a code change in its own PR (#6).
 
 `scripts/send-report.mjs` will not send without `--send` for the same reason.
 Do not add a shortcut around that flag.
 
 ## Where things are written down
 
-One job each. Putting a fact in the wrong one is how they drift.
-
-No number in that sentence any more: it said "four" while the table held eight,
-which is what a count in prose does the third time the list grows.
-
-| Where | What |
-|---|---|
-| [`data/reykjavik-form.json`](data/reykjavik-form.json) | **Facts** about the city's form, with how and when each was established. `scripts/send-report.mjs` and `.github/workflows/contract.yml` read it. Change a fact here first. |
-| [`data/relay-request.json`](data/relay-request.json) | **Facts** about the request the apps send to OUR relay, in our vocabulary only. Both sides read it: the Worker rejects any part it does not name, and both apps build the request from it. A request-contract fact belongs here, never in the city's facts file and never in prose. |
-| [`data/relay-events.json`](data/relay-events.json) | **Facts** about the client event stream the apps send to OUR relay. Its allowlist is the privacy boundary: every field is a number, a boolean or a fixed enum, and it deliberately names no free-text field, so a description or a coordinate cannot travel this channel even by mistake. Adding a string field here is a privacy decision, not a schema change. |
-| [`data/relay-outcomes.json`](data/relay-outcomes.json) | **Our words** for what the relay answered, one sentence per outcome, in the language of the person filing. Separate from the city's facts for the same reason as the labels file: those record what the CITY says, this is what WE say to somebody about what happened. No Icelandic sentence for a relay answer belongs in Swift or Kotlin — both apps read this, and the mapping returns nothing rather than inventing a fallback. `worker/tests/outcomes.test.ts` holds it to every error code the Worker's own source can answer with, so a code with no sentence fails the build. |
-| [`data/category-labels.json`](data/category-labels.json) | **Our words** for a category, where the city's are wrong for someone standing in front of the thing. The only place an app may override a label from the facts file, and separate from it on purpose: that one is a faithful record of what the city says, this is where we disagree. A slug absent here renders the city's own name, which should stay the common case. |
-| [`data/platform-parity.json`](data/platform-parity.json) | **Facts** about which capabilities each app has, and the INTENT for each: parity, one-sided with a written reason, or neither-yet. `scripts/check-parity.mjs` detects the truth from the source and fails CI when it disagrees. The file does not assert what exists; that is the point. |
-| [`data/field-tests.json`](data/field-tests.json) | **Observations** from a build in a hand, on a real device, against the live relay. Each entry keeps what was OBSERVED apart from what was CONCLUDED: the timeline and the report row are transcribed from D1 and must not be edited to fit a later understanding, while `findings` is interpretation and may be revised. `scripts/check-field-tests.mjs` validates every timeline against the event allowlist, because an event that could not cross the wire cannot have been observed. The defects that reach this file are the ones no test and no CI run can see. |
-| `private/testers.json` **(gitignored, not in this repo)** | **People.** Who has been asked to test, on which channel, what they were told and what happened, plus `howToInvite` — the invite-flow traps, each one written the day somebody hit it. It is gitignored because it holds real names, addresses and chat identifiers and this repository is public. It is listed here anyway, because a file a future session does not know about gets re-derived from chat scrollback, and that is how a person gets asked twice or forgotten. Its `screenshots` index is reconciled against `private/screenshots` by `scripts/check-private-index.mjs`, which is the one gate in this table that CANNOT run in CI and must not: the data is real names and real addresses. See **When new test data arrives**. |
-| `private/city-correspondence/` **(gitignored, not in this repo)** | **Mail from the city**, kept as received — the confirmations for reports 110474 and 110759, and the city's answer to 110759 (a different kind of mail: the closure notice that is the first real outcome signal #57 is about). It is addressed mail carrying a real address, so it is gitignored for the same reason `private/testers.json` is — and listed here for the same reason too: the facts it establishes are in `data/reykjavik-form.json` under `fields.email.confirmationEmail`, `fields.email.answerEmail` and `measurement.reportVolume`, and a future session that does not know the originals exist will re-derive them from memory or not at all. |
-| [`docs/research/`](docs/research/), [`docs/incidents/`](docs/incidents/) | **Reasoning**, and write-ups of what went wrong. |
-| [`decisions/`](decisions/) | **Choices**, MADR shape, with the options that lost. A superseded record stays, marked superseded. |
-
-The reasoning behind this split is [decision 0001](decisions/0001-record-facts-reasoning-and-decisions-separately.md).
-
-**One of those files is not in the repository, on purpose.** `private/testers.json`
-holds the tester roster and the contact log, and `private/` is gitignored — the
-same convention `samtak-vefur` uses for anything carrying a name or an address.
-Everything in it is personal data about volunteers, so it must never be
-committed, quoted in an issue, or pasted into a PR body. What belongs in public
-is the *lesson*, not the person: when an invite goes wrong, the trap goes in
-`howToInvite` there and, if it is general, into the `play-console` skill.
-
-It earns its place because the invite flow has more traps than the app does.
-Play notifies a new internal tester of nothing at all; the opt-in URL works only
-with the track id and not the app id; and tapping that URL inside a chat app's
-own browser cannot complete the opt-in, which every tester invited over
-Messenger or Discord will do first. All three were found by watching one person
-try, on 2026-08-24.
+One job each: facts in `data/*.json`, reasoning in `docs/`, choices in `decisions/`. `private/` (testers,
+city mail) is gitignored, and nothing in it is ever committed, quoted in an issue or pasted into a PR body.
 
 ## Subtree context
 
@@ -424,15 +120,7 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
   an English artifact names a domain term that has an established Icelandic name,
   give the English first with the Icelandic in parentheses on first use — "a
   citizen report (ábending)". App UI strings are Icelandic.
-- CI runs on GitHub-hosted runners. This repo is public, so `ubuntu-latest` and
-  `macos-latest` minutes are free; there is no reason for a self-hosted runner
-  here. Kept hosted-only on purpose (recorded 2026-09-10, claude-config#195):
-  every job is short CI or a daily schedule and public-repo hosted minutes do
-  not run out, so a self-hosted lane would add an always-on box as a failure
-  mode without removing one. The same reason is written in each scheduled
-  workflow's header; a new scheduled workflow inherits it and need not
-  relitigate the lane.
-
+- CI is GitHub-hosted only, on purpose; a new workflow inherits that and need not relitigate the lane.
 
 ## Origin
 
