@@ -9,7 +9,7 @@ it before you theorise.* #110 was in every screenshot already captured while an
 agent read accessibility trees and blamed its own taps.
 
 **Build and test run on samtak-mac.** Gradle goes through `node ~/.claude/scripts/mac-remote.mjs
---repo . -- sh -c 'cd android && ./gradlew testDebugUnitTest'`; see `android/AGENTS.md`.
+--repo . -- 'cd android && ./gradlew testDebugUnitTest'`, the command as one quoted argument; see `android/AGENTS.md`.
 
 A `PreToolUse` hook (`~/.claude/scripts/mobile-skills-guard.mjs`) says this once
 per platform per session on the first touch of `.kt` or `.swift`, including
