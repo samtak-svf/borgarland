@@ -31,6 +31,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { once } from 'node:events'
 import { streamStadfangaskra } from 'iceaddr-ts'
+import { assertSeedFloor } from './seed-floor.mjs'
 
 const BATCH = 500
 
@@ -100,6 +101,9 @@ try {
     if (batch.length >= BATCH) flush()
   }
   flush()
+  // A short seed is refused before it is published: no rename, no apply, a red
+  // run, and the live registry keeps its rows (seed-floor.mjs).
+  assertSeedFloor(count)
 } catch (error) {
   out.destroy()
   try {
