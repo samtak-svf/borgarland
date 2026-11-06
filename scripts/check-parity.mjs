@@ -3,8 +3,9 @@
 // Reports which capabilities each app has, and fails when that disagrees with
 // what data/platform-parity.json says it should be.
 //
-//   node scripts/check-parity.mjs          # table + exit 1 on a violation
-//   node scripts/check-parity.mjs --quiet  # only the violations
+//   node scripts/check-parity.mjs            # one line on success; table + exit 1 on a violation
+//   node scripts/check-parity.mjs --verbose  # the table on success too
+//   node scripts/check-parity.mjs --quiet    # only the violations
 //
 // The problem this exists for: the two apps drifted apart and nothing said so.
 // iOS gained Crashlytics and a signed release pipeline while Android gained
@@ -29,6 +30,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const QUIET = process.argv.includes('--quiet')
+const VERBOSE = process.argv.includes('--verbose')
 
 const manifest = JSON.parse(readFileSync(join(ROOT, 'data/platform-parity.json'), 'utf8'))
 
@@ -135,7 +137,7 @@ for (const capability of manifest.capabilities) {
   rows.push({ name, intent, android, ios, verdict })
 }
 
-if (!QUIET) {
+if (!QUIET && (VERBOSE || problems.length > 0)) {
   const mark = (b) => (b ? 'yes' : ' — ')
   const w = Math.max(...rows.map((r) => r.name.length))
   console.log('')

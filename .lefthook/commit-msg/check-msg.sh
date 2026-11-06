@@ -45,6 +45,17 @@ if printf '%s\n%s' "$AUTHOR" "$COMMITTER" | grep -qiE "$AI|noreply@anthropic\.co
     failed=1
 fi
 
+# The subject must carry a conventional prefix (AGENTS.md § Conventions). The set is
+# every prefix `git log` shows in use here, workflow and ops included, so existing
+# practice is not refused. Merge, fixup! and squash! subjects are git's own.
+SUBJECT=$(printf '%s\n' "$MSG" | sed -n '1p')
+PREFIX='^(feat|fix|docs|ci|chore|refactor|test|perf|build|style|revert|workflow|ops)(\(.+\))?!?: .+'
+if ! printf '%s' "$SUBJECT" | grep -qE "$PREFIX|^(Merge|Revert|fixup!|squash!) "; then
+    echo "❌ Commit subject has no conventional prefix: $SUBJECT"
+    echo "   Expected e.g. fix(worker): the city rejects a photo over 8 MB, and we were finding out in the app"
+    exit 1
+fi
+
 if [ "$failed" -ne 0 ]; then
     echo "   Commits in this repo list only human authors."
     exit 1

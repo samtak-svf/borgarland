@@ -137,8 +137,10 @@ portal has 595 datasets and not one concerns ábendingar. A number you cannot as
 a question about is not a ticket. So
 the second half of this project falls out of the first: an app that timestamps
 its own submissions and later asks the reporter whether the thing actually got
-fixed is the only instrument anyone has for measuring the city's follow-through.
-That measurement is worth as much as the convenience.
+fixed is the only instrument anyone has for measuring the city's follow-through. At
+proof-of-concept stage that is the reason the record exists: to prove the app
+works and to show that such a measurement could be taken, not a data product
+with a use of its own (see `docs/agents/project-stage.md`).
 
 **A graceful fallback, once it is built.** When the relay cannot be reached, the
 app should open the city's own form pre-filled in a web view rather than

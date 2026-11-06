@@ -42,10 +42,12 @@ The Android paragraph is in `android/AGENTS.md` and the iOS one in `ios/AGENTS.m
 ## The one rule that matters
 
 **`worker/src/adapters/reykjavik.ts` is the only file allowed to know the
-city's field names, category slugs, or URL.** Everything upstream speaks our own
-vocabulary. The city's endpoint is undocumented and unowned; when it changes,
-the blast radius has to be one file. If you find yourself writing `lat` or
-`ruslafotur` anywhere else, that is the bug.
+city's field names, its URL, and the type, name and summary derived from a
+category slug.** The slug itself is our vocabulary, shared by the apps and the
+relay and sourced from `data/reykjavik-form.json`. The city's endpoint is
+undocumented and unowned; when it changes, the blast radius has to be one file.
+If you find yourself writing the city's raw field names (`lat`, say) or its URL
+anywhere else, that is the bug.
 
 ## Architecture
 
@@ -106,11 +108,19 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
 | [worker/AGENTS.md](worker/AGENTS.md) | Addresses: use the registry, not the city; Cloudflare profile and D1 jurisdiction | before relay, registry or wrangler work |
 | [data/AGENTS.md](data/AGENTS.md) | When new test data arrives (the seven-step check) | when a walk, screenshots or telemetry arrive |
 
+## Check your work
+
+| Surface | Run |
+|:--|:--|
+| Worker | `cd worker && npm run check` (typecheck, then vitest) |
+| Repo-wide guards | `node scripts/check-parity.mjs`, `node scripts/check-app-path-filters.mjs`, and the other `scripts/check-*.mjs` |
+| Android | Gradle runs on samtak-mac via `~/.claude/scripts/mac-remote.mjs` (see `android/AGENTS.md`) |
+
 ## Conventions
 
 - Feature branch and a PR. Never commit or push to `main`; lefthook blocks both.
 - `lefthook install` after cloning.
-- Conventional prefix, then a descriptive sentence rather than an imperative:
+- Conventional prefix (`feat|fix|docs|ci|chore|refactor|test|perf|build|style|revert|workflow|ops`; the commit-msg hook refuses anything else), then a descriptive sentence rather than an imperative:
   `fix(worker): the city rejects a photo over 8 MB, and we were finding out in the app`.
 - **No AI authorship markers** anywhere — commits, PR titles, PR bodies, issues.
   No `Co-Authored-By:` naming an AI, no `🤖 Generated with` footer, no AI in the

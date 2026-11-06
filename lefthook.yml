@@ -59,9 +59,10 @@ pre-commit:
           fi
         done
 
-    # Formatters are added as each surface lands: ktlintFormat with app/,
-    # swiftformat with ios/, prettier with worker/. An empty repo has nothing
-    # to format and a hook that shells out to a missing tool is worse than none.
+    # No formatter runs locally. ktlint runs in CI (.github/workflows/android-ci.yml,
+    # `./gradlew ktlintCheck`); iOS has no linter on purpose (decisions/0022) and the
+    # worker has no formatter. A hook that shells out to a tool a machine lacks is
+    # worse than none, so a new formatter goes in CI first.
 
 pre-push:
   commands:
