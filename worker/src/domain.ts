@@ -238,7 +238,7 @@ export function composeDescription(
         `${describeDistance(location.nearestKm)} frá hnitinu.`,
     )
   }
-  // The accuracy, when the app sent one (§223). Deliberately terse: this text
+  // The accuracy, when the app sent one (#223). Deliberately terse: this text
   // is stored by the city and quoted back in its closing email, and a crew
   // reads it on a phone. A report from a build that predates the part, or one
   // whose coordinate came from a picked photo, carries no parenthetical at all.

@@ -1,6 +1,8 @@
 package `is`.borgarland
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -31,5 +33,21 @@ class CoordinatesTest {
     fun acceptsReykjavikCoordinate() {
         assertTrue(isUsableCoordinate(64.1467, -21.9429))
         assertTrue(isUsableCoordinate(0.0, 0.0)) // finite and in range; the map-bounds warning handles the rest
+    }
+
+    // #223: the radius a report states. A fix with no radius must send no
+    // part, never "±0 m", because the relay prints the number to the crew.
+    @Test
+    fun aFixWithNoRadiusReportsNoneRatherThanZero() {
+        // Location.getAccuracy() answers 0.0 when hasAccuracy() is false.
+        assertNull(reportedAccuracyM(hasAccuracy = false, accuracyMetres = 0f))
+        assertNull(reportedAccuracyM(hasAccuracy = true, accuracyMetres = Float.NaN))
+        assertNull(reportedAccuracyM(hasAccuracy = true, accuracyMetres = -1f))
+    }
+
+    @Test
+    fun aFixWithARadiusReportsItInWholeMetres() {
+        assertEquals(100, reportedAccuracyM(hasAccuracy = true, accuracyMetres = 100f))
+        assertEquals(4, reportedAccuracyM(hasAccuracy = true, accuracyMetres = 3.54f))
     }
 }

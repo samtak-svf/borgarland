@@ -21,4 +21,19 @@ public enum Coordinates {
     public static func decimal(from text: String) -> Double? {
         Double(text)
     }
+
+    /// The radius a REPORT states for a device fix, in whole metres, or nil
+    /// when the fix carries none (#223). Nil rather than 0 because the relay
+    /// prints the number beside the coordinate the crew reads, and "±0 m"
+    /// would describe a perfect fix: the one claim a fix with no radius
+    /// cannot support.
+    ///
+    /// Core Location marks an invalid `horizontalAccuracy` with a negative
+    /// value, so a negative or non-finite radius is no radius. The telemetry
+    /// event keeps its own clamped value, because the event contract's
+    /// `accuracyM` is not optional.
+    public static func reportedAccuracyM(horizontalAccuracy: Double) -> Int? {
+        guard horizontalAccuracy.isFinite, horizontalAccuracy >= 0 else { return nil }
+        return Int(horizontalAccuracy.rounded())
+    }
 }

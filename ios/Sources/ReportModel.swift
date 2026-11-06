@@ -487,13 +487,15 @@ final class ReportModel: ObservableObject {
             update { state in
                 if let location,
                    Coordinates.isUsable(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude) {
-                    let accuracyM = max(0, Int(location.horizontalAccuracy.rounded()))
                     Telemetry.shared.track(.locationResolved(
                         elapsedMs: elapsedSincePhoto(),
                         source: .device,
-                        accuracyM: accuracyM
+                        accuracyM: max(0, Int(location.horizontalAccuracy.rounded()))
                     ))
-                    self.fixAccuracyM = accuracyM
+                    // Not the event's clamped value: Core Location marks an
+                    // invalid radius as negative, and the report must say
+                    // nothing rather than "±0 m" (#223).
+                    self.fixAccuracyM = Coordinates.reportedAccuracyM(horizontalAccuracy: location.horizontalAccuracy)
                     Telemetry.shared.track(.screenLeft(screen: .camera, completed: true))
                     state.locating = false
                     state.coordinate = Coordinate(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)

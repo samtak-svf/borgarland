@@ -629,15 +629,17 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val location = DeviceFix(getApplication()).request()
             if (location != null && isUsableCoordinate(location.latitude, location.longitude)) {
-                val accuracyM = max(0, location.accuracy.roundToInt())
                 Telemetry.shared.track(
                     TelemetryEvent.LocationResolved(
                         elapsedSincePhoto(),
                         TelemetryEvent.LocationSource.DEVICE,
-                        accuracyM,
+                        max(0, location.accuracy.roundToInt()),
                     ),
                 )
-                locationAccuracyM = accuracyM
+                // Not the event's clamped value: a fix with no radius reads
+                // 0.0 from getAccuracy(), and the report must say nothing
+                // rather than "±0 m" (#223).
+                locationAccuracyM = reportedAccuracyM(location.hasAccuracy(), location.accuracy)
                 Telemetry.shared.track(TelemetryEvent.ScreenLeft(TelemetryEvent.Screen.CAMERA, true))
                 _state.update {
                     it.copy(
