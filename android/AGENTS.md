@@ -3,6 +3,10 @@
 > Path-scoped context, loaded when you read or edit a file under this directory.
 > Read this directly before Android work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply (agent-config#1482 step 4).
 
+**Gradle runs on samtak-mac, not locally.** From the repo root:
+`node ~/.claude/scripts/mac-remote.mjs --repo . -- sh -c 'cd android && ./gradlew testDebugUnitTest'`.
+The commands in `android/POC-NOTES.md` § Build are what runs there.
+
 **Android — Google's skills decide.** They publish 21 official ones
 ([github.com/android/skills](https://github.com/android/skills), Apache-2.0),
 installed here as the `android-skills` plugin: edge-to-edge and IME insets,

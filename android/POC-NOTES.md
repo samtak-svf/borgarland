@@ -14,6 +14,10 @@ structurally cannot. Neither is true, and the rest of this file was corrected in
 
 ## Build
 
+In a fresh worktree there is no `android/local.properties`, so point Gradle at the
+SDK first: `export ANDROID_HOME=~/Android/Sdk` (or copy `local.properties` from
+another checkout).
+
 ```bash
 ./gradlew assembleDebug          # APK at app/build/outputs/apk/debug/app-debug.apk
 ./gradlew testDebugUnitTest      # the unit suite; its own summary prints the count

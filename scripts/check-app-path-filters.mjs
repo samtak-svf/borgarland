@@ -3,8 +3,9 @@
 // Fails when an app workflow's `paths:` filter does not cover every data file
 // that app bundles.
 //
-//   node scripts/check-app-path-filters.mjs          # table + exit 1 on a gap
-//   node scripts/check-app-path-filters.mjs --quiet  # only the gaps
+//   node scripts/check-app-path-filters.mjs            # one line on success; table + exit 1 on a gap
+//   node scripts/check-app-path-filters.mjs --verbose  # the table on success too
+//   node scripts/check-app-path-filters.mjs --quiet    # only the gaps
 //
 // The problem this exists for (#194): ios-ci.yml and android-ci.yml both
 // triggered on `data/**`, and only four files under data/ reach an app. One
@@ -40,6 +41,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const QUIET = process.argv.includes('--quiet')
+const VERBOSE = process.argv.includes('--verbose')
 
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8')
 
@@ -142,6 +144,7 @@ function bundled(app) {
 
 const problems = []
 const notes = []
+const tableRows = []
 const bundledByName = new Map()
 
 for (const app of APPS) {
@@ -152,10 +155,8 @@ for (const app of APPS) {
   for (const { event, paths } of lists) {
     const missing = files.filter((file) => !paths.some((pattern) => covers(pattern, file)))
     const checked = paths.filter((pattern) => pattern.startsWith('data/'))
-    if (!QUIET) {
-      const state = missing.length === 0 ? `${files.length}/${files.length}` : `${files.length - missing.length}/${files.length}`
-      console.log(`${app.name.padEnd(8)} ${app.workflow.padEnd(34)} ${event.padEnd(14)} ${state}`)
-    }
+    const state = `${files.length - missing.length}/${files.length}`
+    tableRows.push(`${app.name.padEnd(8)} ${app.workflow.padEnd(34)} ${event.padEnd(14)} ${state}`)
     for (const file of missing) {
       problems.push(`${app.workflow} (${event}): ${file} is bundled by ${app.source} and does not match any entry in the filter`)
     }
@@ -184,7 +185,10 @@ for (const [index, match] of loops.entries()) {
   }
 }
 
-for (const note of notes) console.log(`note: ${note}`)
+if (!QUIET && (VERBOSE || problems.length > 0)) {
+  for (const row of tableRows) console.log(row)
+  for (const note of notes) console.log(`note: ${note}`)
+}
 
 if (problems.length > 0) {
   console.error('')
@@ -195,4 +199,4 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-if (!QUIET) console.log(`\nApp path filters: ${APPS.length} apps, no data file bundled that the filter does not cover.`)
+if (!QUIET) console.log(`${VERBOSE ? '\n' : ''}App path filters: ${APPS.length} apps, no data file bundled that the filter does not cover.`)

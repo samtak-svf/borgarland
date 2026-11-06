@@ -11,9 +11,11 @@ lint in `.github/workflows/android-ci.yml`, and iOS runs neither. The parity
 check caught the asymmetry the moment ktlint landed, which is the tool doing its
 job. What nobody had done was decide what to do about the iOS half (#206).
 
-The iOS half is 45 Swift files and 7,256 lines. Nothing can compile it on this
-machine — there is no Mac and no Swift toolchain — so `ios-ci.yml` is the only
-compiler, and `swift test` on the host is the only test runner.
+The iOS half is 45 Swift files and 7,256 lines. Nothing here can build the app
+target — `BorgarlandCore` imports ImageIO, which exists only on Apple platforms
+(a host `swift` binary may exist, but it cannot compile that import) — so
+`ios-ci.yml` is the only compiler, and `swift test` on a Mac is the only test
+runner.
 
 ## What could be measured without a Mac
 

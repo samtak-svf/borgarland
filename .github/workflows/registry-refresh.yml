@@ -18,8 +18,10 @@ name: registry-refresh
 #     end.
 #
 # 03:17 UTC daily — off the hour to avoid the top-of-hour thundering herd of
-# every other cron on the platform, and early enough that a failed run is
-# visible the same morning.
+# every other cron on the platform. GitHub queues scheduled runs under load, so
+# they actually start between about 08:00 and 11:00 UTC (measured over the 15
+# runs to 2026-11-06); a failed run is still visible the same day, not before
+# the morning.
 
 on:
   schedule:
