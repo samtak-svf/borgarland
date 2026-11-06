@@ -51,6 +51,16 @@ public struct Payload {
     /// that can disagree.
     public let email: String?
 
+    /// How wrong the device fix behind the coordinate might be, in whole metres
+    /// (#223, decision 0023). The relay appends it to the block the crew reads,
+    /// so a distance rounded to ten metres is not mistaken for a ten-metre fix.
+    ///
+    /// Nil in two real cases rather than as a precaution: a coordinate that
+    /// came from the photograph's EXIF, which carries no radius (decision
+    /// 0023, point 4), and a build older than the relay that first accepted
+    /// the part. Nothing on either side gates on it.
+    public let accuracyM: Int?
+
     public init(
         categorySlug: String,
         latitude: Double,
@@ -59,10 +69,12 @@ public struct Payload {
         photos: [Photo],
         email: String? = nil,
         reportId: String? = nil,
-        session: String? = nil
+        session: String? = nil,
+        accuracyM: Int? = nil
     ) {
         self.reportId = reportId
         self.session = session
+        self.accuracyM = accuracyM
         self.categorySlug = categorySlug
         self.latitude = latitude
         self.longitude = longitude

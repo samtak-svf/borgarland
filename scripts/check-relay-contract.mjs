@@ -34,7 +34,7 @@ const check = (ok, message) => {
 }
 
 // The one documented shape. The order is the order the app writes the parts in.
-const EXPECTED_FIELDS = ['reportId', 'session', 'category', 'latitude', 'longitude', 'description', 'email', 'photo']
+const EXPECTED_FIELDS = ['reportId', 'session', 'category', 'latitude', 'longitude', 'accuracy', 'description', 'email', 'photo']
 const fieldNames = Object.keys(contract.fields ?? {})
 check(
   JSON.stringify(fieldNames) === JSON.stringify(EXPECTED_FIELDS),
@@ -71,7 +71,7 @@ for (const category of facts.categories) {
 // the relay still accepts a report without one, because builds 6 and 7 are on
 // testers' phones and send none. worker/tests/contract.test.ts pins that
 // tolerance, so the divergence cannot be closed by accident on either side.
-const REQUIRED = { category: true, latitude: true, longitude: true, description: true, email: true, photo: false }
+const REQUIRED = { category: true, latitude: true, longitude: true, accuracy: false, description: true, email: true, photo: false }
 for (const [name, expected] of Object.entries(REQUIRED)) {
   check(
     contract.fields[name]?.required === expected,
@@ -125,5 +125,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  '✓ relay request contract holds: eight fields in order, no city vocabulary, facts in agreement, both sides reading the file',
+  '✓ relay request contract holds: nine fields in order, no city vocabulary, facts in agreement, both sides reading the file',
 )

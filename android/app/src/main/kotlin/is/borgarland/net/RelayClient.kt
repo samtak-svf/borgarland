@@ -187,6 +187,10 @@ object RelayClient {
             "category" -> payload.categorySlug
             "latitude" -> payload.latitudeText
             "longitude" -> payload.longitudeText
+            // How wrong the fix behind that coordinate might be (#223). Absent
+            // rather than zero when the app has none: the relay states what it
+            // is given, and a fabricated 0 would read as a perfect fix.
+            "accuracy" -> payload.accuracyM?.toString()
             "description" -> payload.description
             // Where the city sends its confirmation (#163). Required by the
             // contract, so a null here is refused by the loop below rather

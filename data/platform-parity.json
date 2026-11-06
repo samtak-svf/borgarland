@@ -245,6 +245,15 @@
       }
     },
     {
+      "name": "accuracy-on-the-wire",
+      "intent": "parity",
+      "what": "The device fix's radius travels with the report as an optional part of data/relay-request.json (#223, decision 0023), so the relay can state it in the block the crew reads rather than leaving a distance rounded to ten metres to speak for a fix that may be a hundred metres out.",
+      "detect": {
+        "android": { "paths": ["android/app/src/main/kotlin"], "pattern": "locationAccuracyM" },
+        "ios": { "paths": ["ios/Sources", "ios/BorgarlandCore/Sources"], "pattern": "fixAccuracyM" }
+      }
+    },
+    {
       "name": "map-correction",
       "intent": "neither-yet",
       "reason": "#2 — AGENTS.md describes the map in the present tense as a correction surface. It does not exist on either platform.",

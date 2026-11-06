@@ -41,4 +41,18 @@ final class CoordinatesTest: XCTestCase {
         XCTAssertEqual(String(64.14658919), "64.14658919")
         XCTAssertEqual(String(-21.93279823), "-21.93279823")
     }
+
+    /// #223: the radius a report states. A fix with no radius must send no
+    /// part, never "±0 m", because the relay prints the number to the crew.
+    func testAFixWithNoRadiusReportsNoneRatherThanZero() {
+        // Core Location marks an invalid horizontalAccuracy as negative.
+        XCTAssertNil(Coordinates.reportedAccuracyM(horizontalAccuracy: -1))
+        XCTAssertNil(Coordinates.reportedAccuracyM(horizontalAccuracy: .nan))
+        XCTAssertNil(Coordinates.reportedAccuracyM(horizontalAccuracy: .infinity))
+    }
+
+    func testAFixWithARadiusReportsItInWholeMetres() {
+        XCTAssertEqual(Coordinates.reportedAccuracyM(horizontalAccuracy: 100), 100)
+        XCTAssertEqual(Coordinates.reportedAccuracyM(horizontalAccuracy: 3.54), 4)
+    }
 }
