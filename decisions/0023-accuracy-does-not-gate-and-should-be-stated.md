@@ -1,7 +1,9 @@
 # 0023 — The fix's accuracy does not gate a report, and the crew should be told when it is loose
 
 - **Date:** 2026-09-15
-- **Status:** Accepted
+- **Status:** Accepted. Point 3 was implemented by #234 (merged 2026-11-06, closing #223); the relay
+  stores the radius as `accuracy_m` and states it on the coordinate's line. The context below
+  describes the code as it was on the decision's date.
 
 ## Context
 

@@ -4,7 +4,9 @@
 > Read this directly before Android work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply (agent-config#1482 step 4).
 
 **Gradle runs on samtak-mac, not locally.** From the repo root:
-`node ~/.claude/scripts/mac-remote.mjs --repo . -- sh -c 'cd android && ./gradlew testDebugUnitTest'`.
+`node ~/.claude/scripts/mac-remote.mjs --repo . -- 'cd android && ./gradlew testDebugUnitTest'`.
+Pass the command as one quoted argument: mac-remote joins the words after `--` with
+spaces, so a `sh -c '…'` wrapper loses its quotes and runs `./gradlew` from the repo root.
 The commands in `android/POC-NOTES.md` § Build are what runs there.
 
 **Android — Google's skills decide.** They publish 21 official ones
