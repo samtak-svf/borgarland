@@ -117,6 +117,8 @@ nothing on its own. Record the commit next to it every time, and check
 | `d8ca63ae` | 2026-08-24 02:24 | `ae76515` (#105) | the gate becomes the write (#98) |
 | `bdadab48` | 2026-08-24 03:24 | `21ba1f5` (#108) | drops a read-back nobody used |
 | `a18a4cd6` | 2026-08-24 20:00 | `2dbce93` (#136) | the events allowlist learns `location-permission-asked` |
+| `b1ae4a68` | 2026-08-31 13:29 | — (not recorded) | the version live until 2026-11-06, read from `wrangler deployments list` |
+| `a672f9a8` | 2026-11-06 23:25 | `a6ee290` (#234) | the fix's accuracy on the wire (#223), after migration 0007 |
 
 `npx wrangler deployments list` gives the live one. To prove the deployed
 bundle IS a given commit rather than assuming it, build that commit with
