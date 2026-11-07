@@ -90,8 +90,20 @@ settings:
     # 0.1.0 again would make the version string say two different binaries are
     # the same one, which is the complaint data/field-tests.json already
     # records against 0.1.0 (1).
-    MARKETING_VERSION: "0.1.1"
-    CURRENT_PROJECT_VERSION: 8
+    #
+    # 9: the first build that tells the crew how sure the position is. The
+    # device fix's horizontal accuracy now goes to the relay as `accuracy`,
+    # and the relay stores it and passes it on (#223); a fix with no radius
+    # sends no accuracy part, not "±0 m". The gallery caption now reads the
+    # switch before the permission, so with saving off it no longer claims a
+    # photograph is being saved, and a denial updates it after the save task
+    # instead of waiting for a restart (#201).
+    #
+    # MARKETING_VERSION moves to 0.1.2 with it, and so does versionName in
+    # android/app/build.gradle.kts, because Android 0.1.2 carries the same
+    # field.
+    MARKETING_VERSION: "0.1.2"
+    CURRENT_PROJECT_VERSION: 9
   configs:
     # Explicit rather than left to XcodeGen's preset, because RelayClient
     # selects the relay host on `#if DEBUG` (#29). Getting this wrong is
