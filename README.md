@@ -32,7 +32,10 @@ what is built on top of it is:
   release — `0.1.0` went out that way on 2026-08-24
   ([#58](https://github.com/samtak-svf/borgarland/issues/58)), and `0.1.1`
   (versionCode 2) on 2026-08-31, carrying fourteen issues the first release
-  never had. **Play's internal track holds `2 (0.1.1)` since 2026-08-31 21:40**,
+  never had. `0.1.2` (versionCode 3) followed on 2026-11-07, the first release
+  that sends the fix's accuracy (#223); it was walked on an emulator against
+  the dry-run relay the same night, not yet on a phone. **Play's internal track
+  still holds `2 (0.1.1)`, from 2026-08-31 21:40** (as of 2026-11-07),
   available to the two testers on the `Borgarland Android prófarar` list.
   Uploading is a separate manual act: the workflow only attaches the AAB to a
   GitHub release. Internal testing publishes with no review, so there is no
@@ -43,9 +46,10 @@ what is built on top of it is:
   rather than in a build log.
 - **The iOS app** (`ios/`), the same flow in SwiftUI, on top of a
   platform-independent `BorgarlandCore` package whose tests pin it to the same
-  request contract the Android and Worker tests pin. Builds through `0.1.1 (8)`
-  are in TestFlight, signed without a Mac; build 8 went `VALID` at 21:29Z on
-  2026-08-31, read from the App Store Connect API rather than from the build
+  request contract the Android and Worker tests pin. Builds through `0.1.2 (9)`
+  are in TestFlight, signed without a Mac; build 9 went `VALID` by 00:40Z on
+  2026-11-07 (build 8 at 21:29Z on 2026-08-31), read from the App Store Connect
+  API rather than from the build
   log. Build 4 was walked by two testers on
   2026-08-23; build 5 was installed by three testers on 2026-08-24, of whom the
   relay saw one walk; build 6 was walked twice the same evening, first 45
