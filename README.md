@@ -35,8 +35,9 @@ what is built on top of it is:
   never had. `0.1.2` (versionCode 3) followed on 2026-11-07, the first release
   that sends the fix's accuracy (#223); it was walked on an emulator against
   the dry-run relay the same night, not yet on a phone. **Play's internal track
-  still holds `2 (0.1.1)`, from 2026-08-31 21:40** (as of 2026-11-07),
-  available to the two testers on the `Borgarland Android prófarar` list.
+  holds `3 (0.1.2)`, published 2026-11-07 00:49 UTC** (it held `2 (0.1.1)`
+  from 2026-08-31 21:40 until then), available to the two testers on the
+  `Borgarland Android prófarar` list.
   Uploading is a separate manual act: the workflow only attaches the AAB to a
   GitHub release. Internal testing publishes with no review, so there is no
   waiting period between the upload and the phone.
