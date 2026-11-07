@@ -158,6 +158,14 @@ jobs:
           path: ios/build/ipa/Borgarland.ipa
           retention-days: 90
 
+      # wait-for-processing is off on purpose. Since v5.7.0 (2026-10-23) the
+      # action refuses to upload while waiting is on unless the app's TestFlight
+      # Test Information (beta description, feedback email) is filled in. Apple
+      # asks for that only for external testing, and this app has internal
+      # testers only, so build 9 was refused although builds 1 to 8 went up
+      # without it. Waiting only gates group assignment and metadata updates,
+      # which this workflow uses neither of. Processing is read from the App
+      # Store Connect API after the run, which is the check that counts anyway.
       - name: Upload to TestFlight
         if: github.event_name == 'push' || inputs.upload_to_testflight == 'true'
         uses: apple-actions/upload-testflight-build@v5
@@ -166,3 +174,4 @@ jobs:
           issuer-id: ${{ secrets.ASC_API_ISSUER_ID }}
           api-key-id: ${{ secrets.ASC_API_KEY_ID }}
           api-private-key: ${{ secrets.ASC_API_KEY_P8 }}
+          wait-for-processing: 'false'
