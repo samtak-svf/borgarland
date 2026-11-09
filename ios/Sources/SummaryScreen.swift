@@ -50,11 +50,17 @@ struct SummaryScreen: View {
                 // identifies this report rather than describing it. The screen
                 // is headed "what would be sent" and was omitting a part that
                 // is sent.
+                // One row per part in data/relay-request.json, in its order;
+                // scripts/check-summary-fields.mjs fails when a part has no
+                // row (#254). "—" when none is sent, as on Android.
                 FieldRow(label: "reportId", value: payload.reportId ?? "—")
+                FieldRow(label: "session", value: payload.session ?? "—")
                 FieldRow(label: "category", value: payload.categorySlug)
                 FieldRow(label: "latitude", value: payload.latitudeText)
                 FieldRow(label: "longitude", value: payload.longitudeText)
+                FieldRow(label: "accuracy", value: payload.accuracyM.map { "±\($0) m" } ?? "—")
                 FieldRow(label: "description", value: payload.description)
+                FieldRow(label: "email", value: payload.email ?? "—")
 
                 Text("photo")
                     .font(.subheadline)

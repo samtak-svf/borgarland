@@ -94,11 +94,21 @@ fun SummaryScreen(
         // screen is reached and kept until the walk starts over, so it is the
         // one value a person can read out BEFORE sending — which is what lets
         // an operator authorise one specific report rather than one device.
+        //
+        // One row per part in data/relay-request.json, in its order, and
+        // scripts/check-summary-fields.mjs fails when a part has no row (#254).
+        // The headline says "what would be sent", so a part that is sent and
+        // not listed makes the headline untrue.
         FieldRow("reportId", payload.reportId ?: "—")
+        FieldRow("session", payload.session ?: "—")
         FieldRow("category", payload.categorySlug)
         FieldRow("latitude", payload.latitudeText)
         FieldRow("longitude", payload.longitudeText)
+        // "—" when none is sent: a coordinate from a picked photo's EXIF has no
+        // radius (decision 0023, point 4), and neither has a build's older queue row.
+        FieldRow("accuracy", payload.accuracyM?.let { "±$it m" } ?: "—")
         FieldRow("description", payload.description)
+        FieldRow("email", payload.email ?: "—")
 
         Text(
             "photo",
