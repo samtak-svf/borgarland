@@ -142,7 +142,7 @@ struct CameraScreen: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Text("Taktu mynd af því sem þú sérð. Staðsetningin kemur úr myndinni, annars úr tækinu.")
+            Text("Taktu mynd af því sem þú sérð. Staðsetningin er tekin úr tækinu um leið og þú tekur myndina. Náist hún ekki geturðu reynt aftur.")
                 .font(.footnote)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 4)

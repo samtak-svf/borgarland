@@ -199,7 +199,7 @@ fun CameraScreen(
                 )
             }
             Text(
-                "Taktu mynd af því sem þú sérð. Staðsetningin kemur úr myndinni, annars úr tækinu.",
+                "Taktu mynd af því sem þú sérð. Staðsetningin er tekin úr tækinu um leið og þú tekur myndina. Náist hún ekki geturðu reynt aftur.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )

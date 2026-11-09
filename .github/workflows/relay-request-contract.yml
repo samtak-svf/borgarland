@@ -26,6 +26,7 @@ on:
       - 'android/**'
       - 'ios/**'
       - 'scripts/check-relay-contract.mjs'
+      - 'scripts/check-summary-fields.mjs'
       - '.github/workflows/relay-request-contract.yml'
   workflow_dispatch:
 
@@ -57,6 +58,11 @@ jobs:
 
       - name: The contract file holds, and the Worker reads it
         run: node scripts/check-relay-contract.mjs
+
+      # The summary screens say they show what would be sent (#254): every
+      # part the contract names needs a row on both platforms.
+      - name: Both summary screens list every part of the contract
+        run: node scripts/check-summary-fields.mjs
 
       # `npm run check` rather than `npm test`: it typechecks first. The
       # project has a typecheck script and nothing ran it, so a test file that
