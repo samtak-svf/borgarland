@@ -53,7 +53,7 @@ site.
 - [`docs/research/`](../docs/research/) and [`docs/incidents/`](../docs/incidents/)
   — the reasoning, and write-ups of things that went wrong.
 - `decisions/` — this directory, in the MADR shape already used in
-  `gudrodur/leidarvisir-fehirdis`.
+  a sibling project of the same maintainer.
 
 ## Consequences
 

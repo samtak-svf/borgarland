@@ -1,6 +1,6 @@
 # Project stage and the purpose limit
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **What stage this is, and what the data is for**. Read this on the trigger named in the root's "Rule detail" table.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **What stage this is, and what the data is for**. Read this on the trigger named in the root's "Rule detail" table.
 
 **The app is a proof of concept.** The feasibility question is answered — the
 city's endpoint was reverse-engineered, the relay carries a report end to end,

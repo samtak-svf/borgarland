@@ -1,6 +1,6 @@
 # Location and photo formats
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **The location comes from the device at capture, not from an address**. Read this on the trigger named in the root's "Rule detail" table.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **The location comes from the device at capture, not from an address**. Read this on the trigger named in the root's "Rule detail" table.
 
 The city's form leads with "Sláðu inn heimilisfang". That is the wrong primitive
 here. As Biggi put it when the idea started: *the bin has no address, only the

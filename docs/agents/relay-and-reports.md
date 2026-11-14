@@ -1,6 +1,6 @@
 # Relay, report queue and deploy order
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **Architecture**. Read this on the trigger named in the root's "Rule detail" table.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **Architecture**. Read this on the trigger named in the root's "Rule detail" table.
 
 The apps do **not** post to the city directly. Behind a relay, a breaking change
 at the city costs a deploy; from the app it costs an App Store review before

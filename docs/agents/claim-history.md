@@ -1,6 +1,6 @@
 # Label sightings and the claim-correction history
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **What belongs in the app: a human walking with a phone**. Read this on the trigger named in the root's "Rule detail" table. It continues [app-scope.md](app-scope.md): "that file" in its first line is `data/category-labels.json`.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **What belongs in the app: a human walking with a phone**. Read this on the trigger named in the root's "Rule detail" table. It continues [app-scope.md](app-scope.md): "that file" in its first line is `data/category-labels.json`.
 
 Both pickers read that file, so the check is one grep of it rather than a
 memory of a screen. Worth saying because the obvious check is worse. iOS build 4

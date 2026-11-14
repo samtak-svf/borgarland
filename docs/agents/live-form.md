@@ -1,6 +1,6 @@
 # The live-form button rule
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **Never press submit on the city's live form**. Read this on the trigger named in the root's "Rule detail" table.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **Never press submit on the city's live form**. Read this on the trigger named in the root's "Rule detail" table.
 
 This is stated as a rule about **the button** rather than about intent, because
 the previous wording said "never file a real report as a test", was followed,

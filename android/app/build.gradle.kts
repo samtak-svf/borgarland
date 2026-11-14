@@ -29,7 +29,7 @@ check(listOf("127.0.0.1", "localhost", "::1", "0.0.0.0").none { relayBaseUrlRele
     "the release relay URL must not be a loopback: $relayBaseUrlRelease"
 }
 
-// Upload signing, per ~/.claude/skills/sosi-android-app-delivery. Values come
+// Upload signing, per the house Android pattern. Values come
 // from app/keystore.properties (written by scripts/pull-release-keystore.sh) or
 // from the environment in CI. Slug is `borgarland`, so the env prefix is
 // BORGARLAND_.
@@ -56,7 +56,7 @@ android {
         applicationId = "is.borgarland"
         minSdk = 26
         targetSdk = 36
-        // Driven by CI so a release never carries a placeholder. The skill's
+        // Driven by CI so a release never carries a placeholder. The house pattern's
         // rule: the hardcoded default must never reach a store.
         versionCode = (System.getenv("BORGARLAND_VERSION_CODE") ?: "1").toInt()
         versionName = System.getenv("BORGARLAND_VERSION_NAME") ?: "0.1.2"

@@ -1,12 +1,12 @@
 # Android app context
 
 > Path-scoped context, loaded when you read or edit a file under this directory.
-> Read this directly before Android work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply (agent-config#1482 step 4).
+> Read this directly before Android work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply.
 
-**Gradle runs on samtak-mac, not locally.** From the repo root:
-`node ~/.claude/scripts/mac-remote.mjs --repo . -- 'cd android && ./gradlew testDebugUnitTest'`.
-Pass the command as one quoted argument: mac-remote joins the words after `--` with
-spaces, so a `sh -c '…'` wrapper loses its quotes and runs `./gradlew` from the repo root.
+**The maintainers run Gradle on a remote Mac build host; any machine with a
+suitable JDK works.** CI builds with Temurin 17 and `android/POC-NOTES.md` records
+a green build on JDK 25. The command is `cd android && ./gradlew testDebugUnitTest`,
+run from the repo root.
 The commands in `android/POC-NOTES.md` § Build are what runs there.
 
 **Android — Google's skills decide.** They publish 21 official ones

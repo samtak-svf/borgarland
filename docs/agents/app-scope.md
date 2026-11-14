@@ -1,6 +1,6 @@
 # App scope: a human walking with a phone
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **What belongs in the app: a human walking with a phone**. Read this on the trigger named in the root's "Rule detail" table.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **What belongs in the app: a human walking with a phone**. Read this on the trigger named in the root's "Rule detail" table.
 
 The scope test is **can a person walking with a phone meet this thing and
 photograph it**. That test governs the *interaction*, not the taxonomy — a

@@ -14,12 +14,12 @@ for this project and it was established by black-box probing, not documentation.
 ## Rule detail (read on the trigger)
 
 Each section below keeps its rule as one line. The full wording, its history and its measurements moved
-verbatim to `docs/agents/` (agent-config#1482 step 4); read the file when its trigger fires.
+verbatim to `docs/agents/`; read the file when its trigger fires.
 
 | Detail file | Holds | Read it when |
 |:--|:--|:--|
 | [project-stage.md](docs/agents/project-stage.md) | Proof-of-concept status, the purpose limit, the 2026-08-31 north-star correction | before arguing from what the data is for |
-| [app-code.md](docs/agents/app-code.md) | Verify on the device; the `mobile-skills-guard` hook | before app code |
+| [app-code.md](docs/agents/app-code.md) | Verify on the device; the first-touch skills hook | before app code |
 | [relay-and-reports.md](docs/agents/relay-and-reports.md) | Phone-first queue and report id, the reporter address, deploy order and its measurements | before changing the request, the events, the queue or a deploy |
 | [app-scope.md](docs/agents/app-scope.md) | The scope test, all twelve categories, the `almenn-abending` wording | before adding a flow, a category or a screen |
 | [claim-history.md](docs/agents/claim-history.md) | Build 5/6/7 label sightings, the five wrong claims, grep-the-claim lessons | before stating what was built, installed or walked, in any file, README or issue |
@@ -114,7 +114,7 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
 |:--|:--|
 | Worker | `cd worker && npm run check` (typecheck, then vitest) |
 | Repo-wide guards | `node scripts/check-parity.mjs`, `node scripts/check-app-path-filters.mjs`, and the other `scripts/check-*.mjs` |
-| Android | Gradle runs on samtak-mac via `~/.claude/scripts/mac-remote.mjs` (see `android/AGENTS.md`) |
+| Android | The maintainers run Gradle on a remote Mac build host; any machine with a suitable JDK works (see `android/AGENTS.md`) |
 
 ## Conventions
 
@@ -135,5 +135,5 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
 ## Origin
 
 The idea is Biggi Veira's. The conversation it came from, transcribed with
-speaker attribution and the requirements extracted, is private and lives outside
-this repo at `~/fedora-setup/projects/borgarland/conversations/`.
+speaker attribution and the requirements extracted, is private and is not kept
+in this repo.

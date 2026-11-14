@@ -1,7 +1,7 @@
 # Worker relay context
 
 > Path-scoped context, loaded when you read or edit a file under this directory.
-> Read this directly before any wrangler, deploy or registry lookup work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply (agent-config#1482 step 4).
+> Read this directly before any wrangler, deploy or registry lookup work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply.
 
 ## Addresses: use the registry, not the city
 
@@ -61,11 +61,7 @@ nearest house. Detail: [docs/research/addresses-and-the-registry.md](../docs/res
 ## Cloudflare
 
 The Worker and its D1 live on **Samtak svf.'s** Cloudflare account, the one that
-serves `api.samtak.is`. Switch before any wrangler operation:
-
-```bash
-eval "$(node ~/.claude/scripts/switch-cf-profile.mjs samtak)"
-```
+serves `api.samtak.is`. Use that account's API token (`CLOUDFLARE_API_TOKEN`) before any wrangler operation.
 
 Create the D1 with `--jurisdiction eu`. A jurisdiction can only be set at
 creation and can never be added afterwards; a plain `wrangler d1 create`

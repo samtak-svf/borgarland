@@ -1,7 +1,7 @@
 # Field-test data context
 
 > Path-scoped context, loaded when you read or edit a file under this directory.
-> Read this directly when a new walk arrives, before touching data/field-tests.json or private/. Root rules in [AGENTS.md](../AGENTS.md) still apply (agent-config#1482 step 4).
+> Read this directly when a new walk arrives, before touching data/field-tests.json or private/. Root rules in [AGENTS.md](../AGENTS.md) still apply.
 
 ## When new test data arrives
 

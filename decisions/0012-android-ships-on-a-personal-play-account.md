@@ -39,12 +39,11 @@ and Play internal testing.
 
 ## Why a personal Play account
 
-The house pattern (`~/.claude/skills/sosi-android-app-delivery`) puts every
-Android app on the Sósíalistaflokkurinn developer account
-`5400094003987166957`. Borgarland is a Samtak svf. app, and Rósa Parks being
-stuck on that same party account is an **open severance item** — rosa-parks#277,
-tracked in the severance ledger rosa-parks#268. Publishing a second co-op app
-there would deepen an entanglement that is actively being unwound.
+The house pattern puts every Android app on the Sósíalistaflokkurinn developer
+account `5400094003987166957`. Borgarland is a Samtak svf. app, and Rósa Parks
+being stuck on that same party account is an **open severance item**, tracked
+outside this repo. Publishing a second co-op app there would deepen an
+entanglement that is actively being unwound.
 
 The personal account costs nothing, waits for nothing, and belongs to no party.
 It is not the end state: a Samtak svf. developer account is the clean answer, and
@@ -83,17 +82,17 @@ being field-tested whether or not it is delivered.
 
 ## Consequences
 
-**Two deliberate divergences from the delivery skill**, both recorded here rather
+**Two deliberate divergences from the house pattern**, both recorded here rather
 than left to be discovered:
 
 1. **Signing material comes from GitHub secrets, not Workload Identity
-   Federation.** The skill's rule exists for apps on the party account with a WIF
+   Federation.** The house pattern's rule exists for apps on the party account with a WIF
    pool already standing; this app has neither, and this repository *already*
    signs iOS from GitHub secrets. A second auth mechanism would be a fork for its
    own sake. The keystore is backed up in Secret Manager as
-   `borgarland-android-upload-*` in `fedora-setup-secrets`.
+   `borgarland-android-upload-*` in the owner's personal secret store (the project `scripts/pull-release-keystore.sh` reads).
 
-2. **R8 stays off.** The skill's Gradle block sets `isMinifyEnabled = true`.
+2. **R8 stays off.** The house pattern's Gradle block sets `isMinifyEnabled = true`.
    Turning on minification in the same change that adds Firebase is exactly what
    shipped Símaver `0.1.0-beta35` to 26 testers with a crash on every launch — R8
    strips the Crashlytics `ComponentRegistrar`, the build succeeds, and only a
@@ -101,7 +100,7 @@ than left to be discovered:
    mapping upload. Turning it on is #118, with its own device smoke test.
 
 **The upload key cannot be rotated once Play pins it.** It exists in two places
-and must stay in both: `fedora-setup-secrets` and the GitHub secret. This
+and must stay in both: the owner's personal secret store and the GitHub secret. This
 repository is public, so `android/app/*.p12` and `android/app/keystore.properties`
 were added to `.gitignore` *before* the key was generated.
 
