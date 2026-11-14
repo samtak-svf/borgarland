@@ -9,7 +9,7 @@
 #
 # This is the local half. It cannot run at all on a machine that never installed
 # lefthook, which is how #187 and #188 got through, so the authoritative check is
-# .github/workflows/ai-authorship.yml — keep the two in agreement.
+# .github/workflows/ai-authorship-guard.yml — keep the two in agreement.
 set -uo pipefail
 
 MSG=$(cat "$1")

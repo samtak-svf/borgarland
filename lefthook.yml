@@ -1,5 +1,5 @@
 # Local guardrails. The authoritative AI-authorship check is the server-side
-# .github/workflows/ai-authorship.yml — these hooks only run on a machine that
+# .github/workflows/ai-authorship-guard.yml — these hooks only run on a machine that
 # installed lefthook, which a cloud session never is.
 #
 # Install with: lefthook install
