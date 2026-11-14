@@ -125,7 +125,7 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
 - **No AI authorship markers** anywhere — commits, PR titles, PR bodies, issues.
   No `Co-Authored-By:` naming an AI, no `🤖 Generated with` footer, no AI in the
   author or committer identity. Enforced locally by lefthook and authoritatively
-  by `.github/workflows/ai-authorship.yml`.
+  by `.github/workflows/ai-authorship-guard.yml`.
 - Everything written in English: commits, PRs, issues, code comments, docs. When
   an English artifact names a domain term that has an established Icelandic name,
   give the English first with the Icelandic in parentheses on first use — "a

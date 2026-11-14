@@ -191,7 +191,7 @@ minutes are free and there is no reason for a self-hosted runner.
 | `ios-ci.yml` | The SwiftUI shell builds for a simulator, unsigned. |
 | `ios-release.yml` | On an `ios-v*` tag: archive, sign, upload dSYMs to Crashlytics, ship to TestFlight — without a Mac. |
 | `field-tests.yml` | That a record in `data/field-tests.json` transcribes only events the relay's allowlist permits, so a hand-written transcript stays trustworthy. |
-| `ai-authorship.yml` | That no commit or PR body carries an AI authorship marker. |
+| `ai-authorship-guard.yml` | That no commit or PR body carries an AI authorship marker. |
 | `issue-title-guard.yml` | That an issue title follows `area: description`, against this repo's own area list — a violation gets a label and a comment, never a closure. |
 | `revisit-guard.yml` | That an issue labelled `blocked: time` carries a `Revisit: YYYY-MM-DD` line; without one it comments once, because a label with no date is a promise nothing can keep. |
 
