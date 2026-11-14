@@ -1,6 +1,6 @@
 # Where things are written down: the full table
 
-> Moved verbatim from the root `AGENTS.md` (agent-config#1482 step 4), where the rule stays as one line under the heading **Where things are written down**. Read this on the trigger named in the root's "Rule detail" table.
+> Moved verbatim from the root `AGENTS.md`, where the rule stays as one line under the heading **Where things are written down**. Read this on the trigger named in the root's "Rule detail" table.
 
 One job each. Putting a fact in the wrong one is how they drift.
 

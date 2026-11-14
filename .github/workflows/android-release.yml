@@ -2,13 +2,12 @@
 # key, verified against a pinned fingerprint, attached to a GitHub release.
 #
 # The counterpart of ios-release.yml, and it follows that file's shape rather
-# than the house Android pattern in ~/.claude/skills/sosi-android-app-delivery
-# on one point: signing material comes from GitHub secrets, not from Workload
+# than the house Android pattern on one point: signing material comes from GitHub secrets, not from Workload
 # Identity Federation into GCP. The skill's rule exists for apps on the party
 # Play account with a WIF pool already standing. This app has neither, and this
 # repository ALREADY signs iOS from GitHub secrets, so a second auth mechanism
 # would be a fork for its own sake. The keystore is backed up in Secret Manager
-# (borgarland-android-upload-*, project fedora-setup-secrets).
+# (borgarland-android-upload-*, in the party secret store).
 #
 # Until the three secrets exist this workflow SKIPS with a visible reason
 # instead of failing, for the same reason ios-release.yml does: pushing a tag

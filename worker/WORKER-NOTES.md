@@ -144,7 +144,7 @@ against the database, and it requires deciding first that the city really did
 not receive the report — check the city's own queue, not our row:
 
 ```bash
-eval "$(node ~/.claude/scripts/switch-cf-profile.mjs samtak)"
+# with the Samtak svf. Cloudflare API token active:
 cd worker && npx wrangler d1 execute borgarland-relay --remote \
   --command "SELECT id, created_at, rejection FROM reports WHERE dry_run = 0"
 # then, only for a row confirmed never to have reached the city:
@@ -159,7 +159,7 @@ again, so the check is the city's queue and nothing else.
 **iceaddr-ts comes from npm.** `iceaddr-ts@^0.1.0` is published, so a fresh
 `npm install` resolves it with no manual step.
 
-It used to be a `file:` dependency pointing at `~/Development/projects/stadfangaskra`.
+It used to be a `file:` dependency pointing at a local checkout of the address-registry project.
 That worked on one machine and nowhere else: CI failed with
 `Cannot find package 'iceaddr-ts'` on the first run that left this laptop, which
 is the only place a path like that can ever be found.

@@ -14,7 +14,7 @@ for this project and it was established by black-box probing, not documentation.
 ## Rule detail (read on the trigger)
 
 Each section below keeps its rule as one line. The full wording, its history and its measurements moved
-verbatim to `docs/agents/` (agent-config#1482 step 4); read the file when its trigger fires.
+verbatim to `docs/agents/`; read the file when its trigger fires.
 
 | Detail file | Holds | Read it when |
 |:--|:--|:--|
@@ -114,7 +114,7 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
 |:--|:--|
 | Worker | `cd worker && npm run check` (typecheck, then vitest) |
 | Repo-wide guards | `node scripts/check-parity.mjs`, `node scripts/check-app-path-filters.mjs`, and the other `scripts/check-*.mjs` |
-| Android | Gradle runs on samtak-mac via `~/.claude/scripts/mac-remote.mjs` (see `android/AGENTS.md`) |
+| Android | Gradle runs on a remote Mac build host, not locally (see `android/AGENTS.md`) |
 
 ## Conventions
 
@@ -135,5 +135,5 @@ subdirectory is read or edited. Other hosts may not load it at all, and an actio
 ## Origin
 
 The idea is Biggi Veira's. The conversation it came from, transcribed with
-speaker attribution and the requirements extracted, is private and lives outside
-this repo at `~/fedora-setup/projects/borgarland/conversations/`.
+speaker attribution and the requirements extracted, is private and is not kept
+in this repo.

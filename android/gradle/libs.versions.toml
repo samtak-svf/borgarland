@@ -1,4 +1,4 @@
-# Versions mirror /home/gudro/Development/projects/rosaparks/gradle/libs.versions.toml
+# Versions mirror the sibling Rósa Parks project
 # (that project demonstrably builds on this machine with JDK 25). The one
 # addition is CameraX 1.6.1, the latest stable on Google Maven at build time;
 # it is a camera library and does no networking.

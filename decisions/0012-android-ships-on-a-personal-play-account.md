@@ -39,11 +39,11 @@ and Play internal testing.
 
 ## Why a personal Play account
 
-The house pattern (`~/.claude/skills/sosi-android-app-delivery`) puts every
+The house pattern puts every
 Android app on the Sósíalistaflokkurinn developer account
 `5400094003987166957`. Borgarland is a Samtak svf. app, and Rósa Parks being
-stuck on that same party account is an **open severance item** — rosa-parks#277,
-tracked in the severance ledger rosa-parks#268. Publishing a second co-op app
+stuck on that same party account is an **open severance item**, tracked outside this
+repo. Publishing a second co-op app
 there would deepen an entanglement that is actively being unwound.
 
 The personal account costs nothing, waits for nothing, and belongs to no party.
@@ -91,7 +91,7 @@ than left to be discovered:
    pool already standing; this app has neither, and this repository *already*
    signs iOS from GitHub secrets. A second auth mechanism would be a fork for its
    own sake. The keystore is backed up in Secret Manager as
-   `borgarland-android-upload-*` in `fedora-setup-secrets`.
+   `borgarland-android-upload-*` in the party secret store.
 
 2. **R8 stays off.** The skill's Gradle block sets `isMinifyEnabled = true`.
    Turning on minification in the same change that adds Firebase is exactly what
@@ -101,7 +101,7 @@ than left to be discovered:
    mapping upload. Turning it on is #118, with its own device smoke test.
 
 **The upload key cannot be rotated once Play pins it.** It exists in two places
-and must stay in both: `fedora-setup-secrets` and the GitHub secret. This
+and must stay in both: the party secret store and the GitHub secret. This
 repository is public, so `android/app/*.p12` and `android/app/keystore.properties`
 were added to `.gitignore` *before* the key was generated.
 

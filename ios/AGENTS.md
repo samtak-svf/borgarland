@@ -1,7 +1,7 @@
 # iOS app context
 
 > Path-scoped context, loaded when you read or edit a file under this directory.
-> Read this directly before iOS work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply (agent-config#1482 step 4).
+> Read this directly before iOS work that opens no file here. Root rules in [AGENTS.md](../AGENTS.md) still apply.
 
 **iOS — nobody's skills decide, because Apple publishes none.** Checked
 2026-08-24: `apple/skills` and every obvious variant is a 404, and no repository
