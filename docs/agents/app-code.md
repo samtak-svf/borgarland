@@ -8,7 +8,7 @@ this project learned the expensive way: *the screenshot is the instrument, take
 it before you theorise.* #110 was in every screenshot already captured while an
 agent read accessibility trees and blamed its own taps.
 
-**Build and test run on a remote Mac build host.** Gradle runs there: `cd android && ./gradlew testDebugUnitTest`; see `android/AGENTS.md`.
+**The maintainers build and test on a remote Mac build host; any machine with a suitable JDK works.** The command is `cd android && ./gradlew testDebugUnitTest`; see `android/AGENTS.md`.
 
 A hook in the agent tooling says this once per platform per session on the
 first touch of `.kt` or `.swift`, including edits made through the shell. If you

@@ -61,7 +61,7 @@ nearest house. Detail: [docs/research/addresses-and-the-registry.md](../docs/res
 ## Cloudflare
 
 The Worker and its D1 live on **Samtak svf.'s** Cloudflare account, the one that
-serves `api.samtak.is`. Use that account's API token before any wrangler operation.
+serves `api.samtak.is`. Use that account's API token (`CLOUDFLARE_API_TOKEN`) before any wrangler operation.
 
 Create the D1 with `--jurisdiction eu`. A jurisdiction can only be set at
 creation and can never be added afterwards; a plain `wrangler d1 create`
