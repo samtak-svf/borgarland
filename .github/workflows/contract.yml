@@ -109,8 +109,15 @@ jobs:
         run: |
           set -uo pipefail
           page=$(mktemp)
-          curl -sS https://reykjavik.is/abendingar/senda-abendingu -o "$page"
-          live=$(grep -oP 'name="cat" value="\K[^"]*' "$page" | sort | tr '\n' ' ')
+          curl -fsS --compressed https://reykjavik.is/abendingar/senda-abendingu -o "$page"
+          # -a: the page carries a NUL byte (offset ~6143, seen 2026-11-20), so a plain
+          # grep prints "binary file matches" and extracts nothing.
+          live=$(grep -aoP 'name="cat" value="\K[^"]*' "$page" | sort | tr '\n' ' ')
+          if [ -z "${live// /}" ]; then
+            echo "::error::extracted nothing: the page shape changed (no name=\"cat\" inputs found)"
+            echo "  fetched $(wc -c < "$page") bytes from the picker page"
+            exit 1
+          fi
           known=$(node -e '
             const f = require("./data/reykjavik-form.json")
             console.log(f.categories.map(c => c.slug).sort().join(" ") + " ")
